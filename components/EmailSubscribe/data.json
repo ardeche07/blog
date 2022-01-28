@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "buttonLabel": "Subscribe",
+    "thankYou": {
+      "followupType": "none",
+      "followupValue": null,
+      "default": true
+    },
+    "waitingLabel": "Please Wait"
+  },
+  "fields": [
+    {
+      "id": "Email",
+      "label": "Email:",
+      "dataType": "email",
+      "validationMessage": "Must be valid email. <span class='mktoErrorDetail'>example@yourdomain.com</span>",
+      "rowNumber": 0,
+      "columnNumber": 0,
+      "required": true,
+      "formPrefill": true,
+      "visibilityRules": {
+        "ruleType": "alwaysShow"
+      },
+      "hintText": "Email Address"
+    },
+    {
+      "id": "UTM_Campaign__c",
+      "label": "UTM Campaign:",
+      "dataType": "hidden",
+      "rowNumber": 1,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "utm_campaign"
+      }
+    },
+    {
+      "id": "UTM_Content__c",
+      "label": "UTM Content:",
+      "dataType": "hidden",
+      "rowNumber": 2,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "utm_content"
+      }
+    },
+    {
+      "id": "UTM_Medium__c",
+      "label": "UTM Medium:",
+      "dataType": "hidden",
+      "rowNumber": 3,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "utm_medium"
+      }
+    },
+    {
+      "id": "UTM_Source__c",
+      "label": "UTM Source:",
+      "dataType": "hidden",
+      "rowNumber": 4,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "utm_source"
+      }
+    },
+    {
+      "id": "UTM_Term__c",
+      "label": "UTM Term:",
+      "dataType": "hidden",
+      "rowNumber": 5,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "utm_term"
+      }
+    },
+    {
+      "id": "gaid__c",
+      "label": "gaid:",
+      "dataType": "hidden",
+      "rowNumber": 6,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "gaid"
+      }
+    },
+    {
+      "id": "gclid__c",
+      "label": "gclid:",
+      "dataType": "hidden",
+      "rowNumber": 7,
+      "columnNumber": 0,
+      "required": false,
+      "autoFill": {
+        "value": "",
+        "valueFrom": "query",
+        "parameterName": "gclid"
+      }
+    }
+  ]
+}
