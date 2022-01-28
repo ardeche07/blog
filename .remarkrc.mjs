@@ -1,4 +1,3 @@
-import remarkVariables from "./.build/server/remark-variables.mjs";
 import remarkIncludes from "./.build/server/remark-includes.mjs";
 
 const configFix = {
@@ -21,7 +20,6 @@ const configLint = {
   plugins: [
     "frontmatter",
     "mdx",
-    [remarkVariables, { resolve: true, lint: true }],
     [remarkIncludes, { lint: true }],
     "preset-lint-markdown-style-guide",
     ["lint-table-pipe-alignment", false],

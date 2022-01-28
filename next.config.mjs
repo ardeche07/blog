@@ -1,5 +1,4 @@
 /* eslint-env node */
-import { resolve } from "path";
 import bundleAnalyzer from "@next/bundle-analyzer";
 import mdxSiteOptions from "./.build/server/mdx-config-site.mjs";
 
@@ -7,16 +6,11 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
-const PAGES_DIRECTORY = resolve("pages");
-const CONTENT_DIRECTORY = resolve("content");
-
 export default withBundleAnalyzer({
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
   outputFileTracing: false,
   images: {
-    path: "/_next/image",
     disableStaticImages: true,
-    domains: ["i.ytimg.com"],
   },
   experimental: {
     // ssr and displayName are configured by default
@@ -47,8 +41,6 @@ export default withBundleAnalyzer({
 
     config.module.rules.push({
       test: /\.(md|mdx)$/,
-      include: PAGES_DIRECTORY,
-      exclude: CONTENT_DIRECTORY,
       use: [
         options.defaultLoaders.babel, //TODO: need check
         {

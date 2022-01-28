@@ -24,7 +24,7 @@ Clone the repo and init submodules with the actual docs:
 
 ```bash
 git clone git@github.com:gravitational/blog.git
-cd next
+cd blog
 ```
 
 Install dependencies with:
