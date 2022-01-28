@@ -1,12 +1,5 @@
 // https://developers.marketo.com/rest-api/endpoint-reference/
 
-declare interface MarketoToken {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  scope: string;
-}
-
 declare interface MarketoThankYou {
   default?: boolean;
   followupType?: string;
@@ -82,30 +75,7 @@ declare interface MarketoField {
   };
 }
 
-declare interface MarketoFormMeta {
-  buttonLabel: string;
-  thankYou: MarketoThankYou;
-  waitingLabel: string;
-}
-
 declare interface MarketoFormDataAPIResponse {
   meta: MarketoFormMeta;
   fields: MarketoField[];
-}
-
-declare interface MarketoMessage {
-  code: string;
-  message: string;
-}
-
-declare interface MarketoSubmitFormResponse {
-  errors: MarketoMessage[];
-  requestId: string;
-  result: {
-    id: number;
-    status: "created" | "updated" | "skipped";
-    reasons?: MarketoMessage[];
-  }[];
-  success: boolean;
-  warnings: MarketoMessage[];
 }
