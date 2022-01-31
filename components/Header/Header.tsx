@@ -7,21 +7,10 @@ import Link from "components/Link";
 import Logo from "components/Logo";
 import Menu from "components/Menu";
 import HeadlessButton from "components/HeadlessButton";
-import Centrator from "components/Centrator";
 import blockBodyScroll from "utils/block-body-scroll";
 import HeaderCTA from "./HeaderCTA";
 
-export type HeaderMode = "simple" | "full" | "none";
-export type HeaderBehaviour = "floating" | "static";
-
-export interface HeaderProps {
-  mode: HeaderMode;
-  headerColor: string;
-  border?: string;
-  shadow?: boolean;
-}
-
-const Header = ({ mode, headerColor, border, shadow = false }: HeaderProps) => {
+const Header = () => {
   const [isNavigationVisible, setIsNavigationVisible] =
     useState<boolean>(false);
   const toggleNavigaton = useCallback(() => {
@@ -29,57 +18,20 @@ const Header = ({ mode, headerColor, border, shadow = false }: HeaderProps) => {
     blockBodyScroll(isNavigationVisible);
   }, [isNavigationVisible]);
 
-  switch (mode) {
-    case "none":
-      return;
-
-    case "simple":
-      return (
-        <Flex
-          as="header"
-          position="absolute"
-          top="0"
-          right="0"
-          left="0"
-          height={["48px", "80px"]}
-          alignItems="center"
-        >
-          <Centrator>
-            <Link href="/">
-              <Logo
-                width={["121px", "150px"]}
-                height={["24px", "30px"]}
-                color="dark-purple"
-              />
-            </Link>
-          </Centrator>
-        </Flex>
-      );
-
-    default:
-      return (
-        <StyledHeader
-          as="header"
-          backgroundColor={headerColor}
-          border={border === "none" ? "none !important" : null}
-          boxShadow={shadow ? "0px 2px 8px rgba(12, 12, 14, 0.24)" : null}
-        >
-          <StyledLogoLink href="/">
-            <Logo width="121px" height="24px" color="dark-purple" />
-          </StyledLogoLink>
-          <StyledHamburger onClick={toggleNavigaton}>
-            <Icon
-              name={isNavigationVisible ? "close" : "hamburger"}
-              size="md"
-            />
-          </StyledHamburger>
-          <StyledContentWrapper isNavigationVisible={isNavigationVisible}>
-            <Menu />
-            <HeaderCTA />
-          </StyledContentWrapper>
-        </StyledHeader>
-      );
-  }
+  return (
+    <StyledHeader as="header">
+      <StyledLogoLink href="/">
+        <Logo width="121px" height="24px" color="dark-purple" />
+      </StyledLogoLink>
+      <StyledHamburger onClick={toggleNavigaton}>
+        <Icon name={isNavigationVisible ? "close" : "hamburger"} size="md" />
+      </StyledHamburger>
+      <StyledContentWrapper isNavigationVisible={isNavigationVisible}>
+        <Menu />
+        <HeaderCTA />
+      </StyledContentWrapper>
+    </StyledHeader>
+  );
 };
 
 export default Header;
@@ -87,8 +39,6 @@ export default Header;
 const StyledHeader = styled(Flex)(
   css({
     alignItems: "center",
-    borderBottom: "1px solid",
-    borderColor: "lightest-gray",
     height: "80px",
     left: 0,
     position: "absolute",

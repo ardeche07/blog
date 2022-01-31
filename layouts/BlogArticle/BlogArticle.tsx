@@ -59,13 +59,7 @@ export const BlogArticle = ({
   return (
     <>
       <Head title={title} description={description} noIndex={noindex} />
-      <Layout
-        border="none"
-        behaviour="floating"
-        lineHeight="lg"
-        hideWave="true"
-        pt={[6, 11]}
-      >
+      <Layout lineHeight="lg" hideWave="true" pt={[6, 11]}>
         <Section py={[6, 11]} bg="flatWhite">
           <Centrator flexDirection="column" textAlign="center">
             <StyledLink href="/blog/rss.xml" ariaLabel="rss feed"></StyledLink>

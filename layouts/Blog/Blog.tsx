@@ -54,7 +54,7 @@ function BlogIndexPage({
         title={!!tag ? `Blog articles on ${tag}` : "Blog"}
         description="Welcome to the Teleport Blog! We write about operating cloud software in production"
       />
-      <Layout border="none" behaviour="floating">
+      <Layout>
         <SectionHeader
           subtitle={
             <StyledSubtitle as="p">

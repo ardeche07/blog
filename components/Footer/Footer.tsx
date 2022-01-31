@@ -4,7 +4,7 @@ import { Launchpad } from "components/Launchpad";
 import { EmailSubscribe } from "components/EmailSubscribe";
 import theme from "components/theme";
 import { Copyright } from "./Copyright";
-import { launchpadData, copyrightLinks } from "./structure";
+import data from "./footer.json";
 import gridPngUrl from "./assets/grid-light.png";
 
 const background = [
@@ -12,16 +12,10 @@ const background = [
   theme.gradients.grayToWhite.background,
 ].join(",");
 
-export interface Props {
-  short?: boolean;
-}
-
-export default function Footer({ short }: Props) {
-  const copyrightProps: { pt?: number[] } = {};
-
-  if (!short) {
-    copyrightProps.pt = [6, 8];
-  }
+export default function Footer() {
+  const copyrightProps: { pt?: number[] } = {
+    pt: [6, 8],
+  };
 
   return (
     <Flex
@@ -41,8 +35,8 @@ export default function Footer({ short }: Props) {
         backgroundRepeat="no-repeat"
         background={background}
       >
-        {!short && <Launchpad sections={launchpadData} />}
-        <Copyright links={copyrightLinks} {...copyrightProps} />
+        <Launchpad sections={data.launchpad} />
+        <Copyright links={data.copyright} {...copyrightProps} />
       </Box>
     </Flex>
   );
