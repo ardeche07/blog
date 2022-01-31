@@ -40,6 +40,16 @@ export const buildPath = (parts: URLParts): string => {
   return result;
 };
 
+// Ensure that relative lins always starts with ./, can be needed to open files in Node
+
+export const relatify = (href: unknown) => {
+  if (typeof href !== "string") {
+    return;
+  }
+
+  return !/\.\.?\//.test(href) ? `./${href}` : href;
+};
+
 // router.asPath returns original path before rewrites, so to match
 // broser url with url in asPath we need to first apply rewrites to it
 // manually
