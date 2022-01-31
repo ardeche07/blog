@@ -1,6 +1,19 @@
 import styled from "styled-components";
 import css from "@styled-system/css";
-import { components as baseComponents } from "layouts/SitePage";
+import BaseCode from "components/Code";
+import BaseLink, { LinkProps } from "components/Link";
+import { Code, UL, OL, Video, Image, Figure, IFrame } from "components/MDX";
+
+const StyledH1 = styled("h1")(
+  css({
+    mt: 2,
+    mb: 5,
+    fontSize: "header-2",
+    fontWeight: "black",
+    lineHeight: "xl",
+    color: "black",
+  })
+);
 
 const articleText = styled("p")(
   css({
@@ -87,7 +100,18 @@ const StyledTable = styled("table")(
 );
 
 export const components = {
-  ...baseComponents,
+  code: Code,
+  img: Image,
+  iframe: IFrame,
+  h1: StyledH1,
+  ul: UL,
+  ol: OL,
+  video: Video,
+  pre: BaseCode,
+  a: function Link(props: LinkProps) {
+    return <BaseLink {...props} scheme="site" />;
+  },
+  Figure,
   h2: header2,
   h3: header3,
   p: articleText,
