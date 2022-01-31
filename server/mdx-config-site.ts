@@ -22,15 +22,13 @@ const config: MdxConfig = {
     [
       remarkLayout,
       {
-        layouts: {
-          blogArticle: {
-            path: "layouts/BlogArticle",
-            metaProcessor: async (config: Record<string, unknown>) => {
-              const data = await getArticlesListAndTags(4);
-              config.featuredList = data.list; // Four last articles
-              config.articleTags = data.tags; // Fill tags list for all blog posts
-              return config;
-            },
+        defaultLayout: {
+          path: "layouts/BlogArticle",
+          metaProcessor: async (config: Record<string, unknown>) => {
+            const data = await getArticlesListAndTags(4);
+            config.featuredList = data.list; // Four last articles
+            config.articleTags = data.tags; // Fill tags list for all blog posts
+            return config;
           },
         },
       },

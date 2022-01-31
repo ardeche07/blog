@@ -28,14 +28,6 @@ export interface MdxElement extends UnistParent {
   children: MdxastNode[];
 }
 
-export interface MdxBlockElement extends MdxElement {
-  type: "mdxBlockElement";
-}
-
-export interface MdxSpanElement extends MdxElement {
-  type: "mdxSpanElement";
-}
-
 export interface MdxJsxFlowElement extends MdxElement {
   type: "mdxJsxFlowElement";
 }
@@ -58,11 +50,7 @@ export interface PlainEsmNode extends UnistNode {
 }
 export type EsmNode = PlainEsmNode | ProgramEsmNode;
 
-export type MdxAnyElement =
-  | MdxBlockElement
-  | MdxSpanElement
-  | MdxJsxFlowElement
-  | MdxJsxTextElement;
+export type MdxAnyElement = MdxJsxFlowElement | MdxJsxTextElement;
 
 export type MdxastNode = MdastContent | MdxAnyElement | EsmNode;
 

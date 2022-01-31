@@ -38,12 +38,7 @@ interface RemarkImportFilesOptions {
 }
 
 const isMdxNode = (node): node is MdxAnyElement =>
-  [
-    "mdxJsxTextElement",
-    "mdxJsxFlowElement",
-    "mdxBlockElement",
-    "mdxSpanElement",
-  ].includes(node.type);
+  ["mdxJsxTextElement", "mdxJsxFlowElement"].includes(node.type);
 
 const isMDXNodeWithAttributes = (
   node: MdxastNode,
