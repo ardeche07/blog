@@ -1,6 +1,5 @@
 import styled from "styled-components";
 import css from "@styled-system/css";
-<<<<<<< HEAD
 import BaseCode from "components/Code";
 import BaseLink, { LinkProps } from "components/Link";
 import { Code, UL, OL, Video, Image, Figure, IFrame } from "components/MDX";
@@ -15,9 +14,6 @@ const StyledH1 = styled("h1")(
     color: "black",
   })
 );
-=======
-import { components as baseComponents } from "layouts/SitePage";
->>>>>>> 90175c0 (Revert "Revert "added BlogArticle and Blog layouts as well as related components"")
 
 const articleText = styled("p")(
   css({
@@ -104,7 +100,6 @@ const StyledTable = styled("table")(
 );
 
 export const components = {
-<<<<<<< HEAD
   code: Code,
   img: Image,
   iframe: IFrame,
@@ -117,9 +112,6 @@ export const components = {
     return <BaseLink {...props} scheme="site" />;
   },
   Figure,
-=======
-  ...baseComponents,
->>>>>>> 90175c0 (Revert "Revert "added BlogArticle and Blog layouts as well as related components"")
   h2: header2,
   h3: header3,
   p: articleText,
