@@ -1,0 +1,77 @@
+copyright:
+  - title: Terms of service
+    url: /tos/
+  - title: Privacy policy
+    url: /privacy/
+  - title: Security policy
+    url: /security/
+  - title: Site map
+    url: /html-sitemap/
+
+launchpad:
+  - title: Products
+    items:
+      - title: Teleport Overview
+        url: /
+      - title: Teleport Server Access
+        url: /ssh-server-access/
+      - title: Teleport Kubernetes Access
+        url: /kubernetes-access/
+      - title: Teleport Database Access
+        url: /database-access/
+      - title: Teleport Application Access
+        url: /application-access/
+      - title: Teleport Desktop Access
+        url: /desktop-access/
+      - title: Teleport Features
+        url: /features/
+      - title: Teleport Pricing
+        url: /pricing/
+
+  - title: Documentation
+    items:
+      - title: Documentation home
+        url: /docs/
+      - title: How Teleport works
+        url: /teleport/how-it-works/
+      - title: GitHub repository
+        url: https://github.com/gravitational/teleport
+
+  - title: Learn
+    items:
+      - title: Blog
+        url: /blog/
+      - title: Customers
+        url: /case-study/
+      - title: Resources
+        url: /resources/
+      - title: Events
+        url: /about/events/
+
+  - title: Company
+    items:
+      - title: About us
+        url: /about/
+      - title: Careers
+        url: /careers
+      - title: News
+        url: /about/press/
+
+  - title: Get in touch
+    items:
+      - title: (855) 818 9008
+        url: tel:855-818-9008
+      - title: General inquiries
+        url: /contact-us/
+      - title: Customer support
+        url: https://gravitational.zendesk.com/hc/en-us
+      - title: Connect
+        items:
+          - title: Community forum
+            url: https://github.com/gravitational/teleport/discussions
+          - title: Slack
+            url: /slack
+          - title: Github
+            url: https://github.com/gravitational
+          - title: Twitter
+            url: https://twitter.com/goteleport
