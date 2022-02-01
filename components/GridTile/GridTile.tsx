@@ -1,6 +1,5 @@
 import styled from "styled-components";
 import { all, css } from "components/system";
-import NextImage from "next/image";
 import Link from "components/Link";
 import Box, { BoxProps } from "components/Box";
 import Flex from "components/Flex";
