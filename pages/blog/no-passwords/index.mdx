@@ -1,0 +1,98 @@
+---
+title: Why it is time to get rid of passwords in our infrastructure
+description: Passwordless is a phrase generating a lot of buzz in the consumer space.  But our infrastructure is full of passwords too and that needs to stop.
+articleTitle: It’s Time to Get Rid of Passwords in Our Infrastructure
+date: "2021-11-19"
+author: Alexander Klizhentas
+logo:
+  image: ./assets/no-passwords.png
+  alt: passwordless infrastructure
+tags:
+  - security
+layout: blogArticle
+---
+
+Passwords are everywhere. Sometimes they are obvious — hardcoded in the code or laying flat in the file. Other times, they take the form of API keys, tokens, cookies or even second factors. Devs pass them in environment variables, vaults mount them on disk, teams share them over links, copy to CI/CD systems and code linters. Eventually someone leaks, intercepts or steals them. Because they pose a security risk, there is no other way to say it: passwords in our infrastructure have to go.
+
+There are two fundamental issues with passwords.
+
+1. They are possible to guess and brute-force. Using random password generators only partially addresses this problem.
+2. Hackers can intercept and steal passwords well before any breach is detected. In fact, every single system or user who ever gets access to a password increases the probability of the hack. It is impossible to solve this problem. After all, a password is just a collection of characters passed as is.
+
+In this post, I will briefly show where to find the passwords lurking in your infrastructure. I will also challenge status quo assumptions about what we consider “good enough” replacements for passwords. Bear with me for a contrarian take on some approaches we consider secure today.
+
+## Identify the passwords used in your system
+
+I define a password as any text that can be copied and passed “as is” from a client to a service on the wire for authentication.
+
+There are several types of passwords:
+
+- **Classic** — These are just simple plain-text passwords we are all used to.
+- **Tokens** — Not all tokens are passwords. However, if the token has a long life-cycle, and is copied over and shared, don’t be fooled. This is just a password in disguise. If the token is one-time use, that’s still a password, but quite a harmless one. It can still be stolen, but is useless once it expires.
+- **API keys** — API keys are just passwords used by services. Those get stolen [all the time](https://www.infoq.com/news/2021/09/travis-ci-secrets-leak/).
+- **Second factors** — If a second factor is a number that is sent over SMS, it’s still a password. There is now software as a service that intercepts these second-factor passwords. The same applies to “magic login links” sent over email, or even a TOTP token.
+
+## Where there are passwords, there are password aggregators
+
+Some types of software promising to replace passwords are more dangerous than they seem, because they give you a false sense of security and reinforce the status quo. If you are using them, you haven’t replaced passwords, but created a treasure chest for hackers. These apps call themselves “Password managers” or “Vaults”. I would call them “password aggregators”.
+
+- Password managers — exchange multiple passwords for one “root” password. There is a fair argument that these tools replace many possibly weak, reused passwords with unique, random passwords protected by one, strong password with a second factor. On the other hand, this makes it much easier for an attacker to target the password manager itself to get full access to the infrastructure. Password managers were once a helpful step towards replacing a really bad state of affairs with hardcoded, copied and weak passwords. Today password managers are legacy tools that have to be phased out.
+- Vaults — most vaults are password managers that took on a different name. They usually store API keys and tokens. Once an API key is taken from a vault, there is no way to know how it was used, copied, or stored by the system. Vaults reinforce bad authentication mechanisms. I think it’s time for them to go.
+- CI/CD systems — Jenkins, TravisCI, and CircleCI have built-in “secret managers”. Having passwords in your CI/CD systems is one reason why supply chain attacks can be so dangerous. Your Jenkins should be just another client to the system — not the “key czar”. Here is just one example when a simple [code coverage tool (Codecov) hack](https://www.bleepingcomputer.com/news/security/popular-codecov-code-coverage-tool-hacked-to-steal-dev-credentials/) blast radius covered half of the internet’s secrets (Codecov has a customer base of more than 29,000 enterprises).
+- Smart proxies — If those need shared passwords or API keys, they store those shared passwords and pass them around. They can be MITMed, hacked or stolen without anyone detecting the breach.
+
+## Replacing passwords for users
+
+I hope the above convinced you that passwords need to be replaced in your infrastructure. But beware — not everything that replaces a password is a better choice. I think that only relatively simple, purpose-built security devices that use public/private key crypto, and that verify presence and identity through biometrics, are a good-enough replacement for passwords today.
+
+Let me explain why only this combination of simplicity, public-private key crypto and biometrics works today:
+
+- Hardware security devices like Yubikey or embedded Touch ID are relatively simple, purpose-built and tamper-proof devices that are hard to target with software attacks. I think it is the complexity that rules out smartphones’ pure software authentication as a good password replacement. This year’s iPhone’s zero-click hack [“Forced entry”](https://citizenlab.ca/2021/08/bahrain-hacks-activists-with-nso-group-zero-click-iphone-exploits/") turned what I considered the most secure smartphone on the market into something hackers can take over by sending an SMS message.
+- Public/private key crypto and Webauthn protects from man-in-the middle (MITM) attacks and rules out time-based one-time passwords (TOTP).
+- Presence — the user has to tap a device to demonstrate presence. This protects from hacks that get access to the device API. Hackers would need to trick users into tapping the key. This is possible, but is much, much harder.
+- Biometric-based verification of identity protects someone from going to grab coffee while their kid authorizes a purchase. This rules out simple U2F tokens with no biometrics. PIN-protected devices could be a decent alternative.
+
+Here are some tools that — in my opinion — are worse than passwords:
+
+- One-time login links sent to email. Let’s say you generated a crypto-random, long password and stored it in a vault. You only use the password over a secure channel, like HTTPS and always use a password manager to fill it in. Despite all the drawbacks, this system is pretty hard to hack. Compare it to the one-time link sent over email. Sure, the state of [email encryption](https://transparencyreport.google.com/safer-email/overview") got much better over years, but SMTP does not guarantee encrypted communication between hops, and secrets in email are passed in plain text. With password-reset links, we are one step away from an XSS attack scanning the contents of the email and a reset link with it. Such links are a step back, not forward, from passwords.
+- Time-based one-time passwords (TOTP) are not a good replacement for usual passwords, as the former are subject to man-in-the-middle (MITM) and phishing attacks. TOTP does not verify the user’s identity and presence. I’d still prefer to add TOTP to any password-based form, but I would not consider TOTP a replacement for non-time-sensitive passwords.
+- “AI” pure-software-based facial recognition that does not formally verify the user’s physical presence and does not [use secure enclave](https://support.apple.com/guide/security/secure-enclave-sec59b0b31ff/web") is [possible to hack](https://threatpost.com/researchers-bypass-apple-faceid-using-biometrics-achilles-heel/147109/) as well.
+- Mobile phone pure-software identity verification systems are sometimes better than passwords in practice, but are weaker than security devices due to phone OS complexity, connectivity and zero day attacks.
+- SMS is not a second factor or a viable replacement for passwords, as it uses insecure communication channels; SIM swapping or social engineering makes it easy for attackers to gain access to the messages.
+- “Risk-based” authentication analyzes a combination of factors, like client IP or device information, to grant access. Such information is possible to spoof. Risk-based auth may be an extra layer of protection, but cannot be the only layer.
+
+## What security devices should I use?
+
+I have to admit — there aren’t many security devices on the market. We can use today:
+
+- Mac Touch ID and FaceID. Both use tamper-proof hardware and store the mathematical representation of the key in a [secure enclave](https://support.apple.com/en-us/HT204587) that can’t be accessed by the OS.
+- YubiKey Bio. Yubico has a great security track record and solid designs in the past, so we can assume the same level of security with a new Bio.
+
+This list is not exhaustive, and I hope more purpose-built security devices will be available soon.
+
+<EmailSubscribeViolet />
+
+## Replacing passwords for services
+
+Services are affected by the password problem just like users. Quite often you find services sending emails with passwords hardcoded. In better engineered systems, Vaults mount secrets in the folder and make it accessible to services. Take a look at Kubernetes secrets or Vault for example. I think we should consider both practices not secure enough:
+
+- Once the password (token, API key) is mounted or copied, there is no way to limit its scope — someone can copy it, undetected.
+- Once it’s mounted, it’s usually stored in plain text.
+- Just like for users, passwords in API authentication are subject to MITM attacks.
+- There is a big operational overhead — system tracking, revoking and mounting.
+
+Organizations should replace password managers and aggregators (vaults) using short-lived certificates. We have written about short-lived certificates extensively in our blog, and we are biased, because our product, [Teleport](/), is a short-lived certificate system. But it’s not just because we offer certificates that we believe they’re better than passwords. We offer certificates because they actually are better than passwords.
+
+Here is why short-lived certificates, if implemented properly, are a much better alternative to passwords:
+
+- Each service has a unique identity encoded in a certificate’s metadata. Each other service knows the client and can identify it. This allows systems to provide fine-grained per-service access controls and mitigation if the machine or service is compromised.
+- A service’s private key never has to leave the boundary of a service. Pushing one step further, the service’s private key does not have to be stored on disk and be persistent.
+- Certificates are scoped by time — they can expire in 5 minutes and don’t have to be revoked.
+- Even further — certificates can be scoped to a specific IP, container and region, making them very hard to reuse.
+- Because certificates are based on Public Key Infrastructure, they are much harder to MITM if done right — the data integrity and identity verification is used from the client to the server all the way.
+
+You can also use [SPIFFE](https://spiffe.io/) and [Istio](https://istio.io/) today to start replacing passwords with short-lived certificates for your infrastructure. It doesn’t matter what you use for certificates, as long as you move away from passwords.
+
+## Towards a passwordless future
+
+As an industry, we need to build responsible systems that protect user data and prevent the critical infrastructure we maintain from being used to expose or compromise such data. Removing passwords from our infrastructure is one step towards this.

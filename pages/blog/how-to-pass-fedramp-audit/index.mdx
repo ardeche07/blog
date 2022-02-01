@@ -1,0 +1,45 @@
+---
+title: Guide to Pass a FedRAMP Audit for SaaS Providers
+description: This blog post covers what FedRAMP is and why it matters for SaaS providers.
+articleTitle: "How to Pass a FedRAMP Audit for SaaS Providers: Part 1"
+date: "2021-12-01"
+author: Allen Vailliencourt
+logo:
+  image: ./assets/fedramp-audit.png
+  alt: Guide to Pass a FedRAMP Audit
+tags:
+  - compliance
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+You work at a SaaS provider, and now you need to [pass a FedRAMP audit](https://goteleport.com/resources/white-papers/fedramp-how-to/). If that describes you, read on. This post will tell you (almost) everything you need to know about how to pass a FedRAMP Audit. For the rest, [reach out to us](https://goteleport.com/pricing/). We will put you in touch with one of our Solution Engineers like me who have helped some of the largest SaaS providers in the world pass their FedRAMP audit prior or after IPOing. It’s what we do.
+
+This blog post will cover what FedRAMP is and why it matters for SaaS providers. We will even talk about a success story with one of our publicly traded SaaS customers who used Teleport to pass their FedRAMP audit.
+
+Many software engineers roll their eyes when they hear the word “compliance.” It sounds boring, and maybe it is! But when you read through the FedRAMP controls, you realize that they are actually a collection of common-sense recommendations that have been proven to work. Are you against disabling inactive accounts? Enforcing role-based access controls (RBAC)? Of course not! If you do FedRAMP right, your reward will be not just accelerated growth of your SaaS business and better security.
+
+## What is FedRAMP?
+
+The FedRAMP (Federal Risk and Authorization Management Program) was originally proposed as a standardized approach for the federal government to adopt secure cloud services offered by the cloud providers. FedRAMP is a product of collaboration with multiple government agencies, such as NIST, GSA, DOD, and DHS.
+
+While the original focus of FedRAMP was on cloud infrastructure (i.e. things like virtual networks, servers, and firewalls), eventually it was applied to cloud applications as well.
+
+If your organization is currently offering, or planning to offer, cloud infrastructure or cloud software services to the federal government, you must have your software running on a FedRAMP-compliant cloud service provider (CSP) and your software must be able to a pass FedRAMP audit by an independent auditor. This auditor will ask to see how your SaaS application meets a detailed list of controls necessary to demonstrate FedRAMP compliance.
+
+Just like SOC 2, another popular compliance framework, FedRAMP introduces its own vocabulary. The foundational document is called FedRAMP [Security Assessment Framework (SAF)](https://www.fedramp.gov/assets/resources/documents/FedRAMP_Security_Assessment_Framework.pdf). This high-level document covers the process of becoming FedRAMP- compliant, but the technical details of “getting everything right” are described in the publication [Security and Privacy Controls for Federal Information Systems and Organizations](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf) maintained by the National Institute of Standards and Technology (NIST).
+
+FedRAMP requirements described in NIST publications are labeled with the severity of their impact: low, medium, or high. Each government agency is free to decide which level of compliance they desire. That is why terms such as “FedRAMP medium” or “FedRAMP high” are frequently used.
+
+<EmailSubscribeViolet />
+
+## Why FedRAMP matters for SaaS providers
+
+You might have been told to prepare for a FedRAMP audit. But why is your company bothering with FedRAMP certification in the first place? That’s easy. Growth.
+
+One multi-billion dollar publicly traded company that Teleport worked with to pass a FedRAMP audit was looking for sustainable growth post IPO. The Federal Government has a $92 billion IT budget in 2021 alone, so adding FedRAMP certification to serve this lucrative market was smart business. With Teleport, this company was able to pass their independent FedRAMP audit enabling them to run their cloud service on AWS GovCloud and list their service in the [FedRAMP Marketplace](https://marketplace.fedramp.gov/#!/products?sort=productName). Additionally, because Teleport makes it simple to implement security best practices without getting in the way of developer productivity, their entire offering is more secure, enabling them to demonstrate security and compliance to other important verticals like Financial Services, Healthcare, and more.
+
+Here is what the customer had to say: “Without Teleport we would not have gotten through the FedRAMP Moderate audit. Every time we do a demo, it’s very easy to get the auditors over the hump. It hit all the flags that they were looking for. It saved us a ton of time.”
+
+In the next blog post, I will walk you through FedRAMP controls and what you need to be prepared to show your FedRAMP auditor.

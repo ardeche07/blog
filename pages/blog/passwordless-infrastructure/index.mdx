@@ -1,0 +1,78 @@
+---
+title: How-to Talk About the End of Passwords in Infrastructure
+description: Here’s how to explain password security to your non-technical friends & family over the holidays.
+articleTitle: Talking the End of Passwords with Friends and Family
+date: "2021-11-22"
+author: William Loy
+logo:
+  image: ./assets/happy-pam.png
+  alt: passwordless infrastructure
+tags:
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Engineers worldwide have a tradition to look forward to every holiday season. You are taking in a sporting event on Thanksgiving Day when your uncle asks you why he keeps getting a message to update his iPhone; it’s only two years old. Or your grandma needs help with her hacked Facebook account. You lend a hand as the recognized family “computer person.” However, with high-profile security compromises dominating the news cycle, these conversations become serious and difficult to explain. One thing I expect to be talking about with my family this year is passwords…and I have a plan.
+
+Passwords are a concept everyone understands. An idea that predates computers by a few hundred years ([“open sesame”](https://en.wikipedia.org/wiki/Open_sesame) anyone?), passwords now infiltrate nearly every aspect of modern life.
+
+An accountant can relate to password cycling policies at work, an endless list of passwords for Internet of Things (IoT) devices, and the ever-present stress of a compromise as well as any engineer.
+
+What they don’t know is that the death of the password is imminent. [Passwords are just a bad way to protect sensitive data](https://goteleport.com/blog/no-passwords/), and not only will this topic help me make sure my family is safer from the perils of the internet, but talking about passwords in a relatable way will also help my family understand what I do for a living at Teleport.
+
+## Passwords in current events
+
+Whenever someone asks me what Teleport does, I bring up a recent event that most people remember. This talking point gives my audience confidence that they understand what I am talking about right away.
+
+Name a significant compromise that garnered national attention, shut down fuel distribution across the Eastern Seaboard of the United States, and created lines at gas stations that would make the lines at Disney World blush. Colonial Pipeline.
+
+### Passwords in the Colonial Pipeline attack
+
+In the Colonial Pipeline attack, an employee account that was no longer active but still had access to the Colonial Pipeline Virtual Private Network (VPN) was accessed using just a username and…a single password. Soon after, an operator received a ransom message at their workstation, and moments after that, a critical piece of infrastructure for the entire East Coast shut down.
+
+### The Tech
+
+You’d be hard-pressed to find someone at your family gathering who isn’t required to use a VPN to access company resources these days. This is especially true after the massive shift to remote access for work-from-home employees. Traditionally, VPNs have been an excellent solution for security professionals to grant remote access to users. So what happened at Colonial Pipeline? How do you explain this to an executive over a cocktail at the company holiday party?
+
+I will list some of the details of the compromise that made this company vulnerable to the attack. However, this list isn’t exclusive to just this company. Many companies are on this naughty list.
+
+- Access never expires. The compromised user wasn’t in use anymore, but the account still had access to the system that would never expire until it was disabled.
+- Password reuse. This user’s credentials were later discovered on the dark web. The password may have been reused for multiple accounts.
+- No multi-factor authentication (MFA). An attacker will be more successful if they only have to obtain a single username and password.
+
+## The solution to password problems
+
+As a Customer Success Engineer at Teleport, I spend my days helping customers avoid these exact problems. Teleport customers are the exact brands that my family relies on and trusts at home and at work like Google, Instacart, Doordash, Twitch, and IBM. So relating the topic to what I do, and to brands they know, helps it all click. Let’s look at how companies can avoid password issues like that which led to the Colonial Pipeline attack.
+
+### Replace access that never expires
+
+If access never expires, an attacker has unlimited time to use the stolen credentials. They can plan out their attack for maximum damage. Teleport uses identity-based, short-lived certificates in combination with multi-factor authentication (MFA) or Single Sign-On (SSO) to verify the identity of whoever is attempting to access your resources. This means, for example, no passwords or static SSH keys sitting around waiting to be compromised.
+
+### Eliminate reused passwords
+
+The temptation to reuse passwords is difficult to overcome. This is especially true if you have many resources you need to access regularly. Teleport users only authenticate to Teleport itself. Once authenticated, they can access only the resources they need to perform their job using short-lived certificates, not passwords that never expire. The permission portion is accomplished with the robust role-based access controls (RBAC) features built into Teleport.
+
+### Start using MFA for all critical accounts
+
+It is also tempting to avoid using multi-factor authentication (MFA) because it is an extra step. However, a solid second factor prevents unauthorized access to things your family cares about, like their bank account or social media profile. MFA is also becoming easier to use than ever. With Teleport, MFA setup is mandatory when a new user is being created.
+
+While Teleport does require a password at the user level, most often through integration with an SSO provider, the MFA requirement combined with short-lived certs ensures that a compromised user is improbable. To accomplish a compromise, a bad actor would need access to the user’s physical device, and increasingly, devices have biometric second factors like TouchID to reduce the risk further. We recently blogged about [what makes a good second factor for MFA](https://goteleport.com/blog/no-passwords/).
+
+<EmailSubscribeViolet />
+
+## Good advice on passwords for your family
+
+After talking about the above, I will hear the unanimous groan in agreement that passwords are a headache. My family will hopefully understand how Teleport secures the companies they rely on, but what can they do? I offer the following list of recommendations:
+
+- Use a password locker. As bad as passwords are for the reasons outlined above, using long, random, unique passwords for each service secured with a single strong password and MFA is a way better approach than using password123 everywhere.
+- Here is good advice and a fun party trick. Have your family check haveibeenpwned.com and change the password to every account it lists. People look like a ghost the first time they do this.
+- Use MFA for everything. TouchID makes this easy on iPhone and Mac.
+- Use “Login with” integrations instead of creating new passwords. For instance I use Google to log into Spotify. This is like using Okta for single sign-on at work, but for your personal accounts. Google is going to be much better at protecting your credentials than most other applications. And you can tie MFA to your Google account for added protection.
+
+If I talk to another engineer, the conversation topic will be different, but the approach is the same. Discuss something relatable.
+
+### The death of passwords
+
+From headline-catching compromises to everyday annoyances, passwords are coming to the end of their usefulness. They are simply too difficult to keep track of and keep secure. When you are gathered with others this holiday season, talk to them about the pitfalls of passwords, their options, and what the future will look like without passwords.
