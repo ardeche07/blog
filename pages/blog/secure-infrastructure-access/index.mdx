@@ -1,0 +1,102 @@
+---
+articleTitle: Why Secure Access to Cloud Infrastructure is Painful
+description: Secure remote access to cloud infrastructure is painful. Access Plane technology allows consolidating access in one place.
+title: Secure Access to Cloud Infrastructure is Painful
+date: "2021-09-02"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/hero.png
+  alt: secure cloud infrastructure
+tags:
+  - teleport
+  - security
+  - engineering
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+Can you enumerate every single network socket which can be used to hack into your cloud environment and steal your data?
+
+When counting, are you including the laptops of people who already authenticated and have access? The purpose of opening with this question is not to instill fear. Trying to answer it probably leads to “it’s complicated” and the complexity of access is what this article will cover.
+
+Complexity is our collective enemy in the computing industry. Complex systems are admired, yet they are hard to reason about, hard to secure, and let’s not forget — often unpleasant to use. Below, I will try offering a simple framework for how to think about secure infrastructure access, about its complexity, and a possible solution.
+
+You are reading this on a web site of the Access Plane company. Of course we are biased because there will be the plug for Teleport, our open source infrastructure access solution. But the advice offered here applies to almost everyone, and Teleport users such as NASDAQ, Snowflake, IBM and Google seem to think about access the same way.
+
+## What is infrastructure?
+
+A long time ago infrastructure used to mean servers, networks and storage. Today we are working and deploying into complex computing environments that consist of virtual machines, virtual load balancers, virtual storage volumes, virtual databases — the list goes on and on. Everything is defined as code. Everything listens on a socket, and everything needs access.
+
+## What is access?
+
+The word “access” is generic enough to mean many things to different people. There are numerous open source projects and companies that promise access. Let’s go from generic to specific by decomposing the access problem into four commonly requested capabilities:
+
+<BlogImage src="./assets/access.png" />
+
+You may agree or disagree with the definition above, but this is what we hear from the users. Let’s dive deeper:
+
+- **Connectivity** means that to have access, one must be able to exchange encrypted messages with a protected resource.
+- **Authentication** means proving that you are who you claim to be. A login screen, hopefully with multi-factor, is how we authenticate.
+- **Authorization** is what happens after. Authorization is about deciding which actions an authenticated user is allowed to perform. Read-only vs. read-write is one common example.
+- **Audit**, also known as visibility or observability, is seeing what is happening. It is important to have a real-time view and a historical record.
+
+This simple decomposition of “access” should help you understand and evaluate your current situation as well as the product landscape. VPNs, for example, cannot do authorization and audit for every resource; a VPN does not know if you have or do not have permissions to `DROP TABLE`. They only provide the connectivity part of access.
+
+## Why is access painful?
+
+Why are _connectivity, authentication, authorization and audit painful_? Have they always been hard?
+
+They are hard because the world’s computing needs are growing. Think of “computing” as a joint activity between hardware, software and people. Therefore:
+
+<BlogImage src="./assets/pain.png" />
+
+The struggle comes from scaling all three:
+
+- **Software** is getting more complex. A typical cloud computing environment now consists of more layers than before: operating systems, VMs, containers, Kubernetes clusters, several databases, Grafana dashboards. The list keeps growing, and every component needs access (connectivity, authentication, authorization, and audit).
+- **Hardware**. There is more of it now. Having tens of thousands of servers sprinkled across half a dozen data centers is way more common these days than ever before.
+- **Peopleware** means more people needing access. There are about 25 to 35 million software engineers out there, and the number keeps growing.
+  How do we cope?
+
+## How do we cope?
+
+What do organizations do to deal with the increasing complexity of implementing secure access? The popular strategies come with their own trade-offs:
+
+- **Shared secrets**. A security team carefully configures every resource type for remote access. But to minimize overhead, they configure access only for a handful of predefined users, like “admin” and “app”. The credentials for these predefined users are often stored in some form of an encrypted vault.
+- **Access restrictions**. It is possible to reduce attack surface area by making certain resource types not accessible by engineers. For example, SSH access can be completely disabled for everyone and only Kubernetes access is allowed.
+- **Relying on the perimete**r. Some teams choose to disable security within a private network entirely. They choose to take advantage of the fact that the network itself can authenticate clients via solutions like VPN.
+
+These approaches present numerous problems:
+
+- Shared secrets can be stolen. They tend to remain on an engineer’s laptop even after she changes employers. Shared secrets do not create a proper audit log, because users blend behind the same shared “admin” account.
+- Access restrictions severely limit engineering productivity and creativity. They also create incentives for engineering teams to be building backdoors for themselves to avoid dealing with corporate bureaucracy.
+- Relying on perimeter security creates a single common denominator.When attackers get access to a private network, nothing stops them from getting access to everything.
+
+## The power of consolidation
+
+Wouldn’t it be great if we could consolidate connectivity, authentication, authorization and audit in one place? This would make it irrelevant how much software, hardware and peopleware is involved.
+
+<BlogImage src="./assets/consolidation.png" />
+
+That’s where the idea for the Access Plane comes from. The word “plane” means “consolidation”. By unifying all pillars of access in one place, the pain introduced by scaling goes away.
+
+It does not matter how many engineers, servers, or databases an organization has if it uses an access plane.
+
+<EmailSubscribeViolet />
+
+## Trying it out
+
+What does an access plane look like? How can you build one? Essentially you will need the following components:
+
+- **Multi-protocol identity-aware access proxy**. The proxy must natively speak all supported protocols (SSH, Kubernetes, PostgreSQL, MySQL, etc.) and must enforce the unified authentication mechanism tied to a company’s identity platform.
+- **Unified audit log** and with the real-time view, which presents an accurate picture of everything that's going on: every connection into all of your cloud environments is visible and logged.
+- **Resource-native, or protocol-aware sidecars**; i.e., something that will automatically implement authorization and activity reporting for every supported resource type, be it a MongoDB database, a Kubernetes cluster, or an SSH machine.
+
+An access plane allows us to implement and enforce simple and logical rules with ease, such as: “Developers must not access production data”.
+
+Most technically sophisticated organizations implement access this way. One can rely on a combination of open source components and in-house expertise. [Downloading Teleport](/pricing/) is a much faster way to do it, and that’s why we started this project in 2016 and open sourced it a couple of years later.
+
+Teleport is not yet a complete access plane. It does not support every computing resource. Currently it provides unified access to SSH, Kubernetes clusters, MySQL, PostgreSQL, MongoDB and internal web apps. We’re launching support for additional protocols rapidly, so join our [community Slack](https://goteleport.com/slack/) to learn from other Teleport users and talk directly to Teleport core contributors.

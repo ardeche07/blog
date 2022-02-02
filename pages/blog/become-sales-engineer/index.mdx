@@ -1,0 +1,220 @@
+---
+articleTitle: So You Want to Become a Sales Engineer?
+description: What is sales engineering? How to become a sales engineer? Allen works as a sales engineer at Teleport and in this blog post he shares his journey.
+title: How to Become a Sales Engineer
+date: "2021-09-28"
+author: Allen Vailliencourt
+logo:
+  image: ./assets/becoming-se.png
+  alt: person typing on laptop
+tags:
+  - engineering
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Those of us that work with technology get this question a lot:
+
+“What do you do?”
+
+“I work in technology — more specifically, I work as a pre-sales engineer.”
+
+[blank stare]
+
+Sound familiar?
+
+Working in IT can mean a lot of different things, and to those outside of this world, it quickly becomes deeply technical and complicated to
+explain to non-IT people. Even explaining what you do to IT people can become complicated.
+
+Most IT professionals are used to titles and jobs that fit within the developer/programmer world, the security professional, the
+sysadmin/Site Reliability Engineering (SRE) role, etc. But when you mention Sales Engineering or Pre-Sales Engineering you will often get a
+blank stare.
+
+What is the mystery behind this career path, and how do you get here? I’m going to take some time and dig into this and maybe inspire you to
+look at this potential career option, and who knows? Maybe you’ll leverage this knowledge to join our team of awesome Sales Engineers here
+at Teleport!
+
+We’ll start off with a quick description of Sales Engineering, then delve into a Day in the Life of a Teleport Sales Engineer (SE), and
+finish off with some tips on how you can jumpstart your career in Pre-Sales!
+
+## What is Sales Engineering?
+
+Sales Engineering can have a few different definitions depending on your industry, role, and skillset. For the most part, though, the terms
+Sales Engineering and Pre-Sales Engineering can be interchangeable.
+
+### According to PreSales Collective, they define Pre-Sales as the following:
+
+<Quote>
+  PreSales is a sales function that typically exists in B2B technology sales.
+  PreSales Consultants work alongside Sales Representatives (a.k.a. Account
+  Executives) and are responsible for the “technical solution track” of the
+  sales process, whereas the Sales Rep is responsible for the “business” or
+  “commercial” track of the sales process. Activities performed by PreSales
+  Consultant include product demonstrations (“demos”), technical configuration
+  (not coding), and collaboration with internal product and engineering teams.
+  Job titles that typically fall within the PreSales umbrella include: Sales
+  Engineer, Solutions Engineer, Sales Consultant, Solutions Consultant, Solution
+  Architect, Value Engineer, Product Consultant, and many others. To keep things
+  simple, at PSA we’ll use “PreSales Consultant” as a generic term for someone
+  in any of the aforementioned roles.
+  [Source](https://www.presalesacademy.com/student-faqs)
+</Quote>
+
+I think that is a fairly accurate description. At my last employer, I carried the “Solutions Architect” title and all my work was pre-sales
+engagement.
+
+Here at Teleport, we go by Sales Engineers or Solutions Engineers.
+
+Confused yet? Good! Let’s continue on then!
+
+What makes this career choice exciting? Quite a few things, I would say. Before I jumped to this side of the IT world I was in the trenches
+and maintaining production systems, architecting cloud infrastructure, doing some development work, and more. On top of all that, I was also
+on-call pretty much 24/7 as our group wasn’t very large and so if a system went down during the weekends or evenings, it was my
+responsibility to make sure it came back up. After doing production work for 15+ years, I was ready for a change!
+
+What interested me the most about the Pre-Sales world was that I could “play” and learn new technologies and not be on call when something
+goes down. An added bonus was that I discovered that Pre-Sales compensation paid more than my production/on-call work. That’s a win-win for
+me!
+
+So let’s dive into a little more of what life is like as a SE here at Teleport.
+
+## A day in the life of a Teleport Sales Engineer
+
+I feel that I have the best gig to be honest. Pre-Sales work is exciting and if you are self-motivated and driven, you can excel.
+
+So what does a typical day look like here at Teleport for an SE? Let’s jump into what my usual day consists of.
+
+### Early to mid-mornings
+
+I’ll take time to catch up on email, look at my calendar, and start to plan the day. I’ll check our company and community Slack channels and
+see if there is any pertinent information that I need to read up on.
+
+I love our community Slack channels. We get users all over the world asking questions, and I try to assist when I can. This is great because
+I get to read up on different use cases for our product and read up what other users are doing with Teleport.
+
+If I have some demos scheduled for the day I will dig into Salesforce and read up on any notes that our awesome Sales Development
+Representative (SDR) and Account Executive (AE) team have made for the upcoming meeting. I typically then will hit the customers’ website
+and even their LinkedIn pages to read up a little more on what they do as this helps me get a better understanding of why they might be
+interested in our product.
+
+I will also peruse our GitHub issues page and see if any new issues have been opened/closed overnight and read up on any development-related
+notes our dev teams have made.
+
+I also take some time to read Hacker News, TechCrunch, Reddit/r/sysadmin (and other subreddits).
+
+Of course, you can’t do all this without a nice cup of coffee (or tea if you’re a tea person!) and some headphones on to listen to music.
+
+### Mid-mornings to lunch/early afternoon
+
+Once I think I have caught up with morning items, it typically will be demo time! Sometimes I have demos early in the morning (mainly for
+EMEA as we do not have an SE based in EMEA yet — but we’re hiring!)
+
+I love demo time! This is what gets me excited to be honest! I get a chance to show how awesome our product is and see how it solves real
+problems our customers are having (and even unveiling problems they didn’t think they have!).
+
+We have a very technical product, and being able to demo it for customers involves us Sales Engineers to stand up multiple clusters,
+different applications, numerous SSH nodes, K8s clusters, databases and more. When doing a demo, it looks like it’s all super simple but
+before we even share that Zoom screen to demo, there’s a lot of work on the backend.
+
+When I first started here, part of my job was to learn about our product. With any Sales Engineering role you are in, you will need to get
+up to speed on the product(s) that you will be demonstrating for customers. Some companies might have a robust demo environment already laid
+out and good to go. Others require you to do all the heavy lifting.
+
+For us at Teleport, we’re in between these two points. We have an awesome SaaS solution that we can use to demo and not worry about the
+infrastructure behind it, but we also have the ability to build our own clusters from scratch. So we do all of that on all the major cloud
+platforms — AWS, GCP, Azure, etc.
+
+So though you are no longer in a production IT role, you still need to be able to do deep technical work as an SE. For us that means
+understanding and using Kubernetes, Terraform, Ansible, some Go, GitHub, etc. Familiarity with a terminal is huge. Understanding how cloud
+networking works, how security works, how DevOps and DevSecOps works, is fundamental to being successful as an SE.
+
+All our SE’s have their own demo environments that are personalized to how they demo and we’re always adding new things, tearing things
+down, and more. When a new feature is being released by our dev team, we need to stand it up in our environments so that we can showcase it
+to customers during demos.
+
+We also report issues and feature requests as we talk to customers. Since we are the initial technical face that our customers are
+seeing/hearing for the first time, we get to see what they like and don’t like about Teleport. In turn, we open and contribute to our
+product via GitHub issues and Slack discussions with the engineering teams.
+
+### Ok, so back to the demo…
+
+On a call with a customer, we typically are talking to security, developers, engineers, etc. that want to see how this product works and how
+it would solve their use cases. My job is to help ask any investigative questions and get a better understanding of their environments. Our
+AE’s are also fantastic about uncovering this information as well!
+
+Because our product can go deep really fast, the job of a demo is to not overwhelm and cause our customers to fall asleep. As an SE, you
+want to engage them and get them asking questions. Showing excitement about a feature will in turn excite the customer. Depending on what
+their use cases might be, I could focus on specific features of our product or just do a high-level overview and demo.
+
+Our demo calls typically last between 45 minutes to an hour and could go longer depending on time and how engaged the customer is with us.
+
+It can be easy to make the demo scripted and boring. So I try to showcase features that might pertain to what our customers might be
+interested in and ask probing questions to get them more engaged in the process.
+
+Sometimes I go off the rails and break the demo, but we all have a good laugh and move on. I firmly believe that showing you’re human and
+that your product is not perfect is a good thing. We are a distributed company and I am talking to customers all over the world so having a
+laugh, talking about life, and showing how [dadjoke](https://github.com/Anupya/dadjoke-cli) works on our system is always good.
+
+### End of the day
+
+As the day wraps up and demos are done, I’ll typically end my day by catching up on missed Slack messages, emails, and updating our
+Salesforce with notes I took during the call/demo. If there is any follow-up for the customer, I’ll reach out to our different teams and
+look into our documentation for answers. If I do not get back to them by the end of the day, then I’ll tackle it the next morning.
+
+In between all of this? I’m trying to learn more about our product, refreshing and resetting my demo environments, and studying for any
+certifications that I need to renew or add.
+
+And yes, some days it can be pretty crazy. Others, not so. We’re a fast-growing company and being flexible is a critical component of the
+job.
+
+Now that you’ve peeked into a little of what a day in the life looks like, you might be asking: How can I become an SE? Let’s finish out
+this blog post with some thoughts on how you can join the ranks of Pre-Sales Engineers and launch your career into a path you might have
+never even considered prior to today!
+
+<EmailSubscribeViolet />
+
+## Teleporting your career into Pre-Sales!
+
+Yeah, sorry about that pun. We have a #dad-jokes channel here at work, and I have 2 kids so it comes with the territory. :)
+
+You might be asking? How can I get into Pre-Sales? What requirements and skills do I need to have?
+
+In short, if you have some of these skills, then you might be a good candidate for Pre-Sales:
+
+- **Soft skills** - Probably one of the most important skills to have. After all, you are in Sales and being able to eloquently talk
+  technical + non-technical to a wide variety of people (SysAdmins, Developers all the way to C-level executives!) is critical for success.
+  Did I mention that at different industry events (both virtual and in-person) Sales Engineers typically are the ones that help run
+  vendor booths and talk to people all day long? Gotta have those soft skills!
+- **Technical skills.** This depends on the industry you are targeting, but having the right technical skills (or the ability to learn) is
+  of equal importance to soft skills. For our industry, knowledge of the Cloud (AWS, GCP, Azure, etc.), Kubernetes, Automation, and databases
+  are paramount. Other industries might be more focused on certain verticals (healthcare, manufacturing, networking, etc).
+- **Willing to hang up your production hat.** If you love the day-to-day challenges of keeping production systems up and running and don’t want to deal with a
+  limited product set or can’t really miss being on-call then Pre-Sales might not be for you. There are times when I get that itch to go back
+  into production and do cool stuff again, but it passes quickly when I realize I have a better work-life balance now and I don’t have on-call
+  rotations.
+- **Coming from a customer.** Some of the best Pre-Sales engineers are people that come from a customer using that product. So
+  instead of being the customer, you’re now the vendor/manufacturer. You get to apply that knowledge but on the other side of the table.
+- **Willing to learn and adapt.** Pre-Sales is all about learning new skills, technologies, and adapting to change. There will be deals won
+  and deals lost. You’ll be pulled in 3 different directions at any given time (although this might be happening in your current role as
+  well!).
+
+Of course, I cannot end this post without talking about Pre-Sales Compensation. As of 2021 in the US, the median OTE compensation (where OTE
+= On Target Earnings) is around
+[$170,000](https://demo.goconsensus.com/2021-sales-engineer-salary-compensation-workload-report-registration) based on the [2021 Sales
+Engineering](https://demo.goconsensus.com/2021-sales-engineer-salary-compensation-workload-report-registration) compensation report by
+[Consensus](https://www.goconsensus.com/). In our industry, OTE typically is defined as base salary + variable commission (usually in a
+75%/25% or 80%/20% split). If you are comfortable with having some of your yearly salary tied to a variable commission, then Pre-Sales might
+be for you.
+
+Pre-Sales jobs are hot right now. Companies are growing rapidly and trying to find talent that is versed in both soft skills & technical
+skills.
+
+So there you have it. A brief introduction to what Sales Engineering is and how you can jumpstart your career.
+
+Did I mention that [we’re hiring](https://goteleport.com/careers/#jobs)? It’s an exciting time here at Teleport and we’re looking for Sales
+Engineers and more!
+
+I would love to hear from you! If you would like to chat, you can reach me on our [community Slack channel](https://goteleport.slack.com/),
+[Twitter](https://twitter.com/Valien), or on [LinkedIn](https://www.linkedin.com/in/allenv/).

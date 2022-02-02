@@ -1,0 +1,59 @@
+---
+articleTitle: Introduction to HSM - Hardware Security Modules
+description: In this blog post we explain how hardware security modules (HSM) help protect sensitive data and how Teleport 7.2 uses HSM to make remote access more secure.
+title: An Introduction to Hardware Security Modules (HSMs)
+date: "2021-08-31"
+author: Russell Jones
+logo:
+  image: ./assets/hsm-blog.png
+  alt: hsm support
+tags:
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## What is an HSM?
+
+HSM stands for hardware security module. HSMs are hardware devices. They can be quite small and plugged into the main board of a computer, or they sit side by side in a server rack. They store sensitive data such as private keys. HSMs do not allow you to read that sensitive data back; instead, they expose only cryptographic operations like signing of certificates or encrypting data. This provides stronger protections for storing private keys compared to disks or databases. Even if an attacker gains remote access to a computer system with an HSM, they will not be able to read a private key.
+
+These security benefits are often used in regulatory regimes, like FIPS and PCI for highly sensitive environments.
+
+With the upcoming release of Teleport 7.2, our team will be adding support for Hardware Security Modules (HSM) — a tool that can be used to help users increase the security of their Teleport clusters.
+
+## How does an HSM increase security?
+
+Teleport uses its own certificate authority (CA) which issues certificates to clients for all supported protocols. These client certificates have a built-in expiration date and therefore do not require long-term protection. But the private key of the CA stays valid for much longer, until a cluster administrator rotates the CA.
+
+Traditionally Teleport relied on built-in encryption of its storage backends such as etcd, DynamoDB, or Firestore to protect its private key. This means a compromise of the storage backend is a compromise of your private key material and therefore your cluster.
+
+The two most prominent attack vectors are:
+
+1. _Steal the certificate authority (CA) private key directly from the database._ This allows an attacker to mint arbitrary certificates offline without the attacker needing to maintain persistence within the victim’s infrastructure.
+2. _Gain persistence within the victim’s cluster and request Auth Server sign certificates._ This attack is harder to stage undetected, but can be just as dangerous, as the practical outcome is the same as #1.
+
+HSMs aim to mitigate the first attack vector, not the second.
+
+<BlogImage src="./assets/what-is-hsm-1.png" />
+_Figure 1: A classic Teleport deployment where CA private key lives in the database_
+
+To mitigate the first attack vector, two years ago Teleport introduced the ability to rotate your CA. This allows you to not only use Teleport to issue short-lived certificates to users but also make your CAs short-lived as well. The practical impact is it reduces the time the stolen key material is useful to an attacker.
+
+As can be seen in Figure (2), HSMs further mitigate this attack by no longer storing private key material as plaintext within your database. Instead, private keys are embedded within the HSM itself and the HSM exposes only cryptographic operations (like signing). The database now only stores ephemeral data such as cluster inventory (tsh ls).
+
+This substantially raises the bar (and risk/reward ratio) for an attacker: to steal private key material, an attacker has to gain physical access to your datacenter.
+
+<BlogImage src="./assets/what-is-hsm-2.png" />
+_Figure 2: On the right is a deployment of Teleport where an HSM is used to store
+key material while the database is used for all other purposes._
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Like most security measures, HSMs aim to mitigate a specific type of attack and are quite successful at doing so. If you operate a Teleport cluster and are concerned with attackers stealing private key material, HSMs can be used to mitigate your risk.
+
+HSM support will become available with the launch of Teleport 7.2. You can download our beta version [here](https://goteleport.com/teleport/download). To stay up-to-date with 7.2 and other planned launches, follow our progress on our [upcoming releases page](https://goteleport.com/docs/preview/upcoming-releases/), or [sign up to receive our newsletter](https://goteleport.com/newsletter/) for email updates.

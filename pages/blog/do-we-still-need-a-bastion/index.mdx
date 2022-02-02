@@ -1,0 +1,287 @@
+---
+articleTitle: Do We Still Need a Bastion?
+description: Cloud, serverless, immutable infrastructure, Kubernetes - Where do bastions fit in these scenarios? Do we even need one?
+title: Bastions are essential to manage secure remote access to cloud infrastructures.
+date: "2021-09-22"
+author: Sakshyam Shah
+logo:
+  image: ./assets/bastion-min.png
+  alt: do we still need a bastion?
+tags:
+  - bastion
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+<iframe
+  src="https://protocol.podigee.io/2-do-we-still-need-a-bastion/embed?context=external&theme=default"
+  style="border: 0"
+  border="0"
+  height="150px"
+  width="100%"
+/>
+
+**TL;DR - Yes! Bastions are still the recommended solution to manage secure remote access to cloud infrastructures.**
+
+There is a
+growing discussion among network engineers, DevOps teams, and security professionals about the security benefits of bastions. Many assume
+that they are the "old way" of network access and have little relevance in the modern cloud native stack. These speculations are not
+irrelevant as in recent years, the corporate IT network perimeter as we knew it is diminishing, and the concept has been shifted to data,
+identity, and compute perimeter. Software-defined networking solutions have overtaken hardware firewall boxes, and the requirement of
+managing bare metal servers has shifted to container deployed or even serverless applications. Where do bastions fit in these scenarios? Do
+we even need one?
+
+## A short primer on bastions
+
+### Bastions
+
+By definition, bastions are a [fortified checkpoint](https://www.britannica.com/technology/bastion-fortification) to counter or contain a
+threat. The concept of bastions can be applied to the real life fortification of a place or a building or a computer network.
+
+### Bastion hosts (Bastion 1.0)
+
+Bastion hosts (also commonly called bastion servers) are typically configured with a bare minimum operating system with protocol-specific
+servers such as OpenSSH server or RDP gateway.
+
+The term "bastion hosts" was initially used by Marcus J. Ranum in his 1993 article on the topic "[Thinking About Firewalls](https://web.archive.org/web/20200105033819/http://www.vtcif.telstra.com.au/pub/docs/security/ThinkingFirewalls/ThinkingFirewalls.html),"
+where he discusses that a bastion host is a security-hardened server, which should be the strongest and the last checkpoint in a network
+before the access is allowed to the internal network or internally hosted application. Further, bastion host can itself be used as a
+firewall (a bridge to connect to internal network servers) or can host application services on top of its security-hardened system.
+
+<BlogImage src="./assets/remote-access-via-bastion.png" />
+Fig: Remote Access Via Bastion Host.
+
+Although bastion hosts themselves provide good enough security to protect direct network access to servers and applications, they have the
+following shortcomings:
+
+- A bastion host requires a dedicated server to be managed. In a [container vs. VMs debate](https://www.redhat.com/en/topics/containers/containers-vs-vms), a requirement for managing a dedicated host can be a deal-breaker
+  for smaller teams.
+
+- Challenges in extending bastion capabilities. Extending the capabilities of a bastion host to support multiple protocols or
+  application support requires installing more dependencies. This may increase the attack surface of the host and defeat the purpose(one of
+  which is reducing an attack surface) of the bastion host.
+
+- Lack of support for modern standardized authentication. Administrators prefer standard and secure features out of the box. There is no
+  consistent way to create and configure a bastion host. Consider a case for SSH bastion — should you use agent forwarding or proxy jump or
+  configure the PAM module to support out-of-band authentication?
+
+### Bastion service (Bastion 2.0)
+
+Bastion service is the new evolution of bastion hosts. A bastion service solves the shortcomings we mentioned above and brings more value in
+terms of manageability and security. Below are a few differentiators between a bastion host and a bastion service.
+
+<table>
+  <thead>
+    <tr>
+      <th>FEATURES</th> <th>BASTION HOST</th> <th>BASTION SERVICE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Deployment type</th> <td>Dedicated Linux server, VM, firewall</td>
+      <td>
+        Platform agnostic. Supports cloud native workflow, can be ephemeral
+        service, can deploy in Kubernetes, or offered as a PaaS.
+      </td>
+    </tr>
+    <tr>
+      <th>Topology type</th>
+      <td>Generally attached to a single private network</td>
+      <td>
+        Supports multi-cloud, multi-datacenter cluster allowing interconnected
+        geo-spanned access points.
+      </td>
+    </tr>
+    <tr>
+      <th>Components</th>
+      <td>
+        Individual components to support multiple services (SSH, FTP, HTTP,
+        etc.)
+      </td>
+      <td>Single service that understands and accepts multiple protocols</td>
+    </tr>
+    <tr>
+      <th>Network Mapping</th> <td>Private to Public network mapping</td>
+      <td>Public network to internal application and services mapping.</td>
+    </tr>
+    <tr>
+      <th>Transport Security</th> <td>Can be plaintext transport</td>
+      <td>Only encrypted connections (mostly TLS)</td>
+    </tr>
+    <tr>
+      <th>Protocol Awareness</th> <td>Network aware</td>
+      <td>Protocol and application privilege aware</td>
+    </tr>
+    <tr>
+      <th>Authentication</th>
+      <td>
+        Network-based access control. Additional authentication depends on the
+        service that is responsible for forwarding connections (e.g., SSH)
+      </td>
+      <td>
+        Primary access control integrated with corporate IAM. Supports client
+        authentication, device attestation.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+Identity-aware access proxy in the [BeyondCorp](https://cloud.google.com/beyondcorp),
+[Teleport](https://goteleport.com/how-it-works/), [Azure Bastion](https://docs.microsoft.com/en-us/azure/bastion/bastion-overview)
+service are few examples of Bastion service.
+
+### Bastions are not only for SSH!
+
+Before we conclude the primer on bastions, it is important to mention that Bastions are not only for SSH. Most of the time, people relate to
+bastion host as an SSH jump server, which is correct but does not cover all use cases. While a Linux server configured with OpenSSH (setup
+as SSH Jump server) is a typical example of a bastion host, a bastion can sit in front of any protocol. For example, you can use a bastion
+for database access, RDP access, internal web application access. In fact, any internal endpoints which should not accept direct network
+access should be placed behind a bastion for extra security.
+
+## Quick security wins with bastions.
+
+When you want to allow remote access to internal servers and applications securely, adding bastions in front offers security to a great
+extent. Below are a few quick security wins when using a bastion.
+
+### Bastion makes compliance easy
+
+Every security compliance standard that deals with infrastructure access (e.g., FedRAMP AC-17 - Remote Access, HIPAA §164.312(a)(1) - Access
+control, SOC2 CC6.1 - Manage Points of Access) mandates to prevent direct network access to the servers and APIs. Bastions are the safest
+concept to address these controls.
+
+### Reduced attack surface
+
+Few hardened access points are better than the "allowAll" setup. Configuring networks such that bastions are the only way inside helps
+reduce the attack surface.
+
+### Containing network access threats
+
+When a remotely exploitable vulnerability is discovered, it becomes challenging to contain threats without affective server uptime. Using
+network firewalls and bastions together helps significantly to contain such threats. You can configure bastions such that internal teams
+(security, DevOps) can access the affected server while all other access is blocked.
+
+### Defense in depth
+
+Even if the application behind supports strong authentication and authorization schemes, adding a security-hardened bastion in front ensures
+defense in depth. You'll have one additional endpoint to block or contain threats.
+
+### Keep script kiddies and bots at bay.
+
+Script Kiddies love automation and firing tools randomly at public IPs. Moreover, there are bots constantly hammering on ports. Using
+bastions ensures that your primary servers do not waste valuable computing resources on processing cryptic connection requests.
+
+## Common bastion misconceptions
+
+Although the capabilities of bastions have evolved (from bastion hosts to bastion services), many professionals still compare the old
+capabilities of bastion hosts (e.g., a Linux box with iptables and OpenSSH configured) with modern DevOps practices. This is the primary
+source of misunderstanding the importance of bastions.
+
+Below, we will try to address common misconceptions related to bastions with reference to the capabilities of modern bastion services.
+
+### Bastion does not fit in immutable infrastructure and NoOps.
+
+Immutable infrastructure is a fantastic concept. Many immutable infrastructure advocates suggest disabling SSH altogether such that
+troubleshooting tasks should be performed at the observation layer (logs, telemetry), and completely new infrastructure should be
+provisioned for patches and updates. Although the [pros and cons](https://news.ycombinator.com/item?id=9877038) of this method are out of
+topic for this article, it is essential to note that such an environment is not an easy task to manage itself. For emergencies or hotfixes,
+the ability to quickly access the server, debug and fix wins most of the time, so many teams still manage SSH access for break-glass access.
+And for managing secure SSH access, nothing beats a security-hardened bastion!
+
+Further, recall that bastions are not only for SSH. So even if your infrastructure is fully immutable, you will need to protect access to
+observability dashboards, and a bastion's services are recommended ways to secure access.
+
+### Bastion gives a false sense of security.
+
+Many professionals claim that using bastions will make you think access to internal servers is foolproof, but hackers will find a different
+path to your network, bypassing the Bastion. It's true; for when an attacker is determined, they will find a way in, one way or another. But
+security is about defense in depth, and having good security controls in place keeps 99% of script kiddies and bots at bay.
+
+### Use a firewall instead of a bastion.
+
+In a proper network configuration, you should use both a firewall and a bastion. Although firewalls have made much progress in packet
+inspections and understanding HTTP protocols, it is still far from understanding other protocols such as database wire protocols or
+technology-specific nuances such as Kube API. Thus, you will still need a bastion host and run a proxy service or a modern bastion service
+to control access at the protocol level.
+
+### We use a VPN server.
+
+When you implement a VPN for remote access, the VPN server acts as a bastion host for your network. In this case, you are only trading
+between a bastion server that allows secure network tunneling (a VPN server) vs. a bastion service that supports encrypted network (TLS)
+with better AuthN, AuthZ, and protocol-level awareness. Further, bastion services like Teleport offer a reverse tunneling feature to manage
+secure access to services behind a firewall and NAT without the need to open servers to a public routable interface.
+
+### Bastion is an “additional server" to maintain.
+
+The trade-off between "extra server" to maintain vs. security benefits it provides are entirely worth it. Further, modern bastions are
+offered as a service that can be provisioned on an existing Kubernetes cluster or as an ephemeral service, meaning no need to manually set
+up and maintain a server.
+
+### Bastion has no place in a perimeter-less zero-trust world.
+
+Funny how [marketers](https://twitter.com/netskope/status/1278341352447717376) have come to this conclusion. We mentioned earlier that the
+core technology of [BeyondCorp](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/43231.pdf) (one of the first practical
+implementations and an industry-leading zero trust access solution by Google), which is an Identity-Aware Access Proxy (IAP), is by
+definition a bastion service. Also, see [Zero Trust Network Access (ZTNA)](https://www.gartner.com/en/information-technology/glossary/zero-trust-network-access-ztna-) which mentions a "trust broker that
+verifies the identity, context, and policy adherence of the specified participants before allowing access and prohibits lateral movement
+elsewhere in the network while hiding application assets from public visibility". The trust broker, in this case, is by nature a bastion
+service.
+
+<BlogImage src="./assets/access-protection-flow.png" />
+
+Fig: BeyondCorp architecture reference from
+[Google](https://security.googleblog.com/2019/09/how-google-adopted-beyondcorp-part-3.html).
+In the above case, the global front-end acts as a bastion service.
+
+### Services like AWS SNS, GCP BeyondCorp are better alternatives.
+
+If all of your requirements for remote access can be achieved using these services, then using a bastion may not be a use case for your
+team. But since these services are platform-specific, it might not be relevant if you self-manage your infrastructure outside public clouds
+or have multi-cloud strategies.
+
+### Modern applications already support strong AuthN and AuthZ. So adding a bastion in front is just a bloat in the network.
+
+It's quite the opposite! Along with defense in depth, bastion also enables centralized logging, auditing and helps you unify AuthN and AuthZ
+events across your infrastructure. It also becomes much easier to maintain and enforce fine-grained access control rules in a small pool of
+bastions rather than individual applications. So rather than bloat, we believe bastion-based network design helps manage large
+infrastructure with proper security controls.
+
+### Our small dev team or dev-staging environment does not require complications of the bastion.
+
+<Quote>
+  "Attack them where they are unprepared, appear where you are not expected" Sun
+  Tzu Art of war
+</Quote>
+
+Exploiting a development (or staging) environment and pivoting to the production environment is one of the
+[favorite](https://arstechnica.com/gadgets/2021/03/hackers-backdoor-php-source-code-after-breaching-internal-git-server/)
+[attack](https://www.drupal.org/forum/newsletters/maintainer-news/2009-11-04/development-server-compromised)
+[methods](https://securityaffairs.co/wordpress/56645/malware/apple-malware.html)
+[for](https://twitter.com/Snowden/status/765514477341143040)
+[hackers](https://www.forbes.com/sites/daveywinder/2020/01/30/united-nations-confirms-serious-cyberattack-with-42-core-servers-compromised/?sh=6055cbe9633d).
+Many data breaches start by exploiting an easy target, dev, and staging environment often neglected for security! In addition, production
+data is often pulled into dev servers (insecure practice), so skipping security practices in development environments does not make any
+sense.
+
+## When would you genuinely not require to use a bastion?
+
+There are some situations where using bastions may not be relevant.
+
+- Your organization only uses SaaS apps, and there is no infrastructure to maintain.
+- Your organization's infrastructure access requirements are limited, and you can get all the features from available platform-specific products such as AWS SNS.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Although the dynamics of managing and operating cloud infrastructures have changed, bastions have also evolved a long way featuring
+capabilities such as user identity-aware and connection protocol-aware access proxy. These features are core components of the zero trust
+access paradigm. In addition to security benefits such as meeting compliance requirements and implementing defense in depths, modern bastion
+services are easy to deploy and adapt to DevOps culture. Providing ease of management without compromising on security and compliance,
+bastions are still the best and safest solutions to manage secure access to cloud infrastructures.
+
+**[Try Teleport:](https://goteleport.com/docs/)** Teleport allows engineers and security professionals to unify access for SSH servers,
+Kubernetes clusters, web applications, and databases across all environments. Deploy Teleport today as a bastion service to secure access to
+your cloud infrastructure.

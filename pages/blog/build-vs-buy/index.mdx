@@ -1,0 +1,92 @@
+---
+articleTitle: Build vs Buy for Start-ups
+description: As our company has been growing quickly, we’ve faced the build-vs-buy question numerous times. In this blog post we’re sharing our rationale for making these decisions.
+title: Trade-offs of Build vs Buy for Start-ups
+date: "2021-10-06"
+author: Travis Gary
+logo:
+  image: ./assets/build-vs-buy.png
+  alt: Build vs Buy for Start-ups
+tags:
+  - security
+  - engineering
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+This is the age-old question faced by so many tech teams: do we build or buy a system we need?
+
+TL:DR, Buying can save your engineer time for building the core stack and for the fun experiments needed to determine when to shake up the core stack.
+
+As the IT Director at Teleport, I help review every vendor decision. As we have transitioned from a scrappy open source startup to a hyper-growth SaaS company, our priorities have started to shift from quickly deploying lots of free open source software ourselves to buying robust SaaS software to keep our agility and deal with ever-growing scalability, security and compliance burdens. The temptation to build our own systems remains, but when is it the right option to build? In this article, we'll share an overview of the benefits and drawbacks of building vs. buying, give examples of how to address the inevitable security concerns that come with internal solutions, and provide 7 criteria to help determine if it's the right call to build in-house.
+
+## The pros and cons of building vs. buying
+
+Engineers love a greenfield — we rarely get the opportunity to work with a blank canvas because most of our work lives are more like painting restoration or paint by numbers than Picasso. This leads us to make some hasty decisions when deciding to build.
+
+Building is immediately gratifying: take the spark of inspiration and a few cups of coffee, and in no time, you have a new system starting to take shape.
+Buying is far less gratifying: it’s slow, involves talking with sales people, writing budget requests, completing vendor security reviews, hiring expensive implementation consultants, or hoping it's not that hard to deploy yourself.
+When you buy, you put all the effort upfront, and then it should be smooth sailing after (or perhaps you bought the wrong product).  
+When you build, you put all the effort upfront and in the middle and at the end — and basically forever — because now that you built the plane we are flying in, you have to keep it airborne. So you have to ask yourself: are we an airline company?
+
+## Pitfalls of building tools in-house
+
+When we think about building tools in-house, we have to think of them as enjoyable experiments or creative expressions that help us determine the future of our company's core product. It’s one of the reasons Google famously gave engineers 20% of their time for side projects. It's great for helping the company find and try new technology and it lets engineers have more fun. Unfortunately when we build the wrong systems in-house, there is way less time for all the fun projects because of all the maintenance burden needed to keep those systems running.
+
+In my prior job as a Systems Operations manager at Airbnb, I was tasked with wrangling hundreds of internal applications and services and keeping them running including many once- beloved home-built pet projects who now felt more like a shelter dog fearing the worst. Their developers long moved onto other projects, teams or even companies. Now my ops team needs to run them, and before long, we had services in nearly every language and many gloriously overbuilt artisanal handcrafted websites. While beautiful, the snowflakes had to become sheep. Security vulnerabilities were piling up, and my team was never going to figure out how to maintain so many disparate systems.
+
+## Solving problems arising from software built in-house
+
+One project I was tasked with was fixing all the security vulnerabilities on a large portfolio of ancillary websites that had been built in-house. Admittedly our internal processes, bureaucracy and massive Ruby on Rails monolith had made it very tempting for developers to go around the system in order to move quickly. We had ridiculous incidents of ‘just build it’ culture gone wrong. An example is when a website was down due to a trivial ops mistake of forgetting to renew a domain name, but the domain was owned by someone who had left the company. Or worse — when a site was down because finance canceled the AMEX used by an employee to spin up their own AWS account. Something had to change.
+
+I laid out four options for each website owner:
+
+0. Shut it down.
+1. Migrate it into the main web platform infrastructure.
+2. Convert it to a static S3 site and my team will take over ops.
+3. Pay the consultants I had lined up to migrate to a managed Wordpress.
+
+Only a few chose option 1 because the main site has a lot of high security and publishing standards. (Admittedly, those high standards and lack of officially supported alternatives caused the mess of rogue sites to begin with.)
+
+We discovered that most of the websites could have been static S3 sites from the start, but developers did not want to do that initially because it was not very interesting. As an Ops manager, boring S3 sites were great since they were all basically templates, so we could manage a near-infinite amount easier than managing a few home-built dynamic sites. Not to mention that static sites are invulnerable to hacking vs. dynamic sites not being updated and therefore becoming a potential entrance to the network or used in a phishing scheme.
+
+Many of our websites were blogs but were requiring lots of developer time to maintain. The content authors struggled to make posts because building a whole CMS (Content Management System) was not most developers' idea of fun. The easy but boring answer was Wordpress — the developers were not thrilled, and I admit I had my doubts too. It was old tech, not exciting and full of surprise gotchas that only WordPress consultants knew. Yet the good part was — it's very easy to hire WordPress consultants and outsource the problem. Now our skilled developers got to do better things than patch a blog site and our content contributors could run the blogs themselves since WordPress was so ubiquitous and familiar.
+
+Often, it can seem like the path of least resistance to build something in-house — it can be fast, cheap and very fun for skilled developers. However, we end up paying on the tail end. Engineering time is very expensive, and pulling your skilled engineers away from key projects to patch a tool they wrote a year ago carries a serious opportunity cost.
+
+## When to build vs. buy
+
+Let’s apply a series of tests to see if building or buying makes sense:
+
+Is the system part of your company's competitive advantage? Build it.
+If there's ever a time to show off your developers’ skills and tailor-make something, it’s for what gives you a unique advantage over competitors. Otherwise, competitors can just buy the same software and operate it better than you.
+
+Is the system similar to things you have already built? Build it.
+If you have hundreds of Java services, another one is no big deal. Writing a new one in Rust is great for a fun experiment but risky for a new mission-critical system.
+
+Can you not tolerate system downtime? Buy it.
+Setting up performance monitoring, logging, alerting, on-call schedules, writing run books and cross-training other engineers all take serious time — especially when the system is unlike your existing ones.
+SaaS companies often have 99.99% uptime SLA’s, and many of them actually deliver — let their ops team handle the 2 am incidents because nothing drains engineer morale more.
+
+Would it be game over if the system got hacked? Buy It.
+Security is hard work — building in security from the start requires familiarity with a language. Your first Rust project is likely not going to be as secure as your 100th Java one even though Rust has many security advantages, like being memory safe.
+There is lots of SecOps work setting up security scanners, automated testing, alerting, and monitoring advisory notices. Quickly writing patches for a new and unfamiliar system is not how we want to spend our let’s-build-something fun engineering time.
+
+Are there privacy and compliance considerations? Buy it.
+There is a very high barrier to entry to develop a HIPPA, GDPR, SOC2, NIST or PCI compliant app. SaaS companies get to spread this overhead cost out over all their customers but building in-house, we end up bearing the full brunt of those costs.
+
+Can you run an open source project? Careful.
+Open source gives your developers the wisdom of the crowd. Now you have a huge community of developers finding and patching bugs — and most importantly — discovering vulnerabilities. Yet you still have to host it and bear the burden of ops work. This can often end up being a lose- lose since developers don’t get to work on a fun greenfield and now have to spend time maintaining servers. Choose running an open source project when you really want to be a part of that community and contribute to the code.
+
+Are there truly no good enough products to buy? Check again.
+Don’t let perfect be the enemy of good. You're going to have to lower some expectations with buying, so really determine what your must-have features are. Having good requirements is necessary for buying and building. If you do decide to build, stay focused on the features that solve the specific problem your business is faced with, not the features that are fun portfolio projects for your engineers.
+
+<EmailSubscribeViolet />
+
+## Freeing your engineers to innovate
+
+It's very important to have a culture of experimentation. Standardized systems are fantastic for keeping the ship afloat but are not going to allow for the innovation and creativity needed to determine where to steer the ship next or keep your engineers excited. Buying software can be a big upfront investment, but it frees up time for your engineers to focus on your core product or work on the fun experiments that could become part of your core product.
+
+On a closing note, one of the reasons I joined Teleport was because I worked on building in-house SSH bastions and implementing identity-aware application access proxies. It was both difficult to implement and maintain, but at the time there were few great products to buy. If your team is looking to solve privileged access management, you can [spin up a trial of Teleport](https://goteleport.com/signup/) in minutes and have a compliant and secure product maintained by a truly talented team of engineers.

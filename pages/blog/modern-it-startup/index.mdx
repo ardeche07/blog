@@ -1,0 +1,153 @@
+---
+articleTitle: Running IT at a Hyper Growth Startup
+description: Running IT (information technology) at a quickly growing company presents many challenges. In this blog post, Travis shares his experience managing the IT team at Teleport.
+title: Modern IT (information technology)
+date: "2021-10-13"
+author: Travis Gary
+logo:
+  image: ./assets/it-teleport.png
+  alt: PAM at a desk
+tags:
+  - teleport
+  - company
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+At Teleport we do IT a little differently — supporting a global remote company in hypergrowth is no easy feat and the playbook is different
+from traditional IT work. In this article, we want to share some of our IT philosophies that enable our employees to keep their agility
+despite working very asynchronously around the world.
+
+- Tickets are the symptom not the cure
+- Automation first
+- Self-service over support
+- Operate like a DevOps team
+- Support career growth and internal mobility
+
+## Tickets are the symptom not the cure
+
+IT teams often traditionally work as a responsive ticket-queue-based support organization for the technology needs of the company. However,
+this is a losing game. Reaching IT nirvana is not about clearing out a massive ticket queue; we never judge team members by the number of
+tickets closed. Instead, we should judge by how well they were able to help implement systems and processes that avoided tickets altogether,
+that’s the cure.
+
+Consider a few scenarios:
+
+<table>
+  <thead>
+    <tr>
+      <th>Traditional IT</th>
+      <th>Modern IT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        Employee opens a ticket to ask for access to an app, manager approves,
+        IT adds a user account.
+      </td>
+      <td>
+        Employees were automatically granted access based on Attribute-Based
+        Access Controls (ABAC).
+      </td>
+    </tr>
+    <tr>
+      <td>Developer opens a ticket to ask for a DNS change from IT.</td>
+      <td>Developer writes a GitHub Pull Request to update DNS.</td>
+    </tr>
+    <tr>
+      <td>Employee meets with IT to help set up their computer.</td>
+      <td>Computers are automatically configured and managed.</td>
+    </tr>
+    <tr>
+      <td>Employee meets with IT to help with an issue.</td>
+      <td>
+        Employee visits a well-maintained wiki with detailed walkthroughs and
+        video explainers.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+In a traditional IT setting work scales linearly with the number of employees, requiring large IT teams that are available 24x7x365; modern
+IT scales to easily support a large global company while keeping the IT team lean.
+
+## Self-service over support
+
+Even the fastest IT support team can’t solve an issue faster than if the employee was able to solve it themselves. Enabling employees with
+the ability to make their own changes gives them agility to get their projects done now, rather than losing their flow to have to wait for
+IT to complete a request. Consider the DNS change scenario above. Not having a DNS record in place could entirely block a developer's
+progress; they may have carved out a 3-hour coding block to work on a new system only to have to wait a whole day waiting for approvals and
+IT to complete the request for them. Add different time zones to the mix and things move even slower. By focusing on providing solutions for
+asynchronous self-service rather than synchronous support, we can scale effectively with a global workforce.
+
+## Automation first
+
+Automating away problems creates the best employee experience. It’s magic when you don’t even have to ask and when you get what you need
+automatically. When employees have to ask for something, that’s a signal that our automation needs adjusting. This is one of the reasons we
+choose to [Terraform our Okta instance](https://goteleport.com/blog/okta-terraform/). Rather than directly granting access to an app when an employee asks, we
+quickly rewrite the ABAC rules that control access. If someone on a team needs access to an app, it's likely there are other teammates that
+need it too. By updating the rules, we now avoid several more tickets and save future employee time. Rapidly iterating on code however, is
+hard. This is why IT teams need to be more like DevOps teams.
+
+## Operate like a DevOps team
+
+The DevOps revolution greatly increased developer agility allowing developers to ship code faster and outperform companies with more
+traditional manual test and scheduled release-based processes. One of the major shifts was putting infrastructure in code. Now servers could
+be deployed and configured via GitHub pull request and scaled automatically.
+
+Before the DevOps and Cloud revolution, IT had to rack more servers to scale up capacity. We needed tickets to keep track of the work being
+done because it required buying/allocating hardware, and multiple teams to coordinate. Now that that work is in all code, tickets are no
+longer needed. IT should be creating technology solutions that enable people to get their work done without IT, not doing the work for
+them. This is also where many DevOps teams struggle. Rather than working on tools to make it easier for developers to deploy code, they end
+up writing the code deploy pipelines themselves, ultimately reducing developer agility.
+
+Beyond agility, an infrastructure-as-code approach is fantastic for security. Using GitHub pull request reviews, even a compromised engineer
+account can’t make changes on their own. They have to get someone to approve their code change. Compared to ticket-driven IT work, a
+compromised IT admin can perform whatever action they want. Jira ticket approvals are just security theater to make compliance auditors
+happy. Layer on automated validation, testing, alerting and we get real security benefits that also make auditors happy, all without a
+single ticket.
+
+## Support career growth and internal mobility
+
+Too often, technology companies struggle to offer entry-level engineering positions, especially for folks that do not have an engineering
+degree or college education at all. IT is one of the best entry points into the tech industry. However, there often exists a career ladder
+chasm between IT Support, IT Engineering and ultimately engineering positions outside the IT department.
+
+In the past I worked with some fantastic systems engineers that worked their way up through the ranks, some of whom started at the Apple
+store with no college education. They were able to accomplish this feat because they worked on automation during their support jobs. They
+espoused many of the philosophies listed above. Rather than focusing on the symptoms of a problem (tickets), they focused on the root cause
+of the problem.
+
+Frontline IT needs to function as a feedback loop for IT engineering to improve processes, much like the modern customer success
+organization provides a product feedback loop. When done right, Support Engineers help design, build, test and maintain new automations
+with the guidance of more senior engineers. Rather than only triaging, they become an integral part of the solution, gaining valuable skills
+along the way to progress to the next level. This creates a virtuous loop that naturally elevates support staff while reducing tickets. If
+the problems they used to tackle manually are now automated by a system they now maintain, they have freed up additional time to work on
+more complex problems. There is a saying ‘A good IT engineer is irreplaceable, without them the systems fall apart, but a great IT engineer
+replaces themselves (with automation)’.
+
+## IT at Teleport
+
+If you're looking for a new IT job, [Teleport is hiring](https://goteleport.com/careers/#jobs). We are looking for folks who are excited to
+solve problems with automation and infrastructure-as-code to build a scalable global IT organization that helps pave new industry best
+practices for IT Security.
+
+We greatly value career growth and support internal mobility and want to help people grow into Security, Infrastructure and DevOps roles.
+Come well versed in Terraform and automation or with a strong desire to learn.
+
+<EmailSubscribeViolet />
+
+## About me
+
+I’m Travis Gary and I run all our IT Department at Teleport, a technology start-up working on building the access plane of the future.
+
+Prior to joining Teleport I ran a global on-call team of Systems Engineers at Airbnb, worked as a Sr. Systems Engineer deploying
+applications, founded their integrations team and architected their enterprise service bus. My philosophies about IT are strongly shaped by
+my experience with building large scale enterprise automation and participating in Airbnb’s DevOps transformation. Before my start-up years
+I was a consultant working on helping clients move to the cloud, I got to see how a lot of companies function, or more often don’t function.
+I hold a degree in Industrial Engineering which is essentially the grandfather of DevOps.
+
+Joining Teleport was an exciting opportunity for a greenfield where I could apply the lessons I have learned to make an IT department that
+is built for the new remote first world (Teleport was already a remote company before 2020).

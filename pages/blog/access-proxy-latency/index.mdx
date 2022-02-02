@@ -1,0 +1,96 @@
+---
+articleTitle: Low Latency Identity-aware Access Proxy in Multiple Regions
+description: Access proxy is an important tool for securing access to infrastructure. But reducing latency when accessing distributed computing resources is a challenge. Today we are announcing the multi-region support for Teleport cloud and explaining how we've built it.
+title: Low latency access proxy | Teleport
+date: "2021-10-01"
+author: Kevin Nisbet
+logo:
+  image: ./assets/access-proxy-latency.png
+  alt: access proxy latency
+tags:
+  - teleport
+  - security
+  - engineering
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Latency problem
+
+A multi-protocol access proxy is a powerful concept for securing access to infrastructure. But accessing numerous computing resources
+distributed across the globe via a single endpoint presents a latency challenge.
+
+Today we are announcing that the hosted edition of Teleport Access Plane is now available in 5 regions all over the world. In this blog post
+we'll tell you how we've built it and it should be helpful for anyone working on a globally distributed SaaS system if latency is a concern.
+
+## A bit of history
+
+When our team set out to build a hosted version of Teleport, we had to make trade-offs to launch a production-grade product quickly. One of
+these trade-offs was to deploy Teleport solely in the US West. This allowed us to launch early, work with our earliest customers to
+understand who they are and where their infrastructure and users are located.
+
+One of the core concepts of the Teleport Access Plane is the identity-aware multi-protocol proxy. After a single login with SSO and MFA,
+Teleport connects clients to all of their computing resources like SSH servers, Kubernetes clusters, databases, internal web apps running
+behind NAT, across all cloud providers and even edge locations.
+
+So early feedback we got was that the latency of proxying all traffic through the US West was utterly unusable from many regions. For
+example, when using SSH, one Teleport user reported more than 1 second delay between a keypress and a character appearing in the terminal.
+
+We set out to solve the latency of using Teleport from around the world.
+
+## Scalability and ease of use
+
+As a starting point, we identified a couple of constraints; our earliest adopters were all teams spread around the world. We also wanted to
+avoid any knobs, configurations that our customers would have to understand and try to understand our product and apply the configuration
+options we offer to their use case. In essence, ideally, Teleport Cloud would work without the customer having to understand any deployment
+options.
+
+So we had some tricky challenges to address.
+
+The first challenge was that the self-hosted, downloadable Teleport uses the same code base as Teleport Cloud; it never had any of the
+required "SaaS machinery" built into it. So we had to test out the code base and figure out how stable Teleport would perform if, for
+example, we deploy a proxy in Europe with the authentication and database in the US. And test out different scenarios by synthetic tests
+introducing problems like latency, packet loss, and solving any issues.
+
+Testing went well, and we didn't have to make any significant changes to the networking code, and no additional configuration was needed.
+
+## Networking
+
+The second challenge we had to solve was ingress to our cloud network. There are, in general, a couple of different ways to solve this.
+
+First, we could create a separate domain for each region. In this case the users would have to know which endpoint to connect to. Another
+option was to use a DNS service that supports split-horizon DNS responses, basically a DNS server that changes its response based on a
+client’s location, which in turn is based on its address.
+
+Both of these options were ruled out. The option of multiple domains was fundamentally incompatible with our vision of Teleport being the
+simple way to access all of the world’s computing resources. And the split-horizon DNS was not as reliable as we wanted.
+
+## Anycast routing and Global Accelerator
+
+So we went with the third option, and we believe, the best option, which is to use Anycast routing and leverage the properties of internet
+routing to route users on the least expensive path to our service.
+
+If we inject routes in Europe and North America, users should generally route to the closest location. We use AWS to host Teleport Cloud,
+and AWS' version of Anycast is an offering called Global Accelerator.
+
+And the last piece we needed was to scale our Kubernetes ingress. As I mentioned above, the first release of Teleport Cloud was originally
+running in a single region on a single Kubernetes cluster, and we allocated a new elastic load balancer for every customer. An ELB per
+customer was not sustainable, and it was challenging to work with AWS to understand where any hard limits would come into play.
+
+Our survey of existing solutions for Kubernetes ingress with global accelerators didn't show any compelling options, so we opted to write
+our own controller. Our controller connects AWS global accelerators to VMs running nginx, with a generated configuration to reach our
+customer's pods running Teleport. We can now share our load balancers amongst multiple customers.
+
+<EmailSubscribeViolet />
+
+## Trying Teleport Access Plane
+
+So as of this week, Teleport Cloud is available worldwide as early access and only available to customers who opt-in. You can get a free
+evaluation environment by clicking ["Try Teleport for Free"](https://goteleport.com/pricing/).
+
+The multi-region option is currently opt-in by default. Once you have an account, please reach out to your account manager, customer success
+engineer, or `support@goteleport.com`.
+
+As we gain experience operating this deployment at global scale, gather your feedback and incorporate it into the product, we'll be
+launching full support for all customers at the beginning of 2022 and continue to add additional regions for an even lower latency offering.

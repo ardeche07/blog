@@ -1,0 +1,451 @@
+---
+title: Using Datalog to Test for Access with Teleport
+description: Utilizing the power of Datalog and logic programming to answer difficult access-related questions.
+articleTitle: Using Datalog to Test for Access
+date: "2021-08-26"
+author: Rui Li
+logo:
+  image: ./assets/testing-access-datalog.png
+  alt: Using Datalog to Test for Access
+tags:
+  - ssh
+  - teleport
+  - security
+  - databases
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+This summer, I was fortunate enough to get an internship at Teleport. Being part of the co-op program at the University of Waterloo, I have
+worked at many different companies before, and this internship will be my fourth placement as I finish my first term of the third year. The
+project that I was assigned to was an interesting one.
+
+For some background, Teleport is an Access Plane that unifies access to SSH servers, Kubernetes clusters, web applications and databases
+across multiple environments. Teleport provides a Role-Based Access Control (RBAC) system that allows cluster administrators to allow or
+deny access to specific cluster resources such as SSH nodes, applications, databases, etc., based on the assigned labels. This system is
+similar to other cloud-based providers like AWS and Microsoft Azure and their RBAC systems.
+
+However, even though this system is powerful, role configurations can be pretty complex. Teleport currently does not provide good tools at
+cluster admins' disposal to troubleshoot any access-related issues. Questions such as "Can Alice SSH into Node x as root?", "Which roles
+prevent Alice from accessing Node x as root?" and "Which nodes can Alice access?" are hard to answer without understanding the access
+configuration.
+
+The proposed project's purpose is to implement an access tester for Teleport that allows admins to answer these questions, using Datalog to
+help answer these queries.
+
+## What is Teleport?
+
+As mentioned previously, Teleport is an Access Plane unifies access to SSH servers, Kubernetes clusters, web applications, and databases
+across multiple environments. Essentially, Teleport provides a convenient and secure way for users to access everything within an
+infrastructure. Teleport also has many different features that provide insight into all layers of the tech stack, such as the Unified
+Resource Catalog, Session Recoding, Audit Log, and Access Controls. In particular, we will need to dive deeper into the [Role-Based Access
+Control (RBAC) system](https://goteleport.com/docs/access-controls/introduction/) within Teleport.
+
+For starters, there are users and roles. Users can be assigned roles that control access to specific resources. In Teleport, we can define
+this access in the allow and deny sections. These sections are a list of resource/verb combinations, such as node labels and logins. It is
+important to remember that the deny section always overrides the allow section, and the default behavior of the allow section is to allow
+nothing. There are many more configuration options for Teleport found in the
+[documentation](https://goteleport.com/docs/access-controls/reference/). In addition, there are role templates that can help avoid manual
+configuration when people join, leave, or form new teams. These templates can dynamically define access using template variables and user
+traits. For example, we can list logins as `{{internal.logins}}` and then further defined per user in the traits configuration. For more
+information about role templates, there is an official [guide](https://goteleport.com/docs/access-controls/guides/role-templates/).
+
+## What is Datalog?
+
+So what is Datalog, and why is it helpful in answering our questions? Well, Datalog is a logic programming language that is a subset of
+Prolog, and so an everyday use case for Datalog is as a query language for deductive databases. We thought that a querying language is a
+good fit for answering complex access-related questions in a coherent manner.
+
+Datalog programs are written as a collection of logical constraints which the compiler uses to compute the solution. These constraints are
+sentences in logical form and are a finite set of facts (which are assertions of the world in which we operate) and rules (which are
+sentences that allow us to infer new facts from existing ones).
+
+Here is an example of how Datalog works:
+
+```
+route(toronto, ottawa).
+
+route(ottawa, montreal).
+```
+
+Here we have defined two **facts**: there is a route from Toronto to Ottawa and from Ottawa to Montreal. It is important to remember that
+the order of the constants do not matter; however, they will make a difference once we start writing the rules. In Datalog, variables
+usually start with an uppercase letter, whereas literal strings begin with a lowercase letter like above.
+
+```
+path(X, Y) :- route(X, Y).
+
+path(X, Y) :- path(X, Z), route(Z, Y).
+```
+
+We have defined two rules, where we determine that there is a path from X to Y if X has a route to Y and that X has a path to Y if there is
+a path from X to Z, and Z has a route to Y. Next, breaking down the anatomy of these rules, the _path(X, Y)_ part is called an **atom**.
+Each atom consists of the **predicate**, _path_ in this case, and the **variables/constants**, which are X and Y. Different sources might
+use different terminology; for example, rules can be called clauses, and atoms might be called literals. Now, notice the ordering of the
+variables within the rule makes the routes we defined earlier as one-way routes, meaning there is a path from Toronto to Ottawa, but not
+from Ottawa to Toronto.
+
+```
+?- path(toronto, X).
+
+?- path(ottawa, Y).
+```
+
+Now we can perform a **query** on Toronto, where we are essentially asking: "What cities, X, are connected to Toronto?" This query will
+return Montreal and Ottawa as specified by the rules previously. Similarly, the second query will only return Montreal.
+
+It is essential to remember that Datalog distinguishes between **extensional predicate symbols** (defined by facts) and **intensional
+predicate symbols** (defined by rules). Thus, in our simple example program above, _route_ is an extensional predicate, and _path_ is an
+intensional predicate. In our implementation for the access tester, the extensional predicates will represent what we already know.
+Intensional predicates for our tester will be represented by the data from the Teleport API that define the details of the RBAC
+configuration.. The intensional predicates will represent things that we are trying to infer from the facts, such as the access of users and
+which roles deny/allow access. If this was confusing, it could help to read through this
+[article](https://x775.net/2019/03/18/Introduction-to-Datalog.html) that describes Datalog in more detail before moving on.
+
+Next, we will describe a model representing Teleport's RBAC system which we can then query to answer our desired questions.
+
+## Research and design
+
+First, we need to determine what extensional predicates we have. In other words, which facts will we need to figure out the accesses later on. For the initial scope of this project, we decided to focus on SSH nodes. However, in the future, we can expect to cover Kubernetes, application, and database access.
+
+<table>
+  <thead>
+    <tr>
+      <th>Predicate</th>
+      <th>Example</th>
+      <th>Meaning</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td>HasRole(user, role)</td>
+      <td>HasRole(jean, dev)</td>
+      <td>User 'jean' has role 'dev'</td>
+    </tr>
+    <tr>
+      <td>HasTrait(user, trait_key, trait_value)</td>
+      <td>HasTrait(jean, login, dev)</td>
+      <td>User 'jean' has the login trait 'dev'</td>
+    </tr>
+    <tr>
+      <td>NodeHasLabel(node, label_key, label_value)</td>
+      <td>NodeHasLabel(node-1, environment, staging)</td>
+      <td>SSH node 'node-1' has the label 'environment:staging'</td>
+    </tr>
+    <tr>
+      <td>RoleAllowsNodeLabel(role, label_key, label_value)</td>
+      <td>RoleAllowsNodeLabel(dev, environment, staging)</td>
+      <td>Role 'dev' is allowed access to SSH nodes with label 'environment:staging'</td>
+    </tr>
+    <tr>
+      <td>RoleDeniesNodeLabel(role, label_key, label_value)</td>
+      <td>RoleDeniesNodeLabel(bad, environment, production)</td>
+      <td>Role 'bad' is denied access to SSH nodes with label 'environment:production'</td>
+    </tr>
+    <tr>
+      <td>RoleAllowsLogin(role, login)</td>
+      <td>RoleAllowsLogin(admin, root)</td>
+      <td>Role 'admin' can login as os user 'root' to SSH nodes</td>
+    </tr>
+    <tr>
+      <td>RoleDeniesLogin(role, login)</td>
+      <td>RoleDeniesLogin(dev, root)</td>
+      <td>Role 'dev' cannot login as os user 'root' to SSH nodes</td>
+    </tr>
+  </tbody>
+</table>
+
+We capture most of the RBAC configuration for SSH nodes with these facts. From here, we can develop the rules:
+
+```
+HasAllowNodeLabel(Role, Node, Key, Value) <- RoleAllowsNodeLabel(Role, Key, Value),
+NodeHasLabel(Node, Key, Value);
+
+HasDenyNodeLabel(role, node, key, value) <- RoleDeniesNodeLabel(role, key, value),
+NodeHasLabel(node, key, value);
+```
+
+These rules will determine which labels are denied and allowed for a node.
+
+```
+HasAllowRole(User, Login, Node, Role) <- HasRole(User, Role),
+HasAllowNodeLabel(Role, Node, Key, Value), RoleAllowsLogin(Role, Login),
+!RoleDeniesLogin(Role, Login);
+
+HasAllowRole(User, Login, Node, Role) <- HasRole(User, Role),
+HasAllowNodeLabel(Role, Node, Key, Value), HasTrait(User, login_trait, Login),
+!RoleDeniesLogin(Role, Login), !RoleDeniesLogin(Role, login_trait);
+
+HasDenyRole(User, Node, Role) <- HasRole(User, Role),
+HasDenyNodeLabel(Role, Node, Key, Value);
+
+HasDeniedLogin(User, Login, Role) <- HasRole(User, Role),
+RoleDeniesLogin(Role, Login);
+
+HasDeniedLogin(User, Login, Role) <- HasRole(User, Role),
+HasTrait(User, login_trait, Login), RoleDeniesLogin(Role, login_trait);
+```
+
+These rules determine whether a user has a role that allows/denies them access to a specified node. Note that we have separate rules for
+role configurations involving login traits since we can consider those login traits separately from explicitly defined logins.
+
+The next few rules will be what is queried in the end. This will be the determination of whether a user has access to a specified node as a
+login, whether a user is denied access to a specific node or denied with a specific login, and which roles are denying the user access.
+
+```
+HasAccess(User, Login, Node, Role) <- HasAllowRole(User, Login, Node, Role),
+!HasDenyRole(User, Node, Role), !HasDeniedLogin(User, Login, Role);
+
+DenyAccess(User, Login, Node, Role) <- HasDenyRole(User, Node, Role),
+HasTrait(User, login_trait, Login);
+
+DenyAccess(User, Login, Node, Role) <- HasDenyRole(User, Node, Role),
+HasAllowRole(User, Login, Node, Role);
+
+DenyLogins(User, Login, Role) <- HasDeniedLogin(User, Login, Role);
+```
+
+There’s a lot to take in, but if we walk through each rule carefully, we can see that we’ll be able to infer which nodes a user has access
+to, which logins a user can use, and if the user is denied access, which nodes/logins are denied and which roles are denying the user
+access. We will be able to answer the motivating questions from before, and all that’s left is the implementation.
+
+## Picking the approach
+
+With Datalog being very esoteric, there were not many libraries available, especially in Go. The lack of usable libraries made
+implementation tricky, as we could not just plug in a Go Datalog library into Teleport. There are a few options that we could potentially
+implement, with each having its pros and cons.
+
+One option would be to use a real-time deductive database such as Datomic. However, that means the end-user will have to set this up either
+on-premises or within the cloud. This option would also be overkill for our use case and create unnecessary overhead, so we decided to keep
+looking.
+
+A second option we considered was extending existing Go Datalog libraries or writing our own Datalog library. Unfortunately, there were not
+many Go Datalog libraries, and the decent ones did not implement negation. Datalog with negation involves stratification, essentially not
+allowing recursion involving negation. Evaluating stratified Datalog is an entire topic altogether and would require a good understanding of
+how the Go Datalog libraries evaluate Datalog under the surface. This option is not horrible, but with my basic knowledge of Datalog and Go,
+this could easily go out of scope quickly.
+
+Finally, we could use an existing Rust library, Crepe, and call Rust from Go to integrate directly with
+[tctl](https://goteleport.com/docs/setup/reference/cli/#tctl). This option is very appealing since there were many well-implemented Rust
+Datalog libraries, surprisingly. Crepe was one such library that uses the semi-naive method of Datalog evaluation while also providing
+stratification for negation. It had everything we needed while also being highly performant.
+
+Now, to figure out how to build the Rust and Go interop.
+
+## Rust &amp; Go
+
+Calling Rust from Go involves using Rust FFI and cgo to call Rust from C and Go from C. We would compile the Rust program as a static
+library and link that using a small C header file to the Go program. With primitives such as numbers, it is straightforward. However, once
+we start allocating memory on either the Rust or Go side and passing more complex structs, we need a better way of managing memory and
+accessing struct members.
+
+One such method is called the opaque pointer method, where we will pass a pointer of the struct type, but it will not be a concrete
+structure on the Go end. So to access this result struct, we would call functions from Rust that would return the actual struct members. At
+the end of this process, we must remember to clear the memory on both the Go side for the C pointers and the Rust end for the heap
+allocating structs and byte buffers. An example of this is a status struct that is returned to Go land, and then subsequently freed on the
+Rust end:
+
+### Rust
+
+```rust
+#[repr(C)]
+pub struct Status {
+    num_field: i32,
+    error: i32
+}
+
+#[no_mangle]
+extern “C” fn some_function(...) {
+    ...
+    Box::into_raw(Box::new(Status{
+        num_field: 1,
+        error: 0
+    }))
+}
+
+#[no_mangle]
+extern "C" fn drop_status_struct(status: *mut Status) {
+    if status.is_null() {
+        return;
+    }
+    unsafe {
+        Box::from_raw(status);
+    }
+}
+```
+
+### Go
+
+```go
+status := C.some_function(...)
+defer C.drop_status_struct(status)
+… do some stuff with status
+```
+
+And the opaque pointer method would look something like this with the Status struct defined above (Note that we don’t need to know what fields the Status struct holds; instead, we call getter methods that will return the primitives to us directly):
+
+### Rust
+
+```rust
+#[no_mangle]
+pub extern "C" fn status_num_field(
+    status: *mut Status
+) -> i32 {
+    if status.is_null() {
+        return 0
+    }
+
+    let st = unsafe {
+        &*status
+    };
+    st.num_field
+}
+
+#[no_mangle]
+pub extern "C" fn status_error(
+    status: *mut Status
+) -> i32 {
+    if status.is_null() {
+        return 0
+    }
+
+    let st = unsafe {
+        &*status
+    };
+    st.error
+}
+```
+
+### Go
+
+```go
+status := C.some_function(...)
+defer C.drop_status_struct(status)
+numField := C.status_num_field(status)
+err:= C.status_error(status)
+… Do stuff with the struct fields
+```
+
+The actual meat of the Rust end is the Datalog evaluation, which needs to receive data from the Teleport API, which is on the Go end. We can
+solve this by using protocol buffers since its binary serialization is much faster than JSON. It also provides a schema for both the Rust
+and Go programs, so deserialization and parsing of the data is much more structured and consistent. By passing a byte buffer of our
+protobufs from Go to Rust, we can quickly get all the required data to evaluate accesses for Teleport.
+
+One caveat with this implementation: passing strings between Rust and Go would be more expensive and unnecessary. Notice how Datalog does
+not care which literals are present — only that they must be uniquely represented. We can then hash all the string values and pass a
+primitive integer hash to Datalog to evaluate. Doing it this way would function the same, yet more performant. In the end, we can easily map
+the hashes back to their original string values to output.
+
+## Result
+
+The goal of the upcoming [tctl](https://goteleport.com/docs/setup/reference/cli/#tctl) access tool is to condense the ability to execute
+complex access queries into an easy-to-use CLI tool. It will function similarly to the existing tsh ls command that shows cluster nodes,
+except it displays information about access users have within the cluster.
+
+The results that show up in the first table will indicate that a particular Teleport user has access to a particular node and the role names
+granting the access. The second table will show denied access for a specified user. There will be three filters that can be used, --user,
+--login, and --node. Some example usage and the output are shown below.
+
+### List all accesses
+
+Command: `tctl access ls`
+
+```
+User  Login   Node               Allowing Roles
+----- ------- ------------------ --------------
+bob   bob     prod.example.com   admin, dev
+bob   bob     secret.example.com admin
+bob   bob     test.example.com   admin, dev
+bob   dev     prod.example.com   dev
+bob   dev     test.example.com   dev
+bob   root    prod.example.com   admin
+bob   root    secret.example.com admin
+bob   root    test.example.com   admin
+bob   ubuntu  prod.example.com   admin, dev
+bob   ubuntu  secret.example.com admin
+bob   ubuntu  test.example.com   admin, dev
+joe   joe     secret.example.com lister
+joe   lister  secret.example.com lister
+julia auditor secret.example.com auditor
+julia auditor test.example.com   auditor
+
+User  Logins           Node             Denying Role
+----- ---------------- ---------------- ------------
+bob   admin            *                dev
+joe   admin            *                dev
+joe   dev, joe, lister prod.example.com lister
+joe   dev, joe, lister test.example.com lister
+julia julia            *                auditor
+julia auditor, julia   prod.example.com auditor
+rui   rui              *                intern
+rui   rui              prod.example.com intern
+```
+
+### List all nodes that bob can SSH into
+
+Command: `tctl access ls --user bob`
+
+```
+User  Login   Node               Allowing Roles
+----- ------- ------------------ --------------
+bob   bob     prod.example.com   admin, dev
+bob   bob     secret.example.com admin
+bob   bob     test.example.com   admin, dev
+bob   dev     prod.example.com   dev
+bob   dev     test.example.com   dev
+bob   root    prod.example.com   admin
+bob   root    secret.example.com admin
+bob   root    test.example.com   admin
+bob   ubuntu  prod.example.com   admin, dev
+bob   ubuntu  secret.example.com admin
+bob   ubuntu  test.example.com   admin, dev
+
+User  Logins           Node             Denying Role
+----- ---------------- ---------------- ------------
+bob   admin            *                dev
+```
+
+### List all nodes that bob can SSH into as the Linux user dev
+
+Command: `tctl access ls --user bob --login dev`
+
+```
+User  Login   Node               Allowing Roles
+----- ------- ------------------ --------------
+bob   dev     prod.example.com   dev
+bob   dev     test.example.com   dev
+
+No denied access found.
+```
+
+### Determine if bob SSH into node with hostname <em>prod</em>.example.com as the Linux user dev
+
+Command: `tctl access ls --user bob --login dev --node prod.example.com`
+
+```
+User  Login   Node               Allowing Roles
+----- ------- ------------------ --------------
+bob   dev     prod.example.com   dev
+
+No denied access found.
+```
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+RBAC systems provide a powerful way to define user access for organizations of all sizes. However, troubleshooting the configuration can be
+a pain, especially as the access system grows. This blog introduces an upcoming Teleport feature that will alleviate the difficulties with
+troubleshooting RBAC configurations while providing a simple-to-use interface.
+
+The use of Datalog provides an elegant CS solution to this problem that is easily scalable and robust. Without careful consideration and
+research of different solutions, this project could have easily gone out of scope very quickly. Choosing the right solution with the given
+constraints makes the project implementation easier to manage and creates an easy yet powerful feature to use.
+
+_The access testing feature will be released in an upcoming version of Teleport. [Subscribe to our community
+Slack](https://goteleport.com/slack) and [Github discussions pages](https://github.com/gravitational/teleport/discussions) to stay
+up-to-date with releases._
