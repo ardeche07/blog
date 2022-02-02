@@ -1,0 +1,65 @@
+---
+title: 10 Reasons You Need Teleport to Secure Your Apps on AWS
+description: Just in time for re:Invent 2021, here is the list of top 10 things you should know about AWS and Teleport.
+articleTitle: "re:Invent 2021: 10 Reasons You Need Teleport to Secure Your Apps on AWS"
+date: "2021-11-29"
+author: Steven Martin
+logo:
+  image: ./assets/10-reasons.png
+  alt: 10 Reasons You Need Teleport
+tags:
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Teleport will be live at [re:Invent](https://reinvent.awsevents.com/) from Nov. 30-Dec. 2. If you are there, please stop by Booth 718 and talk to me and the Teleport team about how we can improve your security and compliance of apps running on AWS. If you can’t make it in person, here is my top 10 list of things you should know about AWS and Teleport. Check out our [Teleport on AWS](https://goteleport.com/use-cases/aws) page for more info.
+
+## 10. The enterprise and consumer brands you trust use Teleport to secure their AWS infrastructure access.
+
+We are so proud to work with [these customers](https://goteleport.com/use-cases/aws) and more who trust Teleport to enhance the security and compliance on their AWS infrastructure: [Snowflake, Moody’s, VMware, Carta, Doordash, Elastic, Thrasio, Yugabyte, Shipt, Canva, Airslate, Acquia, Chargepoint, Alteryx, Cohesity, and others](https://goteleport.com/use-cases/aws).
+
+Can we help you?
+
+## 9. Teleport allows you to seperate who can provision your AWS infrastructure from who can use it.
+
+Often the people who provision AWS resources are different from those who use them. There are cost implications of provisioning resources so often; our customers want to limit who can do that. Customers use the AWS Management Console and the AWS CLI to provision resources. So Teleport provides an [identity-aware access solution for the AWS Management Console and CLI](https://goteleport.com/docs/application-access/guides/aws-console/) that enables fine-grained, role-based access controls to prevent unauthorized creation of AWS resources. Imagine that an SRE who doesn’t normally have AWS Management Console access needs to be able to provision new AWS resources to fix a problem in production — with Teleport you can easily grant temporary elevated access that automatically expires.
+
+## 8. Teleport provides deep role-based access controls (RBAC) for EC2, RDS, Aurora, EKS and more
+
+What about the people who need to access your AWS resources, not just the AWS Management Console and CLI? Teleport enables you to provide fine-grained, identity-based access to your critical AWS resources like: Linux & Windows [EC2 instances](https://goteleport.com/docs/server-access/introduction/) [RDS](https://goteleport.com/docs/database-access/guides/mysql-aws/#aws-rdsaurora-mysql) [Redshift](https://goteleport.com/docs/database-access/guides/postgres-redshift/) [Aurora](https://goteleport.com/docs/database-access/guides/mysql-aws/#aws-rdsaurora-mysql) databases [EKS clusters](https://goteleport.com/docs/kubernetes-access/introduction/).
+
+For instance, for EC2, get kernel level visibility. For RDS or Aurora, find out who ran what query. For EKS, give separate access for your teams to their Kubernetes pods to prevent unintentional errors and least privilege access.
+
+## 7. Use Teleport to secure your DevOps toolchain running on AWS
+
+Do you run DevOps tools like Jenkins, GitLab, Hashicorp Vault on AWS? Then you need [Teleport Application Access](https://goteleport.com/docs/application-access/introduction/). Teleport gives you a zero-trust networking solution to access these apps, with fine-grained RBAC and audit rolled in. You don’t even have to register a domain to start easily providing access to these critical applications to your DevOps engineers.
+
+## 6. Send audit logs directly to AWS CloudTrail
+
+When you use Teleport to provide secure access to the AWS Management Console and CLI, we enforce “assume role” which automatically [sends usage logs to your CloudTrail service for observability and audit](https://goteleport.com/docs/application-access/guides/aws-console/#step-7-use-cloudtrail-to-see-teleport-user-activity).
+
+## 5. Teleport Cloud runs on AWS
+
+The Teleport Cloud itself runs on AWS and is available in multiple regions. Find out how we built it in this blog post.
+
+Want to host the Teleport control plane yourself? No problem. Deploy Teleport within AWS using autoscaling EC2 nodes and a High Availability (HA) persistence backend using our [Highly Available Teleport Terraform Deployment Reference](https://goteleport.com/docs/setup/deployments/aws-terraform/).
+
+## 4. Send Teleport audit logs to S3 or DynamoDB and your favorite SIEM
+
+Teleport generates activity logs for access to your AWS services. Send these logs directly to [S3](https://goteleport.com/docs/setup/reference/backends/#s3) or [DynamoDB](https://goteleport.com/docs/setup/reference/backends/#dynamodb) for analysis. Logs are easily exportable to SIEMs such as [Datadog](https://github.com/gravitational/teleport/discussions/6615) and [Splunk](https://github.com/gravitational/teleport/discussions/8597).
+
+<EmailSubscribeViolet />
+
+## 3. New EC2 nodes auto-join your Teleport clusters
+
+When your AWS usage grows, [EC2 nodes can join a Teleport cluster](https://goteleport.com/docs/setup/guides/joining-nodes-aws/) without needing to have a join token. This is great for AMIs you want to have auto-join on startup.
+
+## 2. Enhance security of your Teleport Certificate Authority with AWS CloudHSM
+
+Teleport supports hardware security modules (HSMs) including [AWS Cloud HSM](https://aws.amazon.com/cloudhsm/) that allows customers to bring their own Certificate Authorities (CAs). Using your own HSM provides easy backup of your Certificate Authority. You can also add HSMs if you have an existing Teleport deployment.
+
+## 1. Buy Teleport on the AWS Marketplace.
+
+Do you use AWS Marketplace for buying software online? [Purchase Teleport directly via the AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-syjxiiw25cr3u?sr=0-1&ref_=beagle&applicationId=AWSMPContessa) or use AWS credits to pay for Teleport usage. Private offers available for enterprise customers.

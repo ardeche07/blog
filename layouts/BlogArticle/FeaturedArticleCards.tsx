@@ -1,6 +1,6 @@
 import Box from "components/Box";
 import Grid from "components/Grid";
-import { GridTile } from "components/GridDisplay";
+import GridTile from "components/GridTile";
 import { FeaturedArticleCardsProps } from "./types";
 
 export default function FeaturedArticleCards({
@@ -20,7 +20,6 @@ export default function FeaturedArticleCards({
           width="auto"
           key={uri}
           title={frontmatter.articleTitle}
-          cardBG="article"
           href={uri}
           bhColor="page-bg"
           resourcesCard

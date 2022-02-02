@@ -2,20 +2,18 @@
  * Helper functions to generate props for "resources/*" pages.
  */
 
-import type { BlogArticle } from "layouts/BlogArticle/types";
+import type { BlogMeta } from "layouts/BlogArticle/types";
 import { getPagesInfo } from "./pages-helpers";
 
 const getArticlesList = () => {
   let articlesPageInfo = [];
 
   try {
-    articlesPageInfo = getPagesInfo(`blog/**/*.mdx`)
+    articlesPageInfo = getPagesInfo<BlogMeta>(`blog/**/*.mdx`)
       .map(({ data }) => data)
-      .filter(
-        (article: BlogArticle) => article.frontmatter.layout === "blogArticle"
-      )
+      .filter((article) => article.frontmatter.layout === "blogArticle")
       .sort(
-        (a: BlogArticle, b: BlogArticle) =>
+        (a, b) =>
           new Date(b.frontmatter.date).getTime() -
           new Date(a.frontmatter.date).getTime()
       );
