@@ -12,6 +12,8 @@ tags:
 layout: blogArticle
 ---
 
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
 Passwords are everywhere. Sometimes they are obvious — hardcoded in the code or laying flat in the file. Other times, they take the form of API keys, tokens, cookies or even second factors. Devs pass them in environment variables, vaults mount them on disk, teams share them over links, copy to CI/CD systems and code linters. Eventually someone leaks, intercepts or steals them. Because they pose a security risk, there is no other way to say it: passwords in our infrastructure have to go.
 
 There are two fundamental issues with passwords.

@@ -75,6 +75,12 @@ declare interface MarketoField {
   };
 }
 
+declare interface MarketoFormMeta {
+  buttonLabel: string;
+  thankYou: MarketoThankYou;
+  waitingLabel: string;
+}
+
 declare interface MarketoFormDataAPIResponse {
   meta: MarketoFormMeta;
   fields: MarketoField[];
