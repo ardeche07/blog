@@ -32,6 +32,7 @@ declare interface MarketoFormMeta {
   progressiveProfiling: boolean;
   status: "approved" | "draft";
   thankYouList: MarketoThankYou[];
+  thankYou: MarketoThankYou;
   theme: string;
   updatedAt: string;
   url: string;
@@ -73,12 +74,6 @@ declare interface MarketoField {
       value: string;
     }[];
   };
-}
-
-declare interface MarketoFormMeta {
-  buttonLabel: string;
-  thankYou: MarketoThankYou;
-  waitingLabel: string;
 }
 
 declare interface MarketoFormDataAPIResponse {
