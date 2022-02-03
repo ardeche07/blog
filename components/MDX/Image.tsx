@@ -55,8 +55,6 @@ export const Image = ({
   const imageProps = useMemo((): NextImageProps => {
     const imageTemp = {
       ...props,
-      layout: "intrinsic",
-      sizes: "(min-width: 1460px) 900px, 100vw",
     };
 
     return imageTemp as NextImageProps;
