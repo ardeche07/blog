@@ -20,7 +20,7 @@ const Header = () => {
 
   return (
     <StyledHeader as="header">
-      <StyledLogoLink href="/">
+      <StyledLogoLink href="https://goteleport.com/">
         <Logo width="121px" height="24px" color="dark-purple" />
       </StyledLogoLink>
       <StyledHamburger onClick={toggleNavigaton}>

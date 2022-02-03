@@ -29,7 +29,7 @@ const TryTeleport = () => {
         </Box>
         <Button
           as={Link}
-          href="/pricing/"
+          href="https://goteleport.com/pricing/"
           variant="secondary"
           shape="lg"
           mt={[3, 5]}
@@ -39,7 +39,7 @@ const TryTeleport = () => {
           Get Started
         </Button>
         <Link
-          href="/docs/"
+          href="https://goteleport.com/docs/"
           bg="transparent"
           width={["100%", "auto"]}
           px={7}

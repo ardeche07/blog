@@ -10,7 +10,7 @@
     {
       "title": "Products",
       "items": [
-        { "title": "Teleport Overview", "url": "/" },
+        { "title": "Teleport Overview", "url": "https://goteleport.com/" },
         {
           "title": "Teleport Server Access",
           "url": "https://goteleport.com/ssh-server-access/"

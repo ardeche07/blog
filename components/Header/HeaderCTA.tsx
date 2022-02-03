@@ -74,7 +74,7 @@ const HeaderCTA = () => {
             </DropdownMenu>
           </Box>
         </Box>
-        <StyledCTA as="a" href="/pricing/">
+        <StyledCTA as="a" href="https://goteleport.com/pricing/">
           Get Started
         </StyledCTA>
       </Flex>
