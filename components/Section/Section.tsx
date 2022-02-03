@@ -1,15 +1,8 @@
 import Box, { BoxProps } from "components/Box";
-import waveGrayBG from "./assets/waveGray.png";
 import waveWhiteBG from "./assets/waveWhite.png";
-import wavelight from "./assets/wave-light.png";
+import wavePurpleBG from "./assets/wavePurple.png";
 
-export type BGColor =
-  | "wavelight"
-  | "grayGradient"
-  | "grayWave"
-  | "purple"
-  | "flatGray"
-  | "flatWhite";
+export type BGColor = "purple" | "flatGray" | "flatWhite";
 
 const getBG = (color: BGColor) => {
   switch (color) {
@@ -21,21 +14,9 @@ const getBG = (color: BGColor) => {
       return {
         backgroundColor: "white",
       };
-    case "grayGradient":
+    case "purple":
       return {
-        backgroundImage: `linear-gradient(125deg ,rgba(240,242,244,.56),#fff)`,
-      };
-    case "grayWave":
-      return {
-        backgroundColor: "#f7f8f9",
-        backgroundImage: `url(${waveGrayBG})`,
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "center center",
-        backgroundSize: "cover",
-      };
-    case "wavelight":
-      return {
-        backgroundImage: `url(${wavelight})`,
+        backgroundImage: `url(${wavePurpleBG}), linear-gradient(125deg,#512fc9,#651fff)`,
         backgroundRepeat: "no-repeat",
         backgroundPosition: "center center",
         backgroundSize: "cover",
