@@ -34,7 +34,7 @@ export function Tags({ tags, size, ...props }: TagsProps) {
       {tags.map((tag, index) => (
         <li key={index}>
           <StyledLink
-            href={`/blog/tags/${encodeURIComponent(tag)}`}
+            href={`/tags/${encodeURIComponent(tag)}`}
             {...getSizeStyle(size)}
           >
             {tag}

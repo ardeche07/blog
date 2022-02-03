@@ -62,7 +62,7 @@ export const BlogArticle = ({
       <Layout lineHeight="lg" hideWave="true" pt={[6, 11]}>
         <Section py={[6, 11]} bg="flatWhite">
           <Centrator flexDirection="column" textAlign="center">
-            <StyledLink href="/blog/rss.xml" ariaLabel="rss feed"></StyledLink>
+            <StyledLink href="/rss.xml" ariaLabel="rss feed"></StyledLink>
             <Flex justifyContent="space-between" flexWrap={["wrap", "unset"]}>
               <Box
                 width="200px"

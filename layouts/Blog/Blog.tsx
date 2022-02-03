@@ -38,10 +38,7 @@ function BlogIndexPage({
   const tagsList = tags.map((tag, index) => {
     return (
       <Box as="li" marginRight={[2, 0]} key={index}>
-        <StyledTags
-          scheme="site"
-          href={`/blog/tags/${encodeURIComponent(tag)}`}
-        >
+        <StyledTags scheme="site" href={`/tags/${encodeURIComponent(tag)}`}>
           {tag}
         </StyledTags>
       </Box>
@@ -58,7 +55,7 @@ function BlogIndexPage({
         <SectionHeader
           subtitle={
             <StyledSubtitle as="p">
-              Article & News <StyledRSS href="/blog/rss.xml"></StyledRSS>
+              Article & News <StyledRSS href="/rss.xml"></StyledRSS>
             </StyledSubtitle>
           }
           title="Teleport Blog"
@@ -89,7 +86,7 @@ function BlogIndexPage({
                 <Pagination
                   currentPage={currentPage}
                   maxPage={maxPages}
-                  baseUrl={!!tag ? `/blog/tags/${tag}` : "/blog"}
+                  baseUrl={!!tag ? `/tags/${tag}` : "/"}
                 />
               )}
             </Box>

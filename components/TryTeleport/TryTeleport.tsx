@@ -6,6 +6,8 @@ import Section from "components/Section";
 import Link from "components/Link";
 import { transition } from "components/system";
 
+const HOST = process.env.NEXT_PUBLIC_TELEPORT_HOST;
+
 const TryTeleport = () => {
   return (
     <Section bg="purple">
@@ -29,7 +31,7 @@ const TryTeleport = () => {
         </Box>
         <Button
           as={Link}
-          href="https://goteleport.com/pricing/"
+          href={`https://${HOST}/pricing/`}
           variant="secondary"
           shape="lg"
           mt={[3, 5]}
@@ -39,7 +41,7 @@ const TryTeleport = () => {
           Get Started
         </Button>
         <Link
-          href="https://goteleport.com/docs/"
+          href={`https://${HOST}/docs/`}
           bg="transparent"
           width={["100%", "auto"]}
           px={7}

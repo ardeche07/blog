@@ -28,7 +28,7 @@ interface BlogPostFrontmatter {
  */
 
 export const generateRss = () => {
-  const posts = getPagesInfo<BlogPostFrontmatter>(`blog/**/*.mdx`, {
+  const posts = getPagesInfo<BlogPostFrontmatter>(`/**/*.mdx`, {
     sort: "date",
     order: "DESC",
   });
@@ -39,7 +39,7 @@ export const generateRss = () => {
     id: "https://goteleport.com/blog/",
     link: "https://goteleport.com/blog/",
     language: "en-us",
-    favicon: "https://goteleport.com/static/favicon.ico",
+    favicon: "https://goteleport.com/blog/static/favicon.ico",
     copyright:
       "Copyright © 2021, built by Gravitational Inc. All rights reserved.",
   });

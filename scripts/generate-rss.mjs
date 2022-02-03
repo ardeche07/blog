@@ -18,7 +18,7 @@ if (process.env.NODE_ENV === "development") {
 
 import { generateRss } from "../.build/server/rss.mjs";
 
-const RSS_FILE_FOLDER = resolve("./public/blog");
+const RSS_FILE_FOLDER = resolve("./public/");
 const RSS_FILE_NAME = resolve(RSS_FILE_FOLDER, "rss.xml");
 
 const rss = generateRss();

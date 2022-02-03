@@ -6,187 +6,189 @@ import serverSvgPath from "./assets/server.svg";
 import desktopSvgPath from "./assets/desktop.svg";
 import featuresSvgPath from "./assets/features.svg";
 
+const HOST = process.env.NEXT_PUBLIC_TELEPORT_HOST;
+
 const menu: MenuCategoryProps[] = [
   {
     title: "Products",
     description: "Teleport Products",
-    href: "https://goteleport.com/teleport/",
+    href: `${HOST}/teleport/`,
     children: [
       {
         image: serverSvgPath,
         title: "Teleport Server Access",
         description:
           "SSH securely into Linux servers and smart devices with a complete audit trail",
-        href: "https://goteleport.com/ssh-server-access/",
+        href: `https://${HOST}/ssh-server-access/`,
       },
       {
         image: kubernetesSvgPath,
         title: "Teleport Kubernetes Access",
         description:
           "Access Kubernetes clusters securely with complete visibility to access and behavior",
-        href: "https://goteleport.com/kubernetes-access/",
+        href: `https://${HOST}/kubernetes-access/`,
       },
       {
         image: applicationSvgPath,
         title: "Teleport Application Access",
         description:
           "Access web applications running behind NAT and firewalls with security and compliance",
-        href: "https://goteleport.com/application-access/",
+        href: `https://${HOST}/application-access/`,
       },
       {
         image: databaseSvgPath,
         title: "Teleport Database Access",
         description:
           "For PostgreSQL and MySQL databases behind NAT in multiple environments",
-        href: "https://goteleport.com/database-access/",
+        href: `https://${HOST}/database-access/`,
       },
       {
         image: desktopSvgPath,
         title: "Teleport Desktop Access",
         description:
           "Securely access Windows servers and desktops in multiple environments.",
-        href: "https://goteleport.com/desktop-access/",
+        href: `https://${HOST}/desktop-access/`,
       },
       {
         image: featuresSvgPath,
         title: "Teleport Features",
         description:
           "An overview of Teleport Access Plane features, capabilities and more...",
-        href: "https://goteleport.com/features/",
+        href: `https://${HOST}/features/`,
       },
     ],
   },
   {
     title: "Use Cases",
     description: "Teleport Use Cases",
-    href: "/",
+    href: `/`,
     children: [
       {
         icon: "building",
         title: "Financial Services",
         description: "Learn how Financial Services companies use Teleport",
-        href: "https://goteleport.com/use-cases/finance/",
+        href: `https://${HOST}/use-cases/finance/`,
       },
       {
         icon: "window",
         title: "Software-as-a-service (SaaS) Providers",
         description: "Learn how SaaS providers use Teleport",
-        href: "https://goteleport.com/use-cases/saas/",
+        href: `https://${HOST}/use-cases/saas/`,
       },
       {
         icon: "gamepad",
         title: "E-commerce & Entertainment",
         description:
           "Learn how E-commerce & Entertainment companies use Teleport",
-        href: "https://goteleport.com/use-cases/ecommerce-entertainment/",
+        href: `https://${HOST}/use-cases/ecommerce-entertainment/`,
       },
       {
         icon: "server",
         title: "Infrastructure Access for AWS",
         description:
           "Easily control who can provision and access your critical AWS resources",
-        href: "https://goteleport.com/use-cases/aws/",
+        href: `https://${HOST}/use-cases/aws/`,
       },
     ],
   },
   {
     title: "Documentation",
     description: "Teleport documentation",
-    href: "/docs/",
+    href: `/docs/`,
     children: [
       {
         icon: "stack",
         title: "Documentation",
         description: "Developer documentation for using Teleport",
-        href: "https://goteleport.com/docs/",
+        href: `https://${HOST}/docs/`,
       },
       {
         icon: "gamepad",
         title: "How it Works",
         description: "Learn the fundamentals of how Teleport works",
-        href: "https://goteleport.com/teleport/how-it-works/",
+        href: `https://${HOST}/teleport/how-it-works/`,
       },
       {
         icon: "question",
         title: "Community Forum",
         description:
           "Ask us a setup question, post your tutorial, feedback or idea on our forum",
-        href: "https://github.com/gravitational/teleport/discussions",
+        href: `https://github.com/gravitational/teleport/discussions`,
       },
       {
         icon: "window",
         title: "Teleport Slack Channel",
         description: "Need help with set-up? Ping us in Slack channel",
-        href: "https://goteleport.com/slack",
+        href: `https://${HOST}/slack`,
       },
       {
         icon: "code",
         title: "Github",
         description: "View the open source repository on Github",
-        href: "https://github.com/gravitational/teleport",
+        href: `https://github.com/gravitational/teleport`,
       },
     ],
   },
   {
     title: "Learn",
     description: "Learn more about teleport",
-    href: "/resources/",
+    href: `/resources/`,
     children: [
       {
         icon: "note",
         title: "The blog",
         description: "Technical articles, news, and product announcements",
-        href: "/blog/",
+        href: `/`,
       },
       {
         icon: "building",
         title: "Our customers",
         description:
           "Learn how companies use Teleport to secure their environments",
-        href: "https://goteleport.com/case-study/",
+        href: `https://${HOST}/case-study/`,
       },
       {
         icon: "presentation",
         title: "Resources",
         description:
           "A collection of whitepapers, webinars, demos, and more...",
-        href: "https://goteleport.com/resources/",
+        href: `https://${HOST}/resources/`,
       },
       {
         icon: "calendar",
         title: "Events",
         description: "View our upcoming events",
-        href: "https://goteleport.com/about/events/",
+        href: `https://${HOST}/about/events/`,
       },
     ],
   },
   {
     title: "Pricing",
     description: "Pricing",
-    href: "https://goteleport.com/pricing/",
+    href: `https://${HOST}/pricing/`,
   },
   {
     title: "Company",
     description: "Company",
-    href: "https://goteleport.com/about/",
+    href: `https://${HOST}/about/`,
     children: [
       {
         icon: "building",
         title: "About us",
         description: "Our missions and vision for the future",
-        href: "https://goteleport.com/about/",
+        href: `https://${HOST}/about/`,
       },
       {
         icon: "flag",
         title: "Careers",
         description: "View our available career opportunities",
-        href: "https://goteleport.com/careers",
+        href: `https://${HOST}/careers`,
       },
       {
         icon: "earth",
         title: "News",
         description: "Featured publication from around the web",
-        href: "https://goteleport.com/about/press/",
+        href: `https://${HOST}/about/press/`,
       },
     ],
   },

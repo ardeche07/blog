@@ -4,7 +4,7 @@ import { Launchpad } from "components/Launchpad";
 import { EmailSubscribe } from "components/EmailSubscribe";
 import theme from "components/theme";
 import { Copyright } from "./Copyright";
-import data from "./footer.json";
+import data from "./structure";
 import gridPngUrl from "./assets/grid-light.png";
 
 const background = [
