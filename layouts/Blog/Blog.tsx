@@ -55,7 +55,10 @@ function BlogIndexPage({
         <SectionHeader
           subtitle={
             <StyledSubtitle as="p">
-              Article & News <StyledRSS href="/rss.xml"></StyledRSS>
+              Article & News
+              <Link href="/rss.xml" aria-label="rss feed">
+                <StyledIconRSS />
+              </Link>
             </StyledSubtitle>
           }
           title="Teleport Blog"
@@ -143,23 +146,17 @@ const StyledSubtitle = styled(Flex)(
   })
 );
 
-const StyledRSS = styled(Link).attrs({ "aria-label": "rss feed" })(
+const StyledIconRSS = styled("span")(
   css({
+    display: "block",
+    width: "16px",
+    height: "16px",
     ml: 1,
     p: 2,
-
-    "&::before": {
-      content: '""',
-      display: "block",
-      width: "16px",
-      height: "16px",
-      backgroundColor: "dark-purple",
-      maskImage: `url(${rss})`,
-    },
-
-    "&:hover::before, &:focus::before": {
-      backgroundColor: "light-purple",
-    },
+    backgroundColor: "dark-purple",
+    maskImage: `url(${rss})`,
+    maskRepeat: "no-repeat",
+    maskPosition: "center",
   })
 );
 
