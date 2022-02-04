@@ -37,7 +37,7 @@ export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
       {!!(needImg && articleSlug && image) && (
         <StyledWrapperImage>
           <NextImage
-            src={require(`/pages/blog/${articleSlug}/assets/${image}`)}
+            src={require(`/pages/${articleSlug}/assets/${image}`)}
             alt="article image"
             layout="fill"
             objectFit="cover"

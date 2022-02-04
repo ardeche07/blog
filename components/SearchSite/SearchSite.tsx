@@ -16,7 +16,7 @@ export const getSearchResults = async (query: string) => {
 
   try {
     const rawResponse = await fetch(
-      `/blog/api/search/?query=${query}&url=${encodeURIComponent(href)}`,
+      `/api/search/?query=${query}&url=${encodeURIComponent(href)}`,
       {
         method: "GET",
       }

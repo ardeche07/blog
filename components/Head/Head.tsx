@@ -32,9 +32,9 @@ const Head = ({
   return (
     <NextHead>
       <title>{title}</title>
-      <link rel="icon" href="/blog/static/favicon.ico" />
-      <link rel="icon" href="/blog/static/favicon.svg" type="image/svg+xml" />
-      <link rel="apple-touch-icon" href="/blog/static/apple.png" />
+      <link rel="icon" href="/static/favicon.ico" />
+      <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+      <link rel="apple-touch-icon" href="/static/apple.png" />
       <link rel="manifest" href="/blog/static/manifest.webmanifest" />
       <link rel="canonical" href={url} />
       <meta name="description" content={description} />

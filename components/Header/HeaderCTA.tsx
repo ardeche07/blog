@@ -11,6 +11,8 @@ import {
   DropdownMenuOverlay,
 } from "../DropdownMenu";
 
+const HOST = process.env.NEXT_PUBLIC_TELEPORT_HOST;
+
 const HeaderCTA = () => {
   const ref = useRef(null);
 
@@ -74,7 +76,7 @@ const HeaderCTA = () => {
             </DropdownMenu>
           </Box>
         </Box>
-        <StyledCTA as="a" href="/pricing/">
+        <StyledCTA as="a" href={`https://${HOST}/pricing/`}>
           Get Started
         </StyledCTA>
       </Flex>

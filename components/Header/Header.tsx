@@ -10,6 +10,8 @@ import HeadlessButton from "components/HeadlessButton";
 import blockBodyScroll from "utils/block-body-scroll";
 import HeaderCTA from "./HeaderCTA";
 
+const HOST = process.env.NEXT_PUBLIC_TELEPORT_HOST;
+
 const Header = () => {
   const [isNavigationVisible, setIsNavigationVisible] =
     useState<boolean>(false);
@@ -20,7 +22,7 @@ const Header = () => {
 
   return (
     <StyledHeader as="header">
-      <StyledLogoLink href="/">
+      <StyledLogoLink href={`https://${HOST}/`}>
         <Logo width="121px" height="24px" color="dark-purple" />
       </StyledLogoLink>
       <StyledHamburger onClick={toggleNavigaton}>

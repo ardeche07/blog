@@ -11,13 +11,19 @@ export default withBundleAnalyzer({
   outputFileTracing: false,
   images: {
     disableStaticImages: true,
+    path: "/blog/_next/image",
   },
   experimental: {
     // ssr and displayName are configured by default
     styledComponents: true,
   },
   trailingSlash: true,
+  basePath: "/blog",
   webpack: (config, options) => {
+    // silencing warnings until https://github.com/vercel/next.js/issues/33693 is resolved
+    config.infrastructureLogging = {
+      level: "error",
+    };
     config.output.assetModuleFilename = "static/media/[hash][ext]";
 
     config.module.rules.push({

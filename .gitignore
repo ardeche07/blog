@@ -9,7 +9,7 @@
 
 # production
 /.build
-/public/blog/rss.xml
+/public/rss.xml
 /public/next_sitemap.xml
 
 # misc

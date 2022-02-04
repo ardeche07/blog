@@ -1,4 +1,5 @@
 import { css, transition } from "components/system";
+import styled from "styled-components";
 import Box from "components/Box";
 import Image from "components/Image";
 import Link from "components/Link";
@@ -20,29 +21,7 @@ const DropdownMenuItem = ({
   href,
 }: MenuItemProps) => {
   return (
-    <Link
-      href={href}
-      passthrough
-      display="block"
-      overflow="hidden"
-      px={3}
-      py={2}
-      border={["1px solid", "none"]}
-      borderColor="lightest-gray"
-      borderRadius="sm"
-      transition={transition([["background", "interaction"]])}
-      lineHeight="md"
-      textAlign="left"
-      textDecoration="none"
-      css={css({
-        "&:focus, &:hover": {
-          bg: "lightest-gray",
-        },
-        "& + &": {
-          mt: 2,
-        },
-      })}
-    >
+    <StyledLink href={href} passthrough>
       {image && (
         <Image
           src={image}
@@ -77,8 +56,31 @@ const DropdownMenuItem = ({
       >
         {description}
       </Box>
-    </Link>
+    </StyledLink>
   );
 };
 
 export default DropdownMenuItem;
+
+const StyledLink = styled(Link)(
+  css({
+    display: "block",
+    overflow: "hidden",
+    px: 3,
+    py: 2,
+    border: ["1px solid", "none"],
+    borderColor: "lightest-gray",
+    borderRadius: "sm",
+    transition: transition([["background", "interaction"]]),
+    lineHeight: "md",
+    textAlign: "left",
+    textDecoration: "none",
+
+    "&:focus, &:hover": {
+      backgroundColor: "lightest-gray",
+    },
+    "& + &": {
+      mt: 2,
+    },
+  })
+);

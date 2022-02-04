@@ -9,7 +9,7 @@ const getArticlesList = () => {
   let articlesPageInfo = [];
 
   try {
-    articlesPageInfo = getPagesInfo<BlogMeta>(`blog/**/*.mdx`)
+    articlesPageInfo = getPagesInfo<BlogMeta>(`**/*.mdx`)
       .map(({ data }) => data)
       .filter((article) => article.frontmatter.layout === "blogArticle")
       .sort(
