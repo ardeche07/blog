@@ -45,7 +45,7 @@ export const submitForm = async (
   token: string
 ) => {
   try {
-    const response = await fetch(`/api/form/${id}/`, {
+    const response = await fetch(`/blog/api/form/${id}/`, {
       method: "POST",
       body: JSON.stringify(fields),
       headers: {
@@ -87,7 +87,7 @@ export const useMarketoForm = (
    */
   const { data, error: fieldsError } =
     useSWRImmutable<MarketoFormDataAPIResponse>(
-      disabled ? undefined : `/api/form/${id}/meta/`,
+      disabled ? undefined : `/blog/api/form/${id}/meta/`,
       fetcher,
       { fallbackData }
     );
