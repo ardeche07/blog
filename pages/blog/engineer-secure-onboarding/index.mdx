@@ -1,0 +1,111 @@
+---
+articleTitle: An Engineer’s Perspective on Onboarding
+description: Provisioning and de-provisioning access in a quickly growing engineering organization is a challenge. In this blog post, Nick shares his first-hand experience with onboarding and the importance of the access plane technology.
+title: Provisioning access when onboarding engineers
+date: "2021-10-21"
+author: Ben Arent
+logo:
+  image: ./assets/onboarding.png
+  alt: An Engineer’s Perspective on Onboarding
+tags:
+  - company
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Engineer onboarding: two perspectives
+
+Before I joined the security industry, I was an end user. Coming in with that first-hand experience equips me to talk about secure remote
+access from multiple perspectives: as a vendor and as a practitioner. This lets me see the technologies available and also understand the
+drivers and issues engineering orgs face adopting them, particularly with onboarding engineers.
+
+I’ve been a support engineer for over 20 years, across Operations and System & Database Administration. I’ve always found something very
+rewarding about helping people solve problems, which rings true for most people who decide to go into Technical Support.
+
+In this post, I’ll share my experience as an end user of the access plane tech, going into detail on the significant impact it had on my
+onboarding experience, along with why I decided to join the team as an employee.
+
+## Onboarding: A security pain point
+
+In my experience, the operational overhead for security is painful — often requiring a dedicated Security team, allocating the required 3rd
+party key fobs for OTP, registering and activating, password management, and the list goes on. It only gets worse as your computing
+environments grow, and the teams get larger and more fragmented.
+
+The security needs of new employees in particular can pose a challenge. At one company I worked for, it took a month just to get my laptop,
+and a full 3 months to get all the logins. Ironically I went back after several years away to find my critical accounts still in place, as
+were several of my ex-colleagues who had left before me.
+
+The onboarding process has certainly improved generally with SSO in recent years, but this hasn’t necessarily trickled down to the engineer
+layer. The on-call routine has largely stayed the same: is everything working? Have I still got direct access to the critical servers, or
+have there been any firewall changes overnight that have cut me off? Are my key fobs working? Have I got access to those shared secret
+password vaults on the network? Etc, etc. All this equates to additional stress on engineers that can be avoided.
+
+## Introducing the Access Plane
+
+Over time, I accepted the pains of provisioning and de-provisioning access for engineers as inevitable, until we discovered the concept of
+an access plane at my previous employer.
+
+The idea behind an access plane is access consolidation. Gartner uses the term “secure access service mesh” to describe this architectural
+approach:
+
+- Set up a single multi-protocol access proxy which provides access to all kinds of computing resources: SSH, RDP, Kubernetes, HTTP, etc.
+- Connect the proxy to the identity source at your company. Smaller teams are usually happy with GitHub or Google Apps, while larger
+  organizations may use ADFS, Okta, Sailpoint and others.
+- Enforce certificate-based authentication and authorization for everything. This allows synchronization of RBAC across all environments and all resource types.
+- Stream all access events into a centralized audit log for historical and real-time visibility.
+
+Effectively, the pain is reduced by shrinking the configuration (and attack) surface area from thousands of endpoints to just one.
+
+## Engineer onboarding: personal experience
+
+At a previous employer, I joined a Cloud Operations team, supporting a managed service for multiple clients across the 3 main Cloud vendors,
+using the [open source access plane](https://github.com/gravitational/teleport) called Teleport. It allowed us to SSH into everything after
+going through Okta SSO.
+
+Teleport features the single sign-on access for users and administrators via an external proxy using short-lived SSL certificates. This
+access enables SSH, K8S, DB and Application endpoints. Handily, session activity is also recorded, so it helped our team meet our external
+customers’ security compliance requirements.
+
+The access plane concept was a revelation for me at the time. By the close-of-play day 1, I had my access. After a month, when I lost my
+phone and frantically pinged our head of security, he set up a new URL minutes later to register another authenticator on a spare handset.
+
+The Teleport access worked seamlessly the entire time I was on the team — every SSH connection, Dev and Prod, across Azure, AWS and GCP.
+Group sessions with colleagues in Sydney, Boston and myself in London. The cloud vendor VMs, not so reliable.
+
+As an end user, this experience was painless. Now of course I might be a bit biased, but the advantages of having a session recording
+available to your colleagues, when you’ve pulled a remote 15-hour stint on a P1 and need to sleep, speak for themselves. And our founders
+OSS’d the code too, so you can run Teleport on your home lab!
+
+The software is evolving with new features and compatibility growing over time, without being over-engineered. With the upcoming release of
+Teleport 8.0, we’ll have full Windows support, so you can seamlessly access your Linux devices from the cmd prompt, and hit remote Windows
+servers.
+
+My experience as a user of Teleport had a significant impact on me. So, when the opportunity came up to work here, it really was a
+no-brainer.
+
+## An external perspective on onboarding
+
+My experience as a Teleport user was not unique. Recently, my colleague Ben Arent, a Developer Relations Engineer, [sat down with Mario
+Loria](https://goteleport.com/resources/podcast/access-control-mario-loria-carta/), Senior SRE at Carta, to chat about how his team adopted the Access Plane
+concept.
+
+One of the major themes of that conversation centered on the impact of the access plane on simplifying & securing the onboarding process.
+
+“With Teleport, we can onboard people quickly and have assurance that they’re going to be able to access only the systems we intend them
+to,” says Loria, “Fast and easy onboarding is something that we need to get right. We could have built our own secure access team to do
+this. With Teleport, I don’t think we need to do that.”
+
+Creating a secure onboarding process is essential for any team, and the value of a fast, simple onboarding experience as a user is
+significant.
+
+<EmailSubscribeViolet />
+
+## Become a security engineer
+
+The access plane technology can solve a lot of pain points for secure connectivity, authentication, authorization, audit, and visibility for
+both support staff and end users. This architecture works seamlessly across clouds, on-prem resources, edge, and colocated infrastructure in
+the post-COVID world.
+
+That’s why I joined the Teleport team, and you can too! [Check out our open roles on our careers page](https://goteleport.com/careers/).

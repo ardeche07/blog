@@ -1,0 +1,417 @@
+---
+title: DevOps-friendly Access Controls w/ CI/CD, GitHub Actions, and More.
+description: Find out how to implement access controls for your DevOps workflows like CICD, GitOps and more using Teleport.
+articleTitle: DevOps Access Controls for CI/CD, GitOps, and More
+date: "2021-11-04"
+author: Allen Vailliencourt
+logo:
+  image: ./assets/devops.png
+  alt: Guide to Pass a FedRAMP Audit
+tags:
+  - security
+  - engineering
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Over the last few years, the term DevOps and DevSecOps (which stand for Developer Operations and Developer Security Operations respectively)
+have become synonymous with companies trying to become more agile and less monolithic.
+
+For decades, software development and IT operations have remained isolated silos in companies across the globe. So when companies need to
+launch new software products, large IT initiatives, update existing applications, etc. it would take weeks and months of planning and
+coordination between all these disparate groups. Then, during that deployment (which always seems to happen over a long weekend!), any
+number of issues could arise that might derail and set back the whole project. Ah! Back to the drawing board and re-planning for another
+release in a few weeks or months! This cycle of long planning, long releases, and more still goes on in organizations today. Maybe your
+organization is still in the midst of ‘agile transformation’ and suffers from these types of processes.
+
+As you can see, this method doesn’t work too well in today’s hyper-agile world where startups can come and go within days. Scrappy startups
+can spin up hundreds of VM’s, Kubernetes clusters, and large-scale databases within minutes on cloud providers like AWS, Azure, GCP, Oracle
+Cloud, and more. If a company is still locked into the old-school way of deploying and managing resources, they are quickly being lapped by
+newer companies or older companies that have embraced the DevOps style of thinking.
+
+Once the culture of DevOps has permeated a company and once their processes start to migrate from a monolithic/slow deployment model to
+continuous integration and continuous deployment (the CI/CD in DevOps), it’s easy to operate faster — deploy faster, release faster, make
+changes faster, etc.
+
+The data shows that companies that are more agile and deploy more rapidly are able to manage change and get their products/services to
+market faster. The DevOps Research & Assessment (DORA) group (which is a part of Google Cloud) has been conducting a State of DevOps report
+for a number of years and has been surveying companies and putting this data into the [State of DevOps
+report](https://www.devops-research.com/research.html#reports). It has shown that companies embracing the concept of DevOps and DevSecOps
+are seeing dramatic improvements across the board. This, in turn, enables those organizations to respond to market changes faster and
+therefore makes for happier customers.
+
+This table illustrates how DORA defines Elite vs. Low-performing teams when it comes to a software delivery performance metric (this data is
+from their 2021 State of DevOps report).
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Elite</th>
+      <th>Low</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <b>Deployment frequency</b>
+      </td>
+      <td>On-demand (multiple deploys per day)</td>
+      <td>Fewer than once per six months</td>
+    </tr>
+    <tr>
+      <td>
+        <b>Lead time for changes</b>
+      </td>
+      <td>Less than one hour</td>
+      <td>More than six months</td>
+    </tr>
+    <tr>
+      <td>
+        <b>Time to restore service</b>
+      </td>
+      <td>Less than one hour</td>
+      <td>More than six months</td>
+    </tr>
+    <tr>
+      <td>
+        <b>Change failure rate</b>
+      </td>
+      <td>0%-15%</td>
+      <td>16%-30%</td>
+    </tr>
+  </tbody>
+</table>
+
+Comparing the two teams, DORA has found that Elite performers have 973x more frequent code deployments, and 6570x faster time to recover
+from incidents. That is a huge gap and shows why organizations are striving to integrate more agile processes into their DevOps lifecycle.
+
+So what if your team has integrated tools like [Teleport](https://goteleport.com/signup/) to help manage access and control to your databases, Kubernetes
+clusters, virtual machines, and more? How can you continue this DevOps/DevSecOps way of thinking without causing speedbumps into your
+process? Often when a new tool gets put in place, it can disrupt current processes and cause all kinds of issues! Even when teams implement
+a tool like Teleport, they might not escape these disruption issues.
+
+Let’s talk about this and go through a few ideas on how you can go faster yet still continue to provide compliance and auditing for your
+team using Teleport. In the end, proper implementation of a tool like Teleport should help your team remain agile and increase your
+security.
+
+First up, a conversation around bastion hosts.
+
+## Why you should eliminate those home-grown bastion hosts
+
+If you are not using a bastion or jump host to mitigate and secure remote access to your environments, then stop reading right now. Go
+[here](https://goteleport.com/blog/ssh-bastion-host/) and set up your first Bastion host to start isolating and securing your resources now!
+
+Seriously though, organizations need to have some sort of bastion environment setup to gate access to end resources, applications, and
+servers. Bastion hosts are great for narrowing the exposure of your servers and applications. For DevOps teams, restricting access to end
+devices by using Bastion hosts lowers the potential exposure of systems and applications and makes life a little bit easier. You can control
+access to the bastion, and from there, you can limit who can see what on the other side. The problem with bastion hosts is that they can be
+challenging to scale, especially for fast-growth companies. Every bastion you stand up now has to be patched, have its keys rotated,
+vulnerabilities scanned, etc. The bigger your network becomes, the more bastions you potentially need to deploy. And how do you gate access
+to your bastion hosts? VPN? Whitelist IP addresses? Home-grown access solutions? In my day-to-day conversations with SRE’s, sysadmins, and
+security teams, I hear a number of stories of how they have outgrown their bastion setups and are looking for better ways to manage/gate
+access to remote resources.
+
+Leveraging a tool like Teleport reduces the need for all these home-grown bastion hosts. Teleport proxy nodes, which act like bastion hosts,
+are stateless and can scale up and down as needed. No worries about local users, keys, etc. Access to these resources is handled by the Auth
+server and x509 or SSH certificates for short-term access. On top of that, when you tie your Teleport cluster into your identity provider
+(IDP) or SSO provider (such as Okta, Google, Azure AD, etc.), you now can pull all the user information from a single source of truth and
+manage granular access using detailed RBAC (Role-Based Access Control) roles and permissions.
+
+Take a look at our [architecture documents](https://goteleport.com/docs/architecture/overview/) and see how we’ve designed Teleport to help
+teams manage access and eliminate all the legacy bastion hosts.
+
+## Automate your Infrastructure as Code (IaC)
+
+Let’s segue into our second topic: Infrastructure as Code (IaC). Infrastructure as Code involves using software tools to define your
+infrastructure through a declarative process. As your environments grow and scale out, it becomes more critical to start leveraging IaC
+processes to help manage these resources. If you are manually configuring VMs, VPCs, users, and environments across your different cloud
+environments (or even on your on-prem environments), then you need to adopt some form of automation! There is a bit of a learning curve when
+picking up these tools if you have never used them before, but once you start using them consistently, you’ll wonder why you never did it
+sooner. Many organizations are using IaC along with [GitOps](https://www.cloudbees.com/gitops/what-is-gitops) to make things even more
+automated and seamless!
+
+When it comes to using IaC, there are a large number of open source projects and commercial tools that can help you accomplish automating
+your infrastructure. Below is just a small selection of some of the more popular tools in no particular order:
+
+<ul>
+  <li>
+    <b>Red Hat Ansible and Ansible Tower/AWX</b> - I am a big Ansible fan and
+    have been using it for a number of years. It runs agentless and can be used
+    to provision infrastructure and configure said infrastructure once it has
+    been provisioned. It is a fully open-source project which is great and
+    actively maintained by hundreds of people all over the world. For
+    Enterprises that need commercial support, Red Hat does offer that as well.
+  </li>
+  <ul>
+    <li>
+      <a href="https://github.com/ansible/ansible">Ansible repo on GitHub</a>
+    </li>
+    <li>
+      <a href="https://github.com/ansible/awx">
+        Ansible Tower/AWX repo on GitHub
+      </a>
+    </li>
+  </ul>
+  <li>
+    <b>HashiCorp Terraform</b> - Another fantastic automation framework that is
+    also open source. Terraform excels at provisioning Cloud-based
+    infrastructure and once you dig into it, you’ll most likely never look back!
+    Similar to Red Hat, Terraform is free to use and contribute to but also
+    offers enterprise-level support for teams that need it.
+  </li>
+  <ul>
+    <li>
+      <a href="https://github.com/hashicorp/terraform">
+        Terraform repo on GitHub
+      </a>
+    </li>
+    <li>
+      <a href="https://github.com/gravitational/teleport-plugins/tree/master/terraform">
+        Teleport Terraform plugin
+      </a>
+    </li>
+  </ul>
+  <li>
+    <b>
+      AWS CloudFormation, Google Cloud Deployment Manager, Azure Resource
+      Manager
+    </b>
+    - The 3 big cloud players all have their own IaC tools. They are designed to
+    work with their cloud resources. If your organization is dedicated to using a
+    specific public cloud provider, it might be worth learning how their IaC tools
+    work.
+  </li>
+  <ul>
+    <li>
+      <a href="https://aws.amazon.com/cloudformation/">AWS Cloud Formation</a>
+    </li>
+    <li>
+      <a href="https://cloud.google.com/deployment-manager/docs">
+        GCP Cloud Deployment Manager
+      </a>
+    </li>
+    <li>
+      <a href="https://docs.microsoft.com/en-us/azure/azure-resource-manager/">
+        Azure Resource Manager
+      </a>
+    </li>
+  </ul>
+  <li>
+    <a href="https://www.chef.io/">Chef</a>,
+    <a href="https://puppet.com/">Puppet</a>,
+    <a href="https://saltproject.io/">Salt Project</a>, and more. I have not
+    used some of these tools, but they are well-known in the DevOps world and
+    work similarly to some of the others posted above.
+  </li>
+</ul>
+
+If you are new to IaC and automation, the sheer abundance of available tools out there can be overwhelming, but when you pick a tool that
+fits your organization and use cases, then you really cannot go wrong with what you have selected. My recommendation? Pick a small project
+and dive into any or all the different tools and try to automate something small. Get a feel of how those tools work and see what level of
+technical expertise or learning you might have to pick up to be successful at using that tool.
+
+Now how does Teleport fit in with IaC? One way is to leverage the [Teleport Terraform plugin](https://github.com/gravitational/teleport-plugins/tree/master/terraform). Our team here at Teleport heavily relies on Terraform,
+from managing internal users to provisioning Teleport clusters, to providing examples for users to stand up their own Teleport instances. If
+you want to see how we leverage Terraform and IaC in one way internally, then check out this blog post by Travis Gary our Director of IT
+about [using Terraform for Okta Directory security hardening](https://goteleport.com/blog/okta-terraform/).
+
+The Teleport Terraform plugin was built to help teams manage their Teleport resources and is constantly being improved upon. You can
+leverage the plugin to configure roles, local non-interactive users (CI/CD bots, etc.), provision tokens, and more. To get started, read our
+documentation [here](https://goteleport.com/docs/setup/guides/terraform-provider/).
+
+With good IaC practices, you can store your roles and other Teleport work within GitHub (or any other Git-based version control system) and
+leverage the Terraform module to update your cluster. No more manual editing of YAML or updating each entry from the CLI one at a time! This
+helps accelerate your adoption of Teleport and makes it easier for change requests to come through as well as providing an audit trail from
+your VCS on deployments, pull requests, and more.
+
+Lastly, let’s look at leveraging Teleport for tools like CI/CD!
+
+## Access controls using non-interactive users for CI/CD processes
+
+One of the big tenets of using DevOps/DevSecOps principles is that you need to stop doing manual builds, integrations, and deployments.
+Having someone manually kick off a build, run tests, push to UAT, etc. is time-consuming and prone to human error. Automating these
+processes can rapidly speed up your deployment times and render the development process more agile.
+
+The question that we do hear from customers is: Now that we’re using Teleport, how can we integrate Teleport into our CI/CD processes?
+
+We use the idea of impersonation within Teleport and create non-interactive users that can then be leveraged with CI/CD tools like Jenkins,
+CircleCI, Bamboo, GitHub Actions, and more.
+
+If you would like to dig into our documentation around impersonation then [start here](https://goteleport.com/docs/access-controls/guides/impersonation/#impersonation). In our documentation, we use Jenkins as the example, but you can easily
+transition this to pretty much any CI/CD platform or any system that requires non-interactive users.
+
+For my example here, I’m going to be illustrating this using [GitHub Actions](https://github.com/features/actions).
+What we are doing is creating a unique non-interactive user with limited roles and permissions granted and assigned by Teleport. We will export out a short-lived certificate (a 30-day or less TTL is recommended) and integrate that within our CI/CD build process. Then as our
+CI/CD build fires off, it will leverage this user and validate their certificate. If it’s valid, then the process will continue and Teleport
+will audit/log this information. If the certificate is invalidated, then your CI/CD process will fail until a new cert is created and the
+build system has been updated with the new credentials.
+
+<i>
+  <u>Security note:</u> For the purposes of illustrating how Teleport works with
+  impersonation, my examples below are probably not 100% adhering to GitHub
+  Actions best practices and security. Please review the [Security hardening for
+  GitHub Actions
+  documentation](https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions)
+  if you intend to use this in production or with any publicly facing
+  repositories.
+</i>
+
+Ok, let’s jump right in!
+You have a Teleport user that has a defined impersonation role. This role allows the user to create non-interactive users. In my example
+here, my user `allen`, has the `impersonator` role assigned already.
+
+<BlogImage src="./assets/DevOps-AC-Image1.png" />
+
+When I look at the `impersonator` role (YAML) in the Teleport UI, you can see what a user with the impersonate role can and cannot do:
+
+<BlogImage src="./assets/DevOps-AC-Image2.png" />
+
+This user has the ability to impersonate the `githubactions` user and role.
+
+Let’s look at the `githubactions` role YAML:
+
+<BlogImage src="./assets/DevOps-AC-Image3.png" />
+
+With this role there, are a few things I want to point out:
+
+<ol>
+  <li>
+    This user can ssh in using the `ubuntu` login. For our demo purposes with
+    GitHub Actions, I’m just going to show how that works. In your scenario, you
+    would want to set this to how your CI/CD systems work/deploy, etc.
+  </li>
+  <li>
+    I have a 240h TTL. The certificate would be valid for 10 days at the most.
+  </li>
+</ol>
+Next, I need to export the certificate for the `githubactions`user so that I can
+incorporate it into my CI/CD workflow. I run the following command to export out
+the necessary certificates:
+
+`bash tctl auth sign --user=githubactions --out=githubactions --format=openssh --ttl=240h `
+
+(The `tctl` tool is the Teleport cluster administration tool. You can learn more about it [here](https://goteleport.com/docs/setup/reference/cli/#tctl).)
+
+With this command, I am exporting out an identity file for the user `githubactions` with the name of `githubactions` and with the `openssh`
+format.
+
+You should see the following in the directory where you exported out the identity files:
+
+<BlogImage src="./assets/DevOps-AC-Image4.png" />
+
+The `githubactions` private key and the signed SSH certificate. You can view the details of the certificate with the following command:
+
+`bash ssh-keygen -L -f githubactions-cert.pub -text `
+
+The output will show information about the certificate, extensions, principals, validity date, etc.
+
+Now that we have our 10-day certificate (240 hours), we need to get this up to our CI/CD system. For GitHub Actions, I have it set as a
+secret/variable. You can do this from within the GitHub UI or using their command-line tool (`gh`).
+
+<BlogImage src="./assets/DevOps-AC-Image5.png" />
+
+The variable names can be whatever you want. For my examples, I just created ones that were easily understandable from a glance.
+
+If you are using the `gh secret` method, you can set and even update the secrets using the following command:
+
+`bash gh secret set TELEPORT_CERT < <path_to_cert.pub> gh secret set TELEPORT_PRIVATE_KEY < <path_to_key> `
+
+More information on the GitHub CLI tools can be found [here](https://cli.github.com/manual/gh_secret_set).
+
+Ok! We have our 10-day certificate exported out from Teleport and imported into GitHub Actions. Let’s test it out!
+
+In your repository, you will need to modify your GitHub Actions workflow YAML file. In my instance, it looks like this:
+
+```bash
+...SNIP... - run: |
+         echo "Configuring the environment." mkdir ~/.ssh cat >>~/.ssh/config <<EOF Host *
+           StrictHostKeyChecking no UserKnownHostsFile=/dev/null
+         EOF
+     - run: 'echo "$SSH_CERT" > ~/.ssh/githubactions-cert.pub'
+       shell: bash env:
+         SSH_CERT: ${{ secrets.TELEPORT_CERT }}
+     - run: 'echo "$SSH_KEY" > ~/.ssh/githubactions'
+       shell: bash env:
+         SSH_KEY: ${{ secrets.TELEPORT_PRIVATE_KEY }}
+     #- run: ls ~/.ssh - run: |
+         echo "SSHing into remote node..." eval $(ssh-agent) chmod 400 ~/.ssh/githubactions ssh-add ~/.ssh/githubactions ssh -J
+         ubuntu@cluster.example.com:3023 -p 3022 ubuntu@teleport-demo-app-server 'teleport version'
+     - run: echo "It works!"
+```
+
+Again, this is not production-quality code! So bear that in mind if you copy and paste this as an example! How I have it set here is not
+necessarily how you would set it up in your environment.
+
+When my GitHub Actions workflow runs, it will SSH into one of my existing Teleport managed nodes and get the current version of Teleport and
+echo it back into the GitHub Actions logs. This all happens when I run a `git commit` and `git push` to my upstream GitHub repository.
+
+You can see where my runner is pulling down the exported identity file. This allows the runner to SSH into one of my Teleport nodes
+(`teleport-demo-app-server`) and runs a `teleport version` command.
+Here is the successful output:
+
+<BlogImage src="./assets/DevOps-AC-Image6.png" />
+
+Yes! We see that the node is running Teleport v7.3.2!
+
+So what happens if the certificate is invalid? What will we see?
+
+From GitHub Actions you would see the following because the certificate is expired:
+
+<BlogImage src="./assets/DevOps-AC-Image7.png" />
+
+And you’ll probably get an email letting you know the build failed:
+
+<BlogImage src="./assets/DevOps-AC-Image8.png" />
+
+Now if you have access to the Teleport UI and look at the audit logs, you will see something like this:
+
+<BlogImage src="./assets/DevOps-AC-Image9.png" />
+
+If you open up the audit entry in the Teleport UI, you will see some more details:
+
+<BlogImage src="./assets/DevOps-AC-Image10.png" />
+
+Let’s summarize and wrap things up.
+
+With Teleport, you can impersonate non-interactive users to leverage tools like CI/CD which are critical in DevOps environments. You
+leverage short-lived certificates to manage what those non-interactive users can and cannot do and you get audit and compliance because
+you’re running this all through Teleport.
+
+<EmailSubscribeViolet />
+
+## In conclusion: Leveraging Teleport can be a powerful addition to your DevOps/DevSecOps lifecycle
+
+We talked about how you can use Teleport for replacing your home-grown bastion hosts, using Infrastructure as Code for managing Teleport
+resources, and then dove a little further into using Teleport with CI/CD.
+
+Hopefully, this showcases how flexible and powerful Teleport can be and how you can leverage its features to strengthen your DevOps and
+DevSecOps processes!
+
+Integrating Teleport into your DevOps and DevSecOps processes isn’t overly complicated but does involve some re-thinking and architecting
+potentially new processes and workflows. Once done, then you’ll have a system that can be easily managed and provides added benefits of
+auditing and compliance.
+
+If you have questions about anything covered here, then please join our GitHub
+[discussions](https://github.com/gravitational/teleport/discussions) or our [Slack community](https://goteleport.slack.com)! I would love to
+hear from DevOps and DevSecOps teams on how they are using and integrating Teleport into their day-to-day work.
+
+Here are a few links to get started:
+
+<ul>
+  <li>
+    <a href="https://goteleport.com/docs/server-access/guides/tsh/#ssh-certificates-for-automation">
+      SSH Certificates for Automation
+    </a>
+  </li>
+  <li>
+    <a href="https://goteleport.com/docs/access-controls/guides/impersonation/">
+      Teleport Impersonation
+    </a>
+  </li>
+  <li>
+    <a href="https://goteleport.com/signup">Free Cloud Trial of Teleport!</a>
+  </li>
+</ul>

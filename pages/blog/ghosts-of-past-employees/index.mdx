@@ -1,0 +1,58 @@
+---
+title: Ghosts of Past Employees
+description: Are you sure you've revoked all the credentials for the summer intern? This is a fun seasonal deep-dive into what we can learn from Halloween ceremonies.
+articleTitle: Ghosts of Past Employees
+date: "2021-10-28"
+author: Ben Arent
+logo:
+  image: ./assets/halloween.png
+  alt: Ghosts of Past Employees
+tags:
+  - cybersecurity
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+_This blog post started as a seasonal message from our Newsletter. We've expanded it to be appropriate for the rest of the year. With more
+employees changing jobs in 2021 than ever before, there are likely to be a few skeletons in the closet._
+
+As we approach October 31st, I wanted to dig into the History of Halloween. How can we learn from practices of the past and save ourselves
+from the ghosts of the present? The origins of Halloween date back to the Celts celebrating the end of harvest as the cold dark winter
+approached. The Celts believed that on this night of the year, the boundary between the world of the living and dead became blurred. When
+ghosts of the dead return to earth. You’re likely thinking: why is Teleport making this segue to Halloween? Below is why access control has
+more in common with Halloween than you think!
+
+## 🎃 Things that go bump in the night
+
+It all starts with a creaking door, or going to explore that one creepy building you know you shouldn’t. There is something happening — you
+don’t know what. But you don’t want to stick around. Running modern infrastructure can feel like this. There are millions of alerts firing
+off in your SIEM and a lot of port scans from suspicious IPs. As with all spine-chilling shadows, they quickly become less creepy when you
+apply a bit more light to them — by being able to see the back of that creepy basement, or capture all of the access logs. You get a full
+picture of what's happening, and it quickly becomes less scary.
+
+## 👻 Ghosts of past employees
+
+Companies and projects are interesting beasts. People come and go, and while you can still `git blame`, that person might be long gone. Any
+organization will have traces of past employees' contributions, but the last thing you want is seeing them access a system they shouldn’t.
+The ghosts can appear by accident, an employee using an old kubeconfig or an alias to SSH into a server that still has their public key on
+it. This is why it’s important to use short-lived credentials, for 8hrs or a week, ideally populated from a central identity provider to
+give access to systems. Once an employee leaves, you know for sure that they won’t come and scare your infrastructure. If you’re new to
+Teleport, this is exactly the problem that [Teleport](https://goteleport.com/) solves.
+
+<EmailSubscribeViolet />
+
+## 🔥 Relight the fires with sacred embers
+
+When the Celts celebrated Halloween, they would have a large bonfire and burn crops as sacrifice to Celtic deities. When the celebration was
+over, they would relight their home hearth fires, which they had extinguished earlier that evening, using embers from the sacred bonfire.
+This would help protect them during the coming winter.
+
+This type of ceremony might feel very similar for companies that have been hacked and have had to build back stronger. Once the root cause
+is found, it’s important to take the learnings back to each team and build a more resilient system. At Teleport we have regular external
+security audits where we learn about possible threats. We collectively rally around these findings, and come back to build a stronger system
+for everyone — thereby relighting a better product for the next digital winter ahead.
+
+Hopefully, Teleport can help you ward off the evil spirits and spooks. [Get started with our Free & Open Source Community
+edition](https://goteleport.com/pricing/).

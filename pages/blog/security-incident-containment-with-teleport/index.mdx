@@ -1,0 +1,157 @@
+---
+articleTitle: Security Incident Containment with Teleport Session and Identity Locking
+description: We are thrilled to announce the general availability of Session and Identity Locking feature that allows quick incident containment.
+title: Security Incident Containment with Teleport
+date: "2021-09-10"
+author: Sakshyam Shah
+logo:
+  image: ./assets/session-blocking-min.png
+  alt: Security Incident Containment
+tags:
+  - security
+  - announcement
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+What would you do when a security incident is detected? Shut down the servers? Pull out the power cord from the data center? When an
+incident is detected, both the incident method and the time required to contain an incident are essential to limit the damage. The slower
+you are to react, the more damage an incident would incur. And a service downtime to contain an incident can cost businesses even more than
+a security incident itself.
+
+There have been advances in Security Orchestration, Automation, and Response (SOAR) platforms and Automated Incident Response tools that
+offer incident-specific playbooks and response automation tools for easy and systematic incident containment. However, their capabilities
+depend on containment features and automation API (or CLI tools) offered by infrastructure and security products. Additionally, the silos in
+cybersecurity products make it more challenging to automate coordinated incident containment.
+
+We’ve worked with teams to help solve these problems, and with Teleport 7.0, we are thrilled to announce that we’re one step closer to
+better SOAR with Teleport. Teleport 7.1 includes a Session and Identity Locking feature that allows rapid containment for incidents
+involving compromised access.
+
+## Introducing Session and Identity Locking with Teleport 7.1
+
+Teleport 7.1 brings a Session and Identity Locking feature that suspends all active and future interactions like SSH/DB/k8s connections and
+certificate requests matched by the lock's target.
+
+A lock can target the following objects or attributes:
+
+- A Teleport user by the user's name;
+- A Teleport [RBAC](https://goteleport.com/docs/access-controls/reference/) role by the role's name;
+- An MFA device by the device's UUID;
+- An OS/UNIX login;
+- A Teleport node by the node's UUID (effectively unregistering it from the cluster).
+
+Upgrade to Teleport 7.1 today to fully enforce the locks at all components. [Refer to this
+guide](https://goteleport.com/docs/access-controls/guides/locking/) on Session Locking that describes the feature and usage in detail.
+
+## What is Security Incident Containment anyway?
+
+Incident containment is one of the most critical aspects of a security incident response handling process. A fast and coordinated
+containment strategy can significantly limit the damage in a security incident.
+
+Following NIST's [computer security incident response handling
+guide](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf), a typical security incident handling process involves
+four phases:
+
+- **Phase 1 - Preparations.**
+  Building incident handling capability with people, process, and technology.
+- **Phase 2 - Detection and Analysis.**
+  Identifying if a security event is a security incident. At this step, you also identify the state of an incident. E.g., is this
+  an active incident? Is this an indication of a breach that happened in the past?
+- **Phase 3 - Containment, Eradication, and Recovery.**
+  Stop the threat actor (malware or human adversaries) from causing further infection or lateral movements (pivoting and propagating in the
+  network).
+- **Phase 4 - Post-Incident Activities.**
+  Lesson learned and re-invest in step one, i.e., Preparations.
+
+<BlogImage src="./assets/incident-handling.png" />
+
+<figcaption>
+  Fig: [Four Phrases of Incident
+  Handling](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-61r2.pdf)
+</figcaption>
+
+The incident containment process depends on the type of incident. For example, a DDOS incident containment strategy can be different from a
+malware infection or compromised access incident. Incident containment can be further classified into two categories:
+
+**Short-term containment**
+Short-term containment is the quickest patch you can apply without a concrete plan (instant response to the
+incident). Examples include:
+
+- Applying a monkey patch to change the runtime behavior of a compromised application
+- Isolation of compromised networks
+- Shutting down production servers
+
+**Long-term containment**
+A well-planned temporary fix to contain the incident. A long-term containment is a strategy to bring back
+infected systems online by rewriting security policies and altering networks or systems so that the vulnerabilities or misconfigurations
+that were exploited are addressed.
+
+## How does the Session and Identity Locking feature help with Incident Containment?
+
+As an Access Plane, Teleport has features that can be used to quickly contain lateral movements and prevent further infection propagation
+due to compromised access. Lateral movement is a popular adversary tactic in a security incident lifecycle (see [MITRE ATT&CK
+matrix](https://attack.mitre.org/)). After initial credential compromise, the next step for adversaries is to further pivot inside the
+network, escalate privilege, compromise further systems, maintain access, and ultimately exfiltrate data.
+
+Below are a few instant benefits of using Teleport for containing compromised access incidents:
+
+### Live patching
+
+One of the best short-term containment strategies is the ability to patch malicious access at runtime without service downtime. With
+Teleport, you can block access (including already authenticated active sessions) at runtime. No service restarts or extra tooling are
+required to lock a session.
+
+### Revoking trusted access
+
+One of the problems in a certificate and signature-based authentication like JWT or even Teleport certificate auth is certificate
+revocation. Once a certificate is issued, revoking trust is hard. With Session Locking, invalidating signed and trusted certificates is
+possible since locking is enforced at the session-level. This can be a handy control to contain incidents involving an insider threat.
+
+### Control over containment duration
+
+During the Detection and Analysis Phase of incident response, incident handlers need to apply a quick patch (short-term containment) before
+additional information is identified. A full access revocation of a user who might not be a threat actor can be a waste of administrative
+time. Teleport Session Locking allows supplying duration of the lock so that you can block access for a short duration (e.g., block for one
+hour) so that if a user is later flagged as a non-threat actor, they can continue with their operations after the blocked period without the
+need of full access reassignment.
+
+### Identity-based locking
+
+Only lock malicious user access. Together, identity-based locking and live patching are probably the most significant advantages of the
+Teleport Session Locking feature. In a typical incident response scenario, a short-term containment strategy is usually performed by
+shutting down the production servers and blocking all connections, resulting in service downtime. We mentioned earlier that service downtime
+can cause business more damage than a security breach itself. On average, a cost of downtime can cost a business as much as [$9000 per
+minute](https://www.atlassian.com/incident-management/kpis/cost-of-downtime). Therefore, avoiding service downtime is probably one of the
+biggest challenges in short-term incident containment strategy, and Teleport's Session Locking feature helps to avoid this.
+
+### Evidence preservation
+
+Apart from service downtime, another risk to the short-term incident containment process is losing the evidence. When a server or network is
+quickly decommissioned to respond to a security incident, you risk losing evidence along with it. Teleport's session recording feature can
+help preserve access and session evidence even if a hard reset is applied to the infected server or network.
+
+### Easy to integrate with SOAR platforms or incident response playbook
+
+Teleport's first-class support for API and CLI tool (tctl) makes it super easy to integrate with SOAR platforms. For example, you can add
+the following command to your SOAR platform or response playbook to automate access blocking in case of a security incident.
+
+`$ tctl lock --use=alice@example.com --message="Suspicious activity,locking user for 10hrs." --ttl=10h`
+
+<EmailSubscribeViolet />
+
+## The Access Plane advantage
+
+When your infrastructure access is managed by a single service offering a uniform layer (only one way in and one way out), it becomes super
+easy to contain a threat. Teleport's existing features, such as [Enhanced Session Recording with
+BPF](https://goteleport.com/docs/server-access/guides/bpf-session-recording/) (Berkeley Packet Filters), are already a powerful tool for
+security auditors and incident handlers. With the release of the Session and Identity Locking feature, we are empowering incident handlers
+with both incident containment and post-incident analysis capabilities to respond better with compromised access.
+
+## What’s next?
+
+With each new Teleport release, we are bridging the gap between operations and security requirements. Stay tuned, support for [Hardware
+Security Modules (HSM)](/blog/what-is-hsm/) is coming! Follow the release preview page for our [upcoming features
+releases](https://goteleport.com/docs/preview/upcoming-releases/).

@@ -1,0 +1,71 @@
+---
+title: Infrastructure Access Considerations for Financial Services
+description: This blog presents data highlighting the threat that Financial Services companies face due to insecure infrastructure and what they can do about it.
+articleTitle: What Financial Services Companies Need to Know About Infrastructure Access
+date: "2021-12-22"
+author: Carlos Mena
+logo:
+  image: ./assets/financial-services.png
+  alt: Infrastructure Access for Financial Services
+tags:
+  - compliance
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Ding. That is the sound of the elevator opening on the ground floor of the One WTC building in New York. We’re both there for a meeting. You, as Director of Systems Engineering for a Financial Services provider, are presenting your plans to shore up the hybrid infrastructure used to run the bank’s new crypto-based services. I’m meeting with clients who are trying to rebuild their reputation, and SOC2 certification, after a data breach. We talk, and it turns out that we have a lot in common. When I learn that you’re nervous about your upcoming meeting, afraid your higher-ups won’t want to make the investments that you know are necessary, this is what I share:
+
+## Cybercrime targeting the Financial Services sector
+
+Over the last 25 years working with Financial Services companies, I have seen the evolution of cybercrime first-hand. The number of attacks continues to increase year after year, with more sophisticated methods, costing enterprises billions to prevent, find and recover from cyber attacks, which often include data theft.
+
+If I observe it, the people who you will be presenting to live it. Here is what keeps the executives of the big financials up at night. Each [data breach costs organizations on average $4M](https://www.ibm.com/security/data-breach). In Financial Services, the average goes up to about [$6M](https://www.ibm.com/security/data-breach). [According to Accenture](https://www.accenture.com/_acnmedia/PDF-62/Accenture-2017CostCybercrime-US-FINAL.pdf#zoom=50), the average is even higher: $18.3M annually for Financial Services companies, the highest of any industry.
+
+<BlogImage src="./assets/costs-data-breach.png" />
+
+Source: [Accenture Cost of Cyber Crime Study 2017](https://www.accenture.com/_acnmedia/PDF-62/Accenture-2017CostCybercrime-US-FINAL.pdf#zoom=50)
+
+That is just the direct cost of the breach. Major security incidents also hit the company stock hard. On average, breaches will eat into a company’s stock price by 5%, representing hundreds of millions of dollars in losses. To further exacerbate the problem, the banking industry is 300 times more likely to suffer a cybersecurity attack than any other industry.
+
+Let’s add all that up. If we combine loss of business, loss of stock value, cost of investigation, recovery, improvement, the ongoing cost of credit monitoring services for customers (required to varying degrees in many states), impact on reputation, and ongoing litigation costs, it is easy to see why the Equifax breach has cost them over [$2 Billion dollars to date](https://www.bizjournals.com/atlanta/news/2020/02/13/equifax-says-data-breach-has-cost-it-nearly-2.html).
+
+It is important to keep in mind, breaches are not often discovered immediately, or recovered from quickly. [According to IBM, breaches on average take 206 days to detect and another 73 days to contain the breach](https://www.ibm.com/security/data-breach). As you would imagine, a company with a strong cybersecurity program will recover more quickly, reducing costs and stock price impact.
+
+This is the reality we live in today. But doing something about it is not that hard. We don’t need to invent anything new. We just need to make the right investments. And it starts with securing our infrastructure.
+
+According to [a new survey of 1000 IT, DevOps and Security professionals](https://goteleport.com/pdf/state-of-infrastructure-access-2021.pdf), more than half (58%) of IT, DevOps and Security professionals are "concerned" or "very concerned" about ex-employees leaving with secrets and/or knowledge into how their organization accesses infrastructure. 83% of respondents cannot guarantee that ex-employees can no longer access their infrastructure. How big of a problem is this?
+
+<Quote>
+  83% of respondents cannot guarantee that ex-employees can no longer access
+  their infrastructure.
+</Quote>
+
+A joint study from Stanford University Professor Jeff Hancock and security firm Tessian states that [88% of breaches are caused by human error](https://www.tessian.com/research/the-psychology-of-human-error/). Weak or stolen credentials, aka passwords, are [the number one cause of data breaches](https://www.tessian.com/research/the-psychology-of-human-error/). And yet, 70% of organizations rely on passwords to grant infrastructure access.
+
+<BlogImage src="./assets/security-methods.png" />
+
+Organizations have seen the cost of these breaches and the impact on their customers first hand, and are diligently implementing solutions today. The budget is there. In fact, [86% of organizations expect their budget for infrastructure access technologies to increase in the next 12 months](https://goteleport.com/pdf/state-of-infrastructure-access-2021.pdf), with more than one-third expecting this to be a big increase in 2022.
+
+How will they deploy that new budget for infrastructure access? [Organizations ranked moving to the following access methods as important or very important](https://goteleport.com/pdf/state-of-infrastructure-access-2021.pdf): Just-in-time access (89%), Zero-trust architectures (86%), Passwordless access (77%).
+
+<BlogImage src="./assets/how-important.png" />
+
+<EmailSubscribeViolet />
+
+## Passwords vs. short-lived identity-based certificates
+
+Let’s take a look at one of those, passwords, and the role they play in data breaches.
+
+In 1952 when the NSA launched, to be able to access the most sensitive areas you needed a physical key. Imagine taking those keys, putting them on a giant key ring and handing that ring to anyone who needs to go to the storage closet. Crazy, right? But that is what many organizations do for the SSH and other credentials needed to access their critical server, databases, Kubernetes, and internal application infrastructure. It is what happens when you put infrastructure credentials into a “Vault”.
+
+What does this all have to do with Teleport, you may ask? Simple, everything. We eliminate the use of passwords, hence reducing the attack surface and eliminating a significant amount of breach risk in the enterprise.
+
+[Only one-third (32%) of IT, DevOps and security professionals currently use short-lived identity-based certificates to grant infrastructure access](https://goteleport.com/pdf/state-of-infrastructure-access-2021.pdf), one of the most effective solutions for preventing unauthorized access to enterprise infrastructure and information. Yes, when asked why they’ve chosen to implement these certificates, 44% cited greater security than other types of credentials, and 34% said greater functionality than other types of credentials.
+
+Teleport makes implementing identity-based access using short-lived certifications easy. And if you do get breached, we also significantly enhance recovery with our auditing capabilities that record every session and all of its activity so you know exactly what happened. The most progressive, forward-thinking financial services companies agree with us and use Teleport to manage access to their most sensitive systems. These companies include Nasdaq, Goldman Sachs, Square, Carta, Moody’s, 3 of the top 5 crypto exchanges, and more.
+
+Ding. That’s your floor. Last piece of advice. When you compare the cost of implementing a solution with the cost of a breach, it is a no-brainer. Your management team might not understand the technical details, but they will understand the numbers. If you need help building that case, here’s my card. Good luck!
