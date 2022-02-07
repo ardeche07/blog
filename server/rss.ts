@@ -18,7 +18,7 @@ interface BlogPostFrontmatter {
 }
 
 /*
- * Generates RRS feed from the *.mdx files in the "pages/blog" folder.
+ * Generates RRS feed from the *.mdx files in the "pages" folder.
  
  * For now it uses "description" field value for the post content because
  * converting actual mdx to sanitized html was deemed to time consuming.

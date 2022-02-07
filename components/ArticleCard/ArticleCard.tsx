@@ -36,12 +36,12 @@ export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
     <StyledCard href={meta.uri} flexDirection={needImg ? "row" : "column"}>
       {!!(needImg && articleSlug && image) && (
         <StyledWrapperImage>
-          <NextImage
+          {/* <NextImage
             src={require(`/pages/${articleSlug}/assets/${image}`)}
             alt="article image"
             layout="fill"
             objectFit="cover"
-          />
+          /> */}
         </StyledWrapperImage>
       )}
       <Flex flexDirection="column">
