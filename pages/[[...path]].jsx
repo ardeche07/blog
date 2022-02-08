@@ -5,7 +5,7 @@
  */
 
 import Blog from "layouts/Blog";
-import { getArticlesListAndTags } from "server/resources-helpers";
+import { getArticlesListAndTags } from "server/pages-helpers";
 
 const ARTICLES_BY_PAGE = 25;
 
@@ -78,16 +78,20 @@ export async function getStaticProps({ params }) {
       }
     }
   }
+
+  let articlesWithoutImages = [];
+  let articles = [];
   const initialPageCount = ARTICLES_BY_PAGE * (Number(pageNumber) - 1);
   const finalPageCount = ARTICLES_BY_PAGE * Number(pageNumber);
-  let articles = list.slice(initialPageCount, finalPageCount);
-  //remove pictures from the frontmatter of all but the first five articles on the first page
-  let articlesWithoutImages = removeImage(articles, pageNumber);
 
   if (tag) {
     const articlesByFilter = getArticlesByTag(list, tag);
     maxPages = Math.ceil((articlesByFilter.length + 1) / ARTICLES_BY_PAGE);
     articles = articlesByFilter.slice(initialPageCount, finalPageCount);
+    //remove pictures from the frontmatter of all but the first five articles on the first page
+    articlesWithoutImages = removeImage(articles, pageNumber);
+  } else {
+    articles = list.slice(initialPageCount, finalPageCount);
     //remove pictures from the frontmatter of all but the first five articles on the first page
     articlesWithoutImages = removeImage(articles, pageNumber);
   }

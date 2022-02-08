@@ -27,8 +27,10 @@ interface ArticleCardProps {
 export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
   let image = "";
   let articleSlug = "";
+  let extension = "";
   if (needImg) {
     image = meta.frontmatter.logo?.image?.split("/").pop();
+    extension = image?.split(".").pop();
     articleSlug = meta.uri?.split("/").filter(Boolean).pop();
   }
 
@@ -36,12 +38,12 @@ export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
     <StyledCard href={meta.uri} flexDirection={needImg ? "row" : "column"}>
       {!!(needImg && articleSlug && image) && (
         <StyledWrapperImage>
-          {/* <NextImage
-            src={require(`/pages/${articleSlug}/assets/${image}`)}
+          <NextImage
+            src={`/blog/covers/${articleSlug}.${extension}`}
             alt="article image"
             layout="fill"
             objectFit="cover"
-          /> */}
+          />
         </StyledWrapperImage>
       )}
       <Flex flexDirection="column">

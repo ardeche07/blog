@@ -6,7 +6,7 @@ import remarkGFM from "remark-gfm";
 import remarkLayout from "./remark-layout";
 import remarkMdxDisableExplicitJsx from "remark-mdx-disable-explicit-jsx";
 import remarkImportFiles from "./remark-import-files";
-import { getArticlesListAndTags } from "./resources-helpers";
+import { getArticlesListAndTags } from "./pages-helpers";
 
 interface MdxConfig {
   providerImportSource: string;
