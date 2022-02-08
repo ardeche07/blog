@@ -46,17 +46,14 @@ export const submitForm = async (
   token: string
 ) => {
   try {
-    const response = await fetch(
-      `https://goteleport.com/api/form/${SUBSCRIPTION_FOR_ID}/`,
-      {
-        method: "POST",
-        body: JSON.stringify(fields),
-        headers: {
-          "Content-Type": "application/json",
-          "g-recaptcha-response": token,
-        },
-      }
-    );
+    const response = await fetch(`/blog/api/form/${SUBSCRIPTION_FOR_ID}/`, {
+      method: "POST",
+      body: JSON.stringify(fields),
+      headers: {
+        "Content-Type": "application/json",
+        "g-recaptcha-response": token,
+      },
+    });
 
     if (response.status !== 200) {
       throw new Error(`Wrong response code ${response.status}`);
@@ -89,7 +86,7 @@ export const useMarketoForm = (options: UseMarketoFormProps = {}) => {
    */
   const { data, error: fieldsError } =
     useSWRImmutable<MarketoFormDataAPIResponse>(
-      disabled ? undefined : `https://goteleport.com/api/form/${id}/meta/`,
+      disabled ? undefined : `/blog/api/form/${id}/meta/`,
       fetcher,
       { fallbackData }
     );
