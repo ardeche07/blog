@@ -35,7 +35,7 @@ export const foundArticleImages = () => {
       },
     } = post;
 
-    images.push({ image, uri: uri.replaceAll("/", "") });
+    images.push({ image, uri: uri.replace(/\//g, "") });
   });
 
   return images;
