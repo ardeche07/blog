@@ -30,7 +30,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const formId = req.query.id as string;
+  const formId = process.env.NEXT_PUBLIC_EMAIL_SUBSCRIPTION_FORM_ID;
   const leadFormFields = normalizeFields(req.body as Record<string, string>);
 
   if (!isAllowedFormId(formId)) {
