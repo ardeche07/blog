@@ -10,6 +10,8 @@ import { fetcher } from "utils/fetcher";
 import { useRecaptcha } from "utils/recaptcha";
 import { GTMEvent } from "utils/gtm";
 
+const SUBSCRIPTION_FOR_ID = process.env.NEXT_PUBLIC_EMAIL_SUBSCRIPTION_FORM_ID;
+
 const getDefaultFieldValue = (autoFill: MarketoFieldAutoFill) => {
   if (!autoFill) {
     return "";
@@ -40,19 +42,21 @@ export const useDefaultFormValues = (fields: MarketoField[]) => {
 };
 
 export const submitForm = async (
-  id: string,
   fields: Record<string, string>,
   token: string
 ) => {
   try {
-    const response = await fetch(`/blog/api/form/${id}/`, {
-      method: "POST",
-      body: JSON.stringify(fields),
-      headers: {
-        "Content-Type": "application/json",
-        "g-recaptcha-response": token,
-      },
-    });
+    const response = await fetch(
+      `https://goteleport.com/api/form/${SUBSCRIPTION_FOR_ID}/`,
+      {
+        method: "POST",
+        body: JSON.stringify(fields),
+        headers: {
+          "Content-Type": "application/json",
+          "g-recaptcha-response": token,
+        },
+      }
+    );
 
     if (response.status !== 200) {
       throw new Error(`Wrong response code ${response.status}`);
@@ -67,10 +71,8 @@ interface UseMarketoFormProps {
   fallbackData?: MarketoFormDataAPIResponse;
 }
 
-export const useMarketoForm = (
-  id: string,
-  options: UseMarketoFormProps = {}
-) => {
+export const useMarketoForm = (options: UseMarketoFormProps = {}) => {
+  const id = SUBSCRIPTION_FOR_ID;
   const { callbackName, fallbackData } = options;
   const UID = `marketo_${callbackName || id}`;
 
@@ -87,7 +89,7 @@ export const useMarketoForm = (
    */
   const { data, error: fieldsError } =
     useSWRImmutable<MarketoFormDataAPIResponse>(
-      disabled ? undefined : `/blog/api/form/${id}/meta/`,
+      disabled ? undefined : `https://goteleport.com/api/form/${id}/meta/`,
       fetcher,
       { fallbackData }
     );
@@ -118,7 +120,7 @@ export const useMarketoForm = (
       try {
         const token = await getToken();
 
-        await submitForm(id, formData, token);
+        await submitForm(formData, token);
 
         setSubmitted(true);
 

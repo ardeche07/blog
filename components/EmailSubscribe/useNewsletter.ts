@@ -10,7 +10,7 @@ export const useNewsletter = (callbackName?: string) => {
     submitted,
     onSubmit: onFormSubmit,
     UID,
-  } = useMarketoForm(process.env.NEXT_PUBLIC_EMAIL_SUBSCRIPTION_FORM_ID, {
+  } = useMarketoForm({
     callbackName,
     fallbackData: fallbackData as unknown as MarketoFormDataAPIResponse,
   });
