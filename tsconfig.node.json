@@ -10,6 +10,10 @@
     "resolveJsonModule": true,
     "outDir": ".build"
   },
-  "include": ["@types/**/*.d.ts", "server/**/*.ts"],
+  "include": [
+    "@types/**/*.d.ts",
+    "server/**/*.ts",
+    "utils/generate-cover-image-path.ts"
+  ],
   "exclude": ["node_modules", "server/**/*.test.ts"]
 }

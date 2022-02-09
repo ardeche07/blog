@@ -1,10 +1,12 @@
 import { BlogMeta } from "layouts/BlogArticle/types";
 import { getPagesInfo, getArticleTags } from "./pages-helpers";
 
-// We need this script to copy the images from the last five articles into a public folder.
-// These images are needed on the main page of the blog.
+/*
+ * We need this script to copy the images into a public folder.
+ * These images are needed on the main page and tag pages of the blog.
+ */
 
-export const foundArticleImages = () => {
+export const findArticleImages = () => {
   const posts = getPagesInfo<BlogMeta>(`/**/*.mdx`, {
     sort: "date",
     order: "DESC",
@@ -35,7 +37,7 @@ export const foundArticleImages = () => {
       },
     } = post;
 
-    images.push({ image, uri: uri.replace(/\//g, "") });
+    images.push({ image, uri });
   });
 
   return images;

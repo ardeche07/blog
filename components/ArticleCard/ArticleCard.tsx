@@ -2,12 +2,15 @@ import NextImage from "next/image";
 import styled from "styled-components";
 import css from "@styled-system/css";
 import { format } from "date-fns";
+import { resolve } from "path";
 import Flex from "components/Flex";
 import Box from "components/Box";
 import Tags from "components/Tags";
 import Link from "components/Link";
 import { transition } from "components/system";
+import { generateCoverImagePath } from "utils/generate-cover-image-path";
 
+const ARTCLE_COVERS_FOLDER = resolve("/blog/covers/");
 interface ArticleCardProps {
   meta: {
     frontmatter: {
@@ -25,21 +28,21 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
-  let image = "";
-  let articleSlug = "";
-  let extension = "";
-  if (needImg) {
-    image = meta.frontmatter.logo?.image?.split("/").pop();
-    extension = image?.split(".").pop();
-    articleSlug = meta.uri?.split("/").filter(Boolean).pop();
+  let imagePath = "";
+  if (needImg && meta.frontmatter.logo.image && meta.uri) {
+    imagePath = generateCoverImagePath(
+      meta.frontmatter.logo.image,
+      meta.uri,
+      ARTCLE_COVERS_FOLDER
+    );
   }
 
   return (
     <StyledCard href={meta.uri} flexDirection={needImg ? "row" : "column"}>
-      {!!(needImg && articleSlug && image) && (
+      {!!(needImg && meta.frontmatter.logo.image) && (
         <StyledWrapperImage>
           <NextImage
-            src={`/blog/covers/${articleSlug}.${extension}`}
+            src={imagePath}
             alt="article image"
             layout="fill"
             objectFit="cover"

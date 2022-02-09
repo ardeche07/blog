@@ -106,14 +106,11 @@ const getArticlesList = () => {
   let articlesPageInfo = [];
 
   try {
-    articlesPageInfo = getPagesInfo<BlogMeta>(`**/*.mdx`)
-      .map(({ data }) => data)
-      .filter((article) => article.frontmatter.layout === "blogArticle")
-      .sort(
-        (a, b) =>
-          new Date(b.frontmatter.date).getTime() -
-          new Date(a.frontmatter.date).getTime()
-      );
+    articlesPageInfo = getPagesInfo<BlogMeta>(`**/*.mdx`, {
+      filter: (meta) => meta.layout === "blogArticle",
+      sort: "date",
+      order: "DESC",
+    }).map(({ data }) => data);
   } catch (e) {
     console.error(e);
   }
@@ -134,14 +131,10 @@ export const getArticleTags = () => {
 
 export const getArticlesListAndTags = (limit?: number) => {
   const articlesList = getArticlesList();
-
-  const rawAllTags: Set<string> = new Set();
-  articlesList?.forEach((article) =>
-    article.frontmatter.tags.forEach((tag) => rawAllTags.add(tag))
-  );
+  const tags = getArticleTags();
 
   return {
-    tags: Array.from(rawAllTags),
+    tags,
     list: limit ? articlesList.slice(0, limit) : articlesList,
   };
 };

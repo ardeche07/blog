@@ -48,6 +48,7 @@ Now run one of the following commands:
 - `yarn lint-check` – checks JS and TS files for errors, but doesn't fix them. Checked in CI and on commit.
 - `yarn typecheck` – validates TypeScript type-related errors. Used on CI.
 - `yarn build-node` – builds configs and plugins for mdx.
+- `yarn extract-article-covers` - copy the image for the last five articles of the main page and the tag pages of the blog into a shared folder. This script will automatically run with the `yarn build` or `yarn dev` commands. To see new post cover in `/blog` or `/blog/tags` root page during development you have to restart development server (`yarn dev`).
 - `yarn generate-rss` – generates rss-feed for blog.
 - `yarn markdown-lint` – lints `*.mdx` files inside `content/**/blog/pages/` folders for syntax errors.
 - `yarn markdown-lint-external-links` – same as `yarn markdown-lint` but checks that external links work. Separate command because of slowness.

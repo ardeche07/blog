@@ -10,7 +10,7 @@ import { fetcher } from "utils/fetcher";
 import { useRecaptcha } from "utils/recaptcha";
 import { GTMEvent } from "utils/gtm";
 
-const SUBSCRIPTION_FOR_ID = process.env.NEXT_PUBLIC_EMAIL_SUBSCRIPTION_FORM_ID;
+const SUBSCRIPTION_FORM_ID = process.env.NEXT_PUBLIC_EMAIL_SUBSCRIPTION_FORM_ID;
 
 const getDefaultFieldValue = (autoFill: MarketoFieldAutoFill) => {
   if (!autoFill) {
@@ -46,7 +46,7 @@ export const submitForm = async (
   token: string
 ) => {
   try {
-    const response = await fetch(`/blog/api/form/${SUBSCRIPTION_FOR_ID}/`, {
+    const response = await fetch(`/blog/api/form/${SUBSCRIPTION_FORM_ID}/`, {
       method: "POST",
       body: JSON.stringify(fields),
       headers: {
@@ -69,7 +69,7 @@ interface UseMarketoFormProps {
 }
 
 export const useMarketoForm = (options: UseMarketoFormProps = {}) => {
-  const id = SUBSCRIPTION_FOR_ID;
+  const id = SUBSCRIPTION_FORM_ID;
   const { callbackName, fallbackData } = options;
   const UID = `marketo_${callbackName || id}`;
 
