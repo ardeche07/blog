@@ -1,0 +1,128 @@
+---
+author:  Ev Kontsevoy
+date:  "2020-05-06"
+tags:
+  - security
+title:  Developer Friendly Solid Infrastructure Security
+description:  How SaaS companies approach the trade-off between having solid cloud infrastructure security and upsetting their own engineers by overdoing it
+logo:
+  image: ./assets/solid-infrastructure-without-slowing-down-devs-header.png
+  alt: Software Security - Complex to Easy
+articleTitle: Solid Infrastructure Security without Slowing Down Developers
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+In this post, I want to share my observations of how SaaS companies approach the trade-off between having solid cloud infrastructure security and pissing off their own engineers by overdoing it.
+
+Security is annoying. Life could be much easier if security did not get in the way of getting things done. If you are a site reliability engineer in the middle of dealing with an emergency downtime, getting an “access denied” message from a troubled database master can be as infuriating as a doctor getting punched in the face by a patient they are trying to bring back to life!!
+
+In this blog post we’ll go over the common anti-patterns, suggest alternatives, and will provide references to lower-level technical material for how to better implement better practices that we recommend.
+
+
+### The Hidden Costs of Overdoing it
+
+We want to address the elephant in the room right away and say that “maximum” security at expense of everything else is not always a good thing. Everyone is looking for ”rockstar hackers” and is trying to attract the best engineers to join their teams, but guess what “hackers” are going to do if you force them to work in an unnatural way?
+
+_They are going to build back doors._
+
+The intent may not necessarily be malicious. Say, you have a proprietary “bastion host” for SSH connections and you are forcing everyone to go through. The bastion solution is not compatible with the `ProxyJump` setting, preventing people from running Ansible scripts or establishing interactive sessions directly from their machines. I have seen another variation of this where the bastion was set up to only accept connections originating from the VPN, which kind of defeats the purpose of being called a “bastion”, doesn’t it?
+
+By making SSH access so complicated, you may end up with another “secret” bastion set up by a developer elsewhere, simply because they are trying to be more productive.
+
+Or you may notice that the bastion host is now running additional services like Jenkins, or even Wordpress, because an engineer found it cumbersome to manually “jump” all the time. Congratulations, now you are vulnerable to potential exploits in those applications.
+
+Complexity, in general, is an enemy of good security. Complex systems are not just hard to use, they are also hard to reason about. They raise the need for high quality security talent on your team. Many security breaches can be traced back to human error, and humans tend to make more mistakes when confronted with complexity.
+
+_If you make infrastructure access too complicated or too inconvenient, you will end up in a less secure state._
+
+
+### The Obvious Costs of Not Doing it
+
+On the other hand, some companies err on the opposite side of the spectrum. They are comfortable with just sticking `admin.pem` into a private repository on Github, shared among many SREs. Others simply ask everyone for their SSH key to be distributed to servers during provisioning, which is also, sadly, common.
+
+Many engineers have confessed to me that they still can access the production environments of their former employers. I’ve heard this many times interacting with customers back in my day as a product director at a major cloud provider.
+
+_It should be obvious, that if you optimize for convenience above all else, you also will end up in a vulnerable state._
+
+There is not a single, absolutely correct way to implement infrastructure security, but we would like to offer some options that you may find helpful and applicable to your team.
+
+
+### Identity-First
+
+It is worth investing in identity-based access as early as possible. The term “identity” has been hijacked and blown to an unrecognizable state by poor industry marketing. But the core concept is simple in principle and to implement.
+
+_Instead of granting access based on “what” (secret), grant access based on “who” (identity)._
+
+Secrets can be lost or stolen. Even the second-factor is not a panacea because it only splits one secret into two.
+
+Identity-based access is also more convenient, because if you are John Doe and you are a Devops Engineer, this is not going to change during business hours. And you shouldn’t be bothered by constantly providing secrets to various systems.
+
+What does this mean in practice?
+
+To use SSH as an example, consider granting SSH access to your production environments only to the members of the “SRE” group, instead of anyone who possesses the `admin.pem` key. And for a good measure, make sure the access is granted for a limited time.
+
+This removes the need to juggle SSH keys and makes everyone’s life easier at the same time. But most importantly, if a team member leaves the SRE group (leaves the company or moves to another team), the access will be automatically revoked.
+
+Where is the SRE group stored? Pick whichever is most convenient. Github, Google Apps, Active Directory, etc. Just make sure you are using a single source of identity for everyone - not just engineers, but all employees.
+
+
+### Use Certificates
+
+How is SSH access granted based on group membership? You must leave SSH keys behind (even if they’re “automatically rotated”) and adopt certificate-based authentication.
+
+We have blogged previously about [How to SSH Properly](/blog/how-to-ssh-properly/), where we’ve shown how to set this up using the de facto standard, OpenSSH. Or instead of implementing all the tips in “How to SSH Properly” yourself, you can take a shortcut by using our open source Teleport solution, which embraces identity-based access as the _only_ method of accessing infrastructure. This simplifies access management, and the side-effect of identity-based access is a dramatically better user experience.
+
+Why certificates? Because certificates have a designated TTL (time to live) and this means that the access credentials expire automatically. Moreover, certificates allow the injection of metadata. Metadata is useful for several reasons:
+
+* It allows you to enrich the security audit log with additional information like full name, email address, and title of a person who performed an auditable task.
+* It allows you to implement RBAC (role-based access control). X.509 certificates used by HTTP/TLS are widely used to implement RBAC. And if you standardize on SSH certificates, you can have RBAC for SSH, at least in theory.
+
+Another advantage of using SSH certificates is that everything else is certificate-based already. When an engineer opens their laptop and goes through the SSO process, they may receive certificates from the same certificate authority for everything they need: for SSH, for Kubernetes, and for any internal web applications that support this form of authentication.
+
+
+### Use Proxies, not Jump Hosts
+
+There is a subtle difference between access proxies and SSH jump hosts. A jump
+host is just a regular SSH server that just happens to be the one exposed to
+the Internet. Developers, either manually or by using the OpenSSH `ProxyJump`
+setting or its older sibling `ProxyCommand`, connect to a jump host, and then
+have to establish another SSH session from the jump host to the destination.
+This is problematic for three reasons:
+
+1.  It becomes tempting to start treating a jump host as something more: a
+    build server, a personal staging environment, etc. Because it’s simply more
+    convenient.
+2.  If manual jumping is performed, end-to-end encryption goes out the window,
+    because each session is decrypted on a jump host and re-encrypted again,
+    i.e. if an attacker gains access to a jump host, it will be easier for them
+    to eavesdrop on sessions, or even steal the keys.
+
+An access proxy is a much simpler concept. Similar to a jump host, it's a
+server that is reachable via the Internet, but you cannot SSH into it. Think of
+it as a dumb switch that simply proxies your encrypted connection to the
+destination:
+
+1. There is no way to SSH _into_ it, and therefore there’s no temptation to
+   load it with additional duties, increasing the attack surface.
+2. End to end encryption is always enforced, i.e. even if an attacker gains
+   access to this box, all they’ll see will be a bunch of encrypted connections
+   proxied through.
+3. An access proxy can support multiple protocols, i.e. not just SSH but
+   Kubernetes API or even HTTP/TLS for web tools like Jenkins.
+
+Needless to say, an access proxy is preferable.
+
+<EmailSubscribeViolet />
+
+### Use Automation
+
+And perhaps more importantly, it pays off to minimize the need to access infrastructure in the first place. As software engineers, we would much prefer dealing only with one computer - my own. If the tests pass, and the code review is good, `git commit` followed by `push` should be the end of the story!
+
+
+### Additional Reading
+
+* [How to SSH properly](/blog/how-to-ssh-properly/)
+* [Certificates Explained](/blog/ssh-certificates/)
+* [Teleport: Unified Access for SSH & Kubernetes](/)

@@ -1,0 +1,106 @@
+---
+author: Ben Arent
+date: "2020-04-30"
+tags:
+  - ssh
+  - security
+title: How to SSH into a Self-driving Vehicle
+description: You can SSH into self-driving robots using a reverse SSH tunnel, but this method only scales so far, and it requires more than 50 steps to set up.
+logo:
+  image: ./assets/iot-header.png
+  alt: SSH into a Self-driving Vehicle"
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Over the last couple of years, we’ve started to see computers take to the street, and lucky for us, it’s been mostly to help us get deliveries or transport us around. These robots are a combination of sensors, compute units, and some form of connectivity. They have personalities, and if you look closely, two cute eyes on [Postmates’ Serve](https://serve.postmates.com/) that provide it with stereo vision to navigate the streets.  While ‘Serve’ is fully equipped to navigate the streets, even the smartest robots need help from a human sometimes.
+
+Many of us have taken accessing computers remotely for granted, despite the fact that our production servers are running behind NAT.  This has been made possible by SREs  who set up public endpoints and bastion hosts, and configure identity-based authentication as we’ve covered in a previous post called _[How to SSH properly](/blog/how-to-ssh-properly/)_. But what if your computer is on the move? What happens if you have thousands of them in thousands of cities? How do you provide access for system-level debugging? Which technical hurdles will you have to overcome?
+
+<BlogImage src="./assets/iot-1.png" width="100%" alt="SSH into a Robot"/>
+
+
+### Connectivity and the Network
+
+We are lucky to have a range of connectivity options available to IoT devices, from high speed LTE connections to new [LoRaWAN](https://en.wikipedia.org/wiki/LoRa) networks. Once connected to a network, the next step is to get access to the device. This post will focus on using SSH by following best practices. Earlier, we’ve outlined how to configure the local ssh-agent to connect to a Bastion Host. This method works well, but unless you start off with a very good naming convention, it becomes much harder to find that one robot stuck in Berlin at 3am.
+
+We’ve taken the best practices of accessing systems and rolled them into our open source project, Teleport. Teleport was designed as a drop-in [replacement for OpenSSH](/blog/introducing-teleport-4-point-3-modern-replacement-for-openssh/), but with a focus on fleets of servers (clusters) where individual nodes such as self-driving trucks (or regular AWS instances) can be located anywhere in the world. The certificate authority and the audit log are deployed in secure networks with only the proxy available to the public internet. Let’s dive a bit deeper into it.
+
+
+### SSH into a Self-driving Truck
+
+While the technical details of delivery robots are often kept under wraps, we know other people have gone to great lengths to be able to [SSH into lamp posts](https://blogs.wcode.org/2015/04/howto-ssh-to-your-iot-device-when-its-behind-a-firewall-or-on-a-3g-dongle/ ) with David’s Awesome [Shadowing Project](https://blogs.wcode.org/2015/01/playable-city-award-2014-shadowing-part-1-hardware/). The same approach could be applied to self-driving robots using a reverse SSH tunnel, but this method only scales so far, and it requires more than 50 steps to set up.
+
+A reverse SSH tunnel is an SSH connection initiated by the host (self-driving vehicle) to the proxy. This connection is maintained for as long as the host is online, and if an engineer or an Ansible script wants to connect to the vehicle, they connect to the proxy, which in turn proxies the connection through the tunnel to the host who initiated it.
+
+We had many [long standing requests](https://github.com/gravitational/teleport/issues/803) to support reverse tunnels, and with OSS Teleport  4.0, we’ve made setting up and managing these reverse tunnels simpler. This can be set up on the node in a couple of quick steps.
+
+On the robot/lamp post/self-driving truck, the Teleport daemon will be installed and will then dial back to a central Teleport Cluster.
+
+
+```text
+$ teleport start --roles=node
+ --token=n92bb958ce97f761da978d08c35c54a5c --auth-server=teleport-proxy.example.com
+```
+
+
+Extra configuration options can be set up to add labels and extra supporting metadata to help the operator.
+
+After connecting to the proxy, the ‘node’ - in our case a single Raspberry Pi - will show in the Teleport web UI and you can see it by using the CLI client as well:
+
+
+```text
+➜  ~ tsh ls
+Node Name             Address         Labels
+--------------------- --------------- --------------------------------------------------
+
+Truck-1821             ⟵ Tunnel      arch=Linux, hostname=postmate-serve-342145
+                                      uptime=up 0 minutes, 📍=SF
+                                      📶=5G
+
+```
+
+
+I’m now able to SSH into the node using it’s node name.
+
+
+```text
+➜  ~ tsh ssh truck-1821
+$truck-1821:~
+```
+
+
+This has a few benefits
+
+
+
+*   You can ssh into truck-1821 using it’s nodename, meaning you no longer have to worry about IP addresses or having to setup Dynamic DNS at its location.
+*   Labels can provide both system and location data. This makes managing a large fleet of devices much easier.
+*   It allows for one centralized access system for ARM, Linux, and MacOS applications.
+
+<EmailSubscribeViolet />
+
+### Accessing moving Kubernetes Clusters in a self driving Truck
+
+Moving up in scale, we’ve started to see more computers move to the edge, and some have speculated that this could be the [end of cloud computing](https://a16z.com/2019/11/15/the-end-of-cloud-computing-2/). For context, a self driving truck generates 10 gigabytes of data per mile. Some self-driving companies have published how they manage and set up network infrastructure. Cruise has a [great blog](https://medium.com/cruise/container-platform-networking-kubernetes-e888a07407ab) for anyone interested in the topic.
+
+As these systems become more complex, having more compute and extra redundancy running a container-orchestration system makes sense to scale the workloads associated with many gigabytes of data every mile. Yet for operators, these systems can be increasingly difficult to update, debug, and access. Providing access opens Pandora's box of issues. If robots or humans can access machines, there needs to be an audit trail, approval workflows, and full visibility into what’s been run on these clusters.
+
+These problems can be easy to solve on a small scale, but become increasingly difficult with 100+ Clusters. Combining a large cluster with hundreds of employees can create extra operational complexity. We have had many users facing the same problem and by using external identity providers combined with a flexible Role Based Access Control (RBAC), They get access quickly and securely.
+
+In this quick example we’ll show how a fictional company has deployed multiple kubernetes clusters into trucks, yet still require a centralized command and control over the cluster.
+
+<BlogImage src="./assets/iot-2.png" width="100%" alt="SSH into a Truck"/>
+
+Teleport provides users two options for connecting to a Kubernetes cluster, it can be run as a proxy outside the cluster or deployed inside a cluster. We recommend deploying inside a cluster, then registering the cluster back to a central root cluster using t[rusted clusters](https://goteleport.com//docs/trustedclusters/).
+
+All of these features are available in the OSS version of Teleport, using Github as an SSO provider. We’ve more information on our [Kubernetes integration here](https://goteleport.com//docs/kubernetes-access/).
+
+<BlogImage src="./assets/iot-3.png" width="100%" alt="SSH into a K8s"/>
+
+
+### Connect to any computer anywhere
+
+No matter where you run a computer, be it a small home lab, a small robot or many thousands of self-driving trucks, these patterns can be used to get secure access quickly. The use of reverse tunnels to access infrastructure can be very powerful when you don’t have full control over the network.
