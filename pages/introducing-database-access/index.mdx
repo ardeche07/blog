@@ -1,0 +1,137 @@
+---
+title: Introducing Database Access
+articleTitle: Teleport 6.0 Brings Identity-Aware Access to Databases Behind NAT
+description: The highlight of this release is added support for the PostgreSQL and MySQL wire protocols. Teleport users can now use their identities to connect via SSO and MFA to any database behind NAT.
+date: "2021-03-17"
+author: Ev Kontsevo
+logo:
+  image: ./assets/db-6.png
+  alt: Introducing Database Access
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+If you have PostgreSQL or MySQL databases running behind NAT in multiple environments,
+this release of [Teleport](https://goteleport.com/) is worth downloading and playing with.
+
+In this release, we added support for the PostgreSQL and MySQL wire protocols, so now Teleport
+users get the following streamlined workflow:
+
+1. Authenticate with their identities via single sign-on (SSO) and multi-factor.
+2. List and see all database instances running somewhere behind NAT, including
+   AWS RDS or Aurora.
+3. Get instant access to them using CLI tools like `psql`, `mysql`, or Web UIs.
+
+Meanwhile, [Teleport](https://goteleport.com/) ensures industry best practices for:
+
+- Consolidating management of access requests
+- Implementing role-based access controls
+- Preventing data exfiltration
+- Improving visibility into user behavior
+- Auditing all activity
+
+All of this works across your entire organization and regardless of _where_
+the database instances are running: an AWS/Google/Azure VPC, your own data center
+or an autonomous drone in the sky. The easy user experience is the same.
+
+In this post, we'll cover how Database Access works in more detail, but first,
+let me introduce Teleport to those who have never heard of it.
+
+## What is Teleport?
+
+Teleport is an [open source](https://goteleport.com/teleport/download), identity-aware, access proxy
+with an integrated certificate authority. It is used by smart engineering teams to
+access various computing resources on public and private clouds,
+such as:
+
+- SSH servers
+- Kubernetes clusters
+- Internal web apps
+- **MySQL and PostgreSQL databases (new in this release!)**
+
+## How Does Database Access Work?
+
+Teleport consists of just two dependency-free binaries: the `teleport` daemon runs on
+servers, and the `tsh` CLI runs on clients. The server daemon can perform
+several functions:
+
+- The _Proxy_ accepts connections from the clients.
+- The _Certificate Authority (CA)_ issues short-lived certificates for clients.
+- _Sidecars_ maintain a persistent reverse tunnel to a proxy which allows
+  clients to connect to databases that are running anywhere in the world.
+
+The diagram below shows how this all comes together. The `teleport` daemons are
+shown as grey rectangles:
+
+<BlogImage src="./assets/db-access-blog-diagram.png" />
+
+- When a user types `tsh login db-access.proxy.com`, they trigger the login sequence.
+  The Teleport proxy running on `db-access.proxy.com` accepts the login request
+  and forwards the client to the company's identity platform. This could be any
+  identity provider: Google apps, GitHub, Okta, Active Directory, etc.
+- After the user completes the login process, the Teleport certificate authority
+  (`CA`) issues an x.509 certificate, filled with the user's identity metadata (roles, etc.)
+  which is returned to the client.
+- The `tsh` client is now aware of all databases available to this user. `tsh`
+  also configures the user's command line environment, so `psql` knows to talk to
+  the proxy.
+- Meanwhile, Teleport's _database service_ process (shown as "sidecar" in
+  the diagram) is running on the same network as a database. The sidecar
+  establishes an outgoing persistent reverse SSH tunnel to the proxy. These tunnels
+  are how database instances are registered as "online".
+- When a user decides to connect to a specific DB instance, the connection goes from
+  `psql` to a proxy, then (via an appropriate reverse SSH tunnel) to the
+  corresponding sidecar and from there, via mutual TLS, to the target database
+  instance.
+
+What is not on the diagram is the audit log. Teleport will also be logging users'
+activity across all databases.
+
+## Video Demo
+
+In this video we have Roman, the lead engineer of the Teleport team,
+explaining the architecture and showing the end user experience of Database
+Access to a group of early adopters:
+
+<iframe
+  height="382px"
+  src="https://www.youtube.com/embed/rPX_973PoW8"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+></iframe>
+
+## Why Database Access?
+
+Teleport was originally born as a modern, identity-based way of accessing SSH
+servers, because we wanted the world to move away from archaic SSH keys,
+bastion hosts, VPNs, "server inventories" and the other pains of legacy SSH.
+
+But SSH is not enough. Modern computing environments are getting more and more
+complex. _In addition_ to SSH, our users want to access all kinds of computing
+resources in order to build software faster: Kubernetes clusters, internal web
+dashboards and, of course, databases!
+
+Moreover, the location of these resources should be irrelevant. We are big
+believers in the future of environment-free computing, when the entire planet
+will feel like a giant multi-tenant supercomputer. That supercomputer must
+provide a simple and secure way of accessing it, and that's what Teleport
+is evolving into.
+
+<EmailSubscribeViolet />
+
+## Getting Started with Database Access
+
+Teleport is available as an open-source download, fully-hosted cloud offering
+or as an enterprise package for running it on your own clouds or private data
+centers. You can sign up for a commercial offering or download an open source version
+on the [getting started page](https://goteleport.com//pricing/).
+
+If you are curious to learn more about how Teleport provides unified access, the [how it works](https://goteleport.com/how-it-works/)
+guide is a good place to start, and you can dive deeper into the [documentation](https://goteleport.com/docs/).
+
+Finally, if you want us to support other databases, tell us in our [community Slack channel](https://goteleport.com/slack)!

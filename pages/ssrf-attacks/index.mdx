@@ -1,0 +1,769 @@
+---
+title: Preventing SSRF Attacks
+articleTitle: SSRF Attack Examples and Mitigations
+description: Understanding Server-Side Request Forgery (SSRF) and Its Mitigations.
+date: "2021-03-25"
+author: Russell Jones
+logo:
+  image: ./assets/csrf.png
+  alt: XSS Attacks Introduction
+tags:
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Server-Side Request Forgery (SSRF) is an attack that can be used to make your application issue arbitrary HTTP requests. SSRF is used by
+attackers to proxy requests from services exposed on the internet to un-exposed internal endpoints. SSRF is a hacker reverse proxy. These
+arbitrary requests often target internal network endpoints to perform anything from reconnaissance to complete account takeover. SSRF, along
+with [XSS](https://goteleport.com/blog/xss-attacks) and [CSRF](https://goteleport.com/blog/csrf-attacks), are some of the most serious web
+security vulnerabilities due to pervasiveness and impact.
+
+## What is SSRF?
+
+Upon first glance, adding the ability to issue a HTTP request from your application does not appear to be the type of feature that would
+require a security review. However, any time you allow a user to control the target of an HTTP request, an attacker can use your
+application's privileged position within an internal network to stage an exploit.
+
+[Webhooks](https://en.wikipedia.org/wiki/Webhook) are a great example of this. By design, developers want users to control the target
+address of a webhook. However, this means attackers can also control the target address. This allows attackers to either directly target
+internal IP addresses or internal addresses through attacker-controlled DNS.
+
+What this means is that regardless of how strictly you firewall off sensitive internal services or applications, if you allow your publicly
+exposed applications access to those internal applications and attackers to control the HTTP request target, attacks can potentially find a
+path to those sensitive applications.
+
+If you didn't fully grasp everything above, don’t worry, it’ll make more sense as we cover some examples below.
+
+## Exploiting SSRF
+
+### SSRF
+
+Let’s start with a simple sample application that acts as a sort of online hexdump. The application accepts a URL, issues the request, and
+outputs a hexdump of the response body. You can see a sample output as well as the source of this application in Figures (1) and (2).
+
+```
+00000000  3c 68 74 6d 6c 20 6c 61  6e 67 3d 22 65 6e 22 20  |<html lang="en" |
+00000010  6f 70 3d 22 6e 65 77 73  22 3e 3c 68 65 61 64 3e  |op="news"><head>|
+00000020  3c 6d 65 74 61 20 6e 61  6d 65 3d 22 72 65 66 65  |<meta name="refe|
+00000030  72 72 65 72 22 20 63 6f  6e 74 65 6e 74 3d 22 6f  |rrer" content="o|
+00000040  72 69 67 69 6e 22 3e 3c  6d 65 74 61 20 6e 61 6d  |rigin"><meta nam|
+00000050  65 3d 22 76 69 65 77 70  6f 72 74 22 20 63 6f 6e  |e="viewport" con|
+00000060  74 65 6e 74 3d 22 77 69  64 74 68 3d 64 65 76 69  |tent="width=devi|
+00000070  63 65 2d 77 69 64 74 68  2c 20 69 6e 69 74 69 61  |ce-width, initia|
+00000080  6c 2d 73 63 61 6c 65 3d  31 2e 30 22 3e 3c 6c 69  |l-scale=1.0"><li|
+...
+```
+
+_Figure 1: Example output of an HTTP hexdump application._
+
+However, what happens if this hexdump application has network access to a sensitive internal application? For example, you may be following
+best practices and using an internal secrets service to securely store credentials your application needs instead of checking them into
+source.
+
+That’s exactly what the program in Figure (2) simulates. To run this application, save the code in Figure (2) in a file called `ssrf1.go`
+and then type `go run ssrf1.go` to run the application.
+
+First navigate to the application at `http://localhost:8080?url=http://www.google.com` to view the hexdump of `www.google.com`. To trigger
+the SSRF, navigate to `http://localhost:8080?url=http://localhost:8081` to fetch an internal secret.
+
+```go
+package main
+
+import (
+	"encoding/hex"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+)
+
+// secretServer mimics an internal service that returns sensitive
+// credentials.
+type secretServer struct {
+}
+
+// ListenAndServe will start an HTTP server and bind to 127.0.0.1:8081.
+func (s *secretServer) ListenAndServe() error {
+	server := &http.Server{
+		Addr:    "127.0.0.1:8081",
+		Handler: http.HandlerFunc(s.handler),
+	}
+	return server.ListenAndServe()
+}
+
+// handler returns sensitive credentials that only internal applications
+// should have access to.
+func (s *secretServer) handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "SECRET_CREDENTIALS")
+}
+
+// applicationServer is the public facing service that returns a hex
+// dump of the requested URL.
+type applicationServer struct {
+}
+
+// ListenAndServe will start an HTTP server and bind to :8080.
+func (s *applicationServer) ListenAndServe() error {
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: http.HandlerFunc(s.handler),
+	}
+	return server.ListenAndServe()
+}
+
+// handler returns a hexdump of the request URL passed in as a query parameter.
+func (s *applicationServer) handler(w http.ResponseWriter, r *http.Request) {
+	// Extract the URL from the query parameters.
+	urls, ok := r.URL.Query()["url"]
+	if !ok {
+		http.Error(w, "url missing", 500)
+		return
+	}
+	if len(urls) != 1 {
+		http.Error(w, "url missing", 500)
+		return
+	}
+
+	// Fetch the requested URL.
+	resp, err := http.Get(urls[0])
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read in the response body.
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// Write out the hexdump of the bytes as plaintext.
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprint(w, hex.Dump(bytes))
+}
+
+func main() {
+	// Start the secret service.
+	var ss *secretServer
+	go ss.ListenAndServe()
+
+	// Start the application service.
+	var as *applicationServer
+	as.ListenAndServe()
+}
+```
+
+_Figure 2: An example of a classic SSRF bug._
+
+Let’s dig into what happened. The program in Figure (2) runs the `hexdump` application and also simulates running of a secret service. While
+the `hexdump` application binds to all interfaces, the secret service only binds to `loopback`, a reasonable decision for something that
+should not be exposed to the internet.
+
+The problem is that `hexdump` is running locally and can issue requests to `loopback` (or any other internal endpoint). Simply pointing
+`hexdump` at `http://localhost:8081` is all that is needed to expose internal credentials regardless of the fact that it doesn’t actually
+listen on any publicly exposed interfaces.
+
+#### SSRF on AWS
+
+The [AWS Instance Metadata Service (IMDSv1)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html) is an excellent
+illustration of how powerful SSRF can be. In fact, Colin Percival has called it [EC2’s most dangerous
+feature](https://www.daemonology.net/blog/2016-10-09-EC2s-most-dangerous-feature.html).
+
+The Instance Metadata Service is quite interesting in that it can be utilized to both increase and decrease the security of your application
+at the same time.
+
+It can be used to increase the security of your application by helping you securely manage secret credential lifecycle (a difficult task).
+You can attach an [IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html) to the instance your application is running on
+and then fetch your credentials from the instance metadata endpoint. Once the instance is terminated, these credentials are destroyed and a
+new set of credentials are issued. In theory this helps in secret credential lifecycle; it lessens the number of credentials that can be
+exposed in a breach and reduces the lifespan of credentials to the lifetime of the instance.
+
+However, if your application is vulnerable to SSRF, that same benefit can be turned around on you by allowing an attacker to also retrieve
+your instance's credentials. Now you may say that this was true of IMDSv1 but [no longer true of
+IMDSv2](https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/).
+While this is true, by default IMDSv1 is always enabled, so it’s still a common and pervasive issue.
+
+If you are familiar with AWS and are using IAM roles already, you can use `curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/$roleName` to already see how deadly a SSRF in your application could be.
+
+If you are not familiar with AWS, you can use the example script in Figure (3) to create an IAM role, VPC, and EC2 instance that can be used
+to query the metadata endpoint. Note that you will be billed for usage, so make sure to shut down this instance once you're done.
+
+```bash
+#!/bin/bash
+
+set -euo pipefail
+
+# Read in command line arguments.
+#   * Prefix is used to allow identification of resources.
+#   * Key name is used to select the SSH key used to connect to the
+#     instance.
+#   * Region is the region in which to create resources.
+if [ "$#" -ge 3 ]; then
+    PREFIX=$1
+    KEYNAME=$2
+    REGION=$3
+else
+  echo "Usage: ./$0 <prefix> <key name> <region>";
+  exit 1;
+fi
+echo "Prefix: $PREFIX."
+echo "Key name: $KEYNAME."
+echo "Region: $REGION."
+
+# Create policy document.
+cat << EOF > $PREFIX-policy.json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+# Create role and attach policy.
+ROLE_ID=$(aws iam create-role \
+    --role-name $PREFIX-role \
+    --assume-role-policy-document file:///$PWD/$PREFIX-policy.json | jq -r ".Role.RoleId")
+aws iam attach-role-policy \
+    --role-name $PREFIX-role \
+    --policy-arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+echo "Created Role: $ROLE_ID."
+
+# Create instance profile from role.
+PROFILE_ID=$(aws iam create-instance-profile \
+    --instance-profile-name $PREFIX-profile | jq -r ".InstanceProfile.InstanceProfileId")
+aws iam add-role-to-instance-profile \
+    --instance-profile-name $PREFIX-profile \
+    --role-name $PREFIX-role
+echo "Created Instance Profile: $PROFILE_ID."
+
+# Create VPC that EC2 instance will be launched into.
+VPC_ID=$(aws ec2 create-vpc \
+    --cidr-block 10.0.0.0/16 \
+    --region $REGION | jq -r ".Vpc.VpcId")
+echo "Created VPC: $VPC_ID."
+
+# Configure the VPC to automatically assign DNS hostnames to instances.
+aws ec2 modify-vpc-attribute \
+    --vpc-id $VPC_ID \
+    --enable-dns-support "{\"Value\":true}" \
+    --region $REGION > /dev/null 2>&1
+aws ec2 modify-vpc-attribute \
+    --vpc-id $VPC_ID \
+    --enable-dns-hostnames "{\"Value\":true}" \
+    --region $REGION > /dev/null 2>&1
+
+# Create a subnet in the VPC.
+SUBNET_ID=$(aws ec2 create-subnet \
+    --vpc-id $VPC_ID \
+    --cidr-block 10.0.1.0/24 \
+    --region $REGION | jq -r ".Subnet.SubnetId")
+echo "Created Subnet: $SUBNET_ID."
+
+# Create and attach a internet gateway to VPC.
+GATEWAY_ID=$(aws ec2 create-internet-gateway \
+    --region $REGION | jq -r ".InternetGateway.InternetGatewayId")
+aws ec2 attach-internet-gateway \
+    --vpc-id $VPC_ID \
+    --internet-gateway-id $GATEWAY_ID \
+    --region $REGION > /dev/null 2>&1
+echo "Created Internet Gateway: $GATEWAY_ID."
+
+# Create route table that points all subnet traffic to the internet gateway.
+TABLE_ID=$(aws ec2 create-route-table \
+    --vpc-id $VPC_ID \
+    --region $REGION | jq -r ".RouteTable.RouteTableId")
+aws ec2 create-route \
+    --route-table-id $TABLE_ID \
+    --gateway-id $GATEWAY_ID \
+    --destination-cidr-block 0.0.0.0/0 \
+    --region $REGION > /dev/null 2>&1
+aws ec2 associate-route-table \
+    --subnet-id $SUBNET_ID \
+    --route-table-id $TABLE_ID \
+    --region $REGION > /dev/null 2>&1
+echo "Created Route Table: $TABLE_ID."
+
+# Create security group tht EC2 instance will be launched into.
+SG_ID=$(aws ec2 create-security-group \
+    --group-name $PREFIX-sg \
+    --vpc-id $VPC_ID \
+    --description "Security group to test SSRF." \
+    --region $REGION | jq -r ".GroupId")
+echo "Created Security Group: $SG_ID."
+
+# Configure security group to allow SSH traffic in to EC2 instance.
+aws ec2 authorize-security-group-ingress \
+    --group-id $SG_ID \
+    --protocol tcp \
+    --port 22 \
+    --cidr 0.0.0.0/0 \
+    --region $REGION
+
+# Create an EC2 instance.
+INSTANCE_ID=$(aws ec2 run-instances \
+    --image-id ami-07ebfd5b3428b6f4d \
+    --count 1 \
+    --instance-type t2.micro \
+    --key-name $KEYNAME \
+    --security-group-ids $SG_ID \
+    --subnet-id $SUBNET_ID \
+    --associate-public-ip-address \
+    --iam-instance-profile Name=$PREFIX-profile \
+    --region $REGION | jq -r ".Instances[0].InstanceId")
+echo "Created Instance: $INSTANCE_ID."
+
+# Wait for the instance to start.
+RUNNING=""
+until [ "$RUNNING" = "running" ]
+do
+    RUNNING=$(aws ec2 describe-instance-status \
+        --instance-ids $INSTANCE_ID \
+        --region $REGION | jq -r ".InstanceStatuses[0].InstanceState.Name")
+    echo "Waiting for instance to start..."
+    sleep 5
+done
+
+# Fetch public IP of EC2 instance.
+PUBLIC_IP=$(aws ec2 describe-instances \
+    --instance-ids $INSTANCE_ID \
+    --region $REGION | jq -r .Reservations[0].Instances[0].PublicIpAddress)
+echo "Instance IP Address $PUBLIC_IP."
+
+echo ""
+echo "To connect to instance, type: ssh ubuntu@$PUBLIC_IP curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/$PREFIX-role."
+
+echo ""
+echo "To cleanup, run the following commands:"
+
+echo "until aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region $REGION; do sleep 5; done"
+echo "until aws ec2 delete-security-group --group-id $SG_ID --region $REGION; do sleep 5; done"
+echo "until aws ec2 delete-subnet --subnet-id $SUBNET_ID --region $REGION; do sleep 5; done"
+echo "until aws ec2 delete-route-table --route-table-id $TABLE_ID --region $REGION; do sleep 5; done"
+echo "until aws ec2 detach-internet-gateway --internet-gateway-id $GATEWAY_ID --vpc-id $VPC_ID --region $REGION; do sleep 5; done"
+echo "until aws ec2 delete-internet-gateway --internet-gateway-id $GATEWAY_ID --region $REGION; do sleep 5; done"
+echo "until aws ec2 delete-vpc --vpc-id $VPC_ID --region $REGION; do sleep 5; done"
+
+echo "until aws iam remove-role-from-instance-profile --instance-profile-name $PREFIX-profile --role-name $PREFIX-role; do sleep 5; done"
+echo "until aws iam delete-instance-profile --instance-profile-name $PREFIX-profile; do sleep 5; done"
+echo "until aws iam detach-role-policy --role-name $PREFIX-role --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess; do sleep 5; done"
+echo "until aws iam delete-role --role-name $PREFIX-role; do sleep 5; done"
+
+echo "rm -fr $PREFIX-*"
+echo ""
+```
+
+_Figure 3: A script to create the infrastructure (VPC, Security Group, and EC2 instance) needed to show how SSRF and the metadata endpoint can be exploited._
+
+```json
+{
+  "Code": "Success",
+  "LastUpdated": "2020-03-05T19:00:31Z",
+  "Type": "AWS-HMAC",
+  "AccessKeyId": "A...",
+  "SecretAccessKey": "rgh...",
+  "Token": "IQo...",
+  "Expiration": "2020-03-06T01:36:18Z"
+}
+```
+
+_Figure 4: Truncated output of querying the metadata endpoint. SSRF allows an attacker full access to this data from outside your infrastructure._
+
+### Blind SSRF
+
+Blind SSRF is a subset of SSRF attacks. In the previous examples, the client has been able to see the response to a request. Blind SSRF is
+when you can perform the request, but can’t see the response. At first glance, it appears to be a rather weak vulnerability. However, there
+are a few interesting attacks that can still be performed.
+
+One example is utilizing blind SSRF to change the state of an internal service. An example of this was a [blind SSRF bug in Jira that could
+be used to make arbitrary HTTP POST requests within GitLab infrastructure](https://hackerone.com/reports/398799). Another example is using
+blind SSRF to perform port scanning from inside the target network. An example of this was a [blind SSRF bug in Jira that could be used to
+map out New Relic infrastructure](https://hackerone.com/reports/344032).
+
+Below in Figure (5) you’ll see the source for an application that acts similar to what a webhook service would do. The user submits a URL,
+the service attempts to fetch the URL, and returns the status code (and error message) back to the user.
+
+To run this application, save the code from Figure (5) in a file called `ssrf2.go` and then type `go run ssrf3.go` to run the application
+and navigate to the application at `http://localhost:8080`.
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+)
+
+const scriptContent = `
+window.onload = function() {
+   var submitButton = document.getElementById("submitButton");
+
+   submitButton.addEventListener("click", function() {
+      var respStatus = document.getElementById("responseStatus");
+      var respError = document.getElementById("responseError");
+      var respTime = document.getElementById("responseTime");
+
+      var textInput = document.getElementById("textInput");
+
+   	  fetch("/submit", {
+   	     method: "POST",
+   	     credentials: "same-origin",
+   	     headers: {
+   	        "Content-Type": "application/json",
+   	     },
+   	     body: JSON.stringify({
+   	        "endpoint": textInput.value,
+   	     })
+   	  }).then((response) => response.json()
+	  ).then((data) => {
+         respStatus.innerText = "Status: "+data.status;
+         respTime.innerText = "Time: "+data.time;
+		 if (data.error != "") {
+            respError.innerText = "Error: "+data.error;
+		 }
+   	  }).catch(error => {
+   	     console.log("Request failed: "+error)
+   	  });
+   });
+};
+`
+
+const htmlContent = `
+<html>
+   <head>
+      <script src="script.js"></script>
+   </head>
+   <body>
+      <input type="text" id="textInput" placeholder="Webhook Address">
+      <button type="button" id="submitButton">Post</button>
+      <p id="responseStatus"></p>
+      <p id="responseError"></p>
+      <p id="responseTime"></p>
+   </body>
+</html>
+`
+
+type request struct {
+	Endpoint string `json:"endpoint"`
+}
+
+type response struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+	Time   string `json:"time"`
+}
+
+func scriptHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript")
+	fmt.Fprintf(w, scriptContent)
+}
+
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, htmlContent)
+}
+
+func submitHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var request *request
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	fmt.Printf("Fetching endpoint: %v.\n", request.Endpoint)
+
+	start := time.Now()
+	resp, err := http.Get(request.Endpoint)
+	since := time.Since(start)
+
+	var statusText string
+	var errorText string
+	var timeText string
+
+	if err != nil {
+		statusText = "500"
+		errorText = err.Error()
+		timeText = since.String()
+	} else {
+		statusText = resp.Status
+		errorText = ""
+		timeText = since.String()
+	}
+
+	bytes, err := json.Marshal(&response{
+		Status: statusText,
+		Error:  errorText,
+		Time:   timeText,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, string(bytes))
+}
+
+func main() {
+	http.HandleFunc("/", viewHandler)
+	http.HandleFunc("/submit", submitHandler)
+	http.HandleFunc("/script.js", scriptHandler)
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+```
+
+_Figure 5: An application that can be used to map out an internal network._
+
+To understand how blind SSRF can be exploited, try a few endpoints on your host and see how they respond. A few ideas to explore your
+network are:
+
+- Try a port that has no service listening on it.
+- Try port 22 to see how SSH responds.
+- Try a port with a web server listening on it.
+- Does timing of a response provide any useful information?
+
+## SSRF Mitigation Techniques
+
+In an ideal situation, your application does not need to make arbitrary requests, or at minimum, only needs to make requests to a
+whitelisted set of endpoints. In that situation, you largely don’t have to worry about SSRF because the attacker cannot control the target
+endpoint.
+
+Unfortunately as we have seen in the previous examples, this is often not possible. In fact, you may be writing an application where you
+want to give the user control of the endpoint, like webhooks.
+
+Mitigations for SSRF can typically occur in two broad categories: you apply controls either at the network layer or application layer.
+
+### Mitigating SSRF with Firewalls
+
+A common mitigation for SSRF is to implement firewall policies about what the hosts running the application are able to connect to. This is
+most commonly applied to existing network infrastructure where firewalls are placed at strategic locations within the network architecture,
+or placed closer to the hosts using interface ACLs on networking equipment, or even host-based firewalls to restrict outbound connectivity.
+
+Firewalls can be brittle, as any firewall applied to a host will not be able to differentiate between connections made by an application vs.
+rules for normal operation of the node or other software on the same node. Firewalls also can only apply policy to traffic they see, so a
+diagnostic endpoint bound to localhost or other nodes within the same network may be accessible to the application.
+
+Applications creating outbound connections based on a client's request are also uncommon, that future updates to the firewall policy may not
+account for an application that can create arbitrary requests.
+
+Another good network layer defense is using something like [Smokescreen](https://github.com/stripe/smokescreen) which was developed at
+Stripe. Smokescreen is a HTTP CONNECT proxy that you can funnel all your traffic through and use it to place ACLs on where traffic is
+allowed.
+
+<Quote>
+  “Smokescreen restricts which URLs it connects to: it resolves each domain name
+  that is requested and ensures that it is a publicly routable IP and not a
+  Stripe-internal IP. This prevents a class of attacks where, for instance, our
+  own webhooks infrastructure is used to scan Stripe's internal network.”
+</Quote>
+
+The only catch is that your application needs to actually support HTTP CONNECT proxies and be willing to route your traffic over it. The
+good news is — this is often supported by default. For example, the [DefaultTransport](https://golang.org/pkg/net/http/#RoundTripper) in Go
+already does this, and even adding HTTP CONNECT proxy support for other protocols — [like we did with
+SSH](https://github.com/gravitational/teleport/blob/v6.0.0/lib/utils/proxy/proxy.go#L143-L193) — is straightforward.
+
+#### Mutual Authentication
+
+Another approach worth discussing is using mutual authentication on all internal services. Going back to the webhook example, even if the
+attacker is able to control the target, chances are the connection will not be authenticated to talk to internal resources. However, note
+the wording above, “chances are”. This approach is not a panacea. If the attacker can control an authenticated connection, SSRF is back on
+the table.
+
+### Mitigating SSRF with Application Controls
+
+If you either don’t have control of the network configuration or can’t run additional software like an HTTP CONNECT proxy, you can mitigate
+SSRF with application layer controls by checking that the target address is not within a blocked range.
+
+How to implement this is critical — it’s not enough to try and resolve the address, validate it, then make the connection. This is
+susceptible to [Time-of-check to time-of-use](https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use) vulnerabilities where the attacker
+controls the DNS server and uses a short TTL to change the target address on the next query. If you’re using application layer controls,
+make sure you use a lower layer hook. For example, [Andrew Ayer suggests using the Control
+callback](https://www.agwa.name/blog/post/preventing_server_side_request_forgery_in_golang) with Go dialers to do just this.
+
+This allows you to create safe dialers that can be drop-in replacements for regular dialers that can also apply access controls. Take a look
+at the example in Figure (5) where you can use the drop-in `SafeClient` to not only apply CIDR checks, but also limit things like HTTP
+redirects.
+
+Try updating the examples in Figure (2) and Figure (4) with `SafeClient` and try the exploits once again. They should now fail.
+
+You can also try this program from the command line. Here are a few example commands to try.
+
+```bash
+$ go run ssrf3.go -addr="https://localhost"
+2021/03/25 21:08:11 Get "https://localhost": dial tcp 127.0.0.1:443: unauthorized request
+exit status 1
+
+$ go run ssrf3.go -addr="https://localhost" -allow-loopback
+2021/03/25 21:08:18 Get "https://localhost": dial tcp 127.0.0.1:443: connect: connection refused
+exit status 1
+
+$ go run ssrf3.go -addr="https://192.168.1.1" -allow-loopback -unsafe-cidrs=192.168.0.0/8
+2021/03/25 21:09:02 Get "https://192.168.1.1": dial tcp 192.168.1.1:443: unauthorized request
+```
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"net/http/httputil"
+	"strings"
+	"syscall"
+)
+
+// SafeClientConfig is configuration for the SafeClient.
+type SafeClientConfig struct {
+	// UnsafeBlocks controls the IP address blocks that will be blocked.
+	UnsafeBlocks []*net.IPNet
+
+	// AllowRedirect controls if HTTP redirects will be supported.
+	AllowRedirect bool
+
+	// AllowLoopback controls if the loopback address will be available.
+	AllowLoopback bool
+}
+
+// SafeClient is a safe controllable HTTP client.
+type SafeClient struct {
+	c *SafeClientConfig
+
+	*http.Client
+}
+
+// NewSafeClient returns a new safe controllable HTTP client.
+func NewSafeClient(c *SafeClientConfig) (*SafeClient, error) {
+	client := &SafeClient{
+		c: c,
+	}
+
+	// Create a dialer that
+	dialer := &net.Dialer{
+		Control: client.dialHandler,
+	}
+
+	// Create a http.Transport using the safe net.Dialer.
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("invalid type")
+	}
+	transport.DialContext = dialer.DialContext
+
+	// Create a http.Client using the safe http.Transport.
+	client.Client = &http.Client{
+		Transport:     transport,
+		CheckRedirect: client.redirectHandler,
+	}
+
+	return client, nil
+}
+
+func (s *SafeClient) redirectHandler(req *http.Request, via []*http.Request) error {
+	if s.c.AllowRedirect {
+		return nil
+	}
+	return http.ErrUseLastResponse
+}
+
+func (s *SafeClient) dialHandler(network string, address string, conn syscall.RawConn) error {
+	// Parse and split the IP address.
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	addr := net.ParseIP(host)
+
+	// Check if loopback is allowed.
+	if addr.IsLoopback() && !s.c.AllowLoopback {
+		return fmt.Errorf("unauthorized request")
+	}
+
+	// Verify the request is not targeting an unsafe block.
+	for _, block := range s.c.UnsafeBlocks {
+		if block.Contains(addr) {
+			return fmt.Errorf("unauthorized request")
+		}
+	}
+
+	return nil
+}
+
+func main() {
+	// Parse command line flags.
+	addr := flag.String("addr", "", "target address")
+	unsafeCIDRs := flag.String("unsafe-cidrs", "", "comma separated invalid address range")
+	allowRedirect := flag.Bool("allow-redirect", false, "allow HTTP redirects")
+	allowLoopback := flag.Bool("allow-loopback", false, "allow access to loopback interface")
+	flag.Parse()
+
+	// Validate flags.
+	if *addr == "" {
+		log.Fatalf("No address provided.")
+	}
+	var unsafeBlocks []*net.IPNet
+	if *unsafeCIDRs != "" {
+		parts := strings.Split(*unsafeCIDRs, ",")
+		for _, part := range parts {
+			_, block, err := net.ParseCIDR(part)
+			if err != nil {
+				log.Fatal(err)
+			}
+			unsafeBlocks = append(unsafeBlocks, block)
+		}
+	}
+
+	// Create a safe client that does not allow access to private IP address
+	// ranges but does allow re-directs.
+	client, err := NewSafeClient(&SafeClientConfig{
+		UnsafeBlocks:  unsafeBlocks,
+		AllowRedirect: *allowRedirect,
+		AllowLoopback: *allowLoopback,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Issue the request.
+	resp, err := client.Get(*addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Dump the response to stdout.
+	bytes, err := httputil.DumpResponse(resp, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Print(string(bytes))
+}
+```
+
+_Figure 6: A safer HTTP client using the technique from Andrew Ayer._
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+SSRF can be a difficult bug to mitigate, primarily because it can be situational. In some instances, you may want to allow your clients to
+connect to internal IP addresses and not in others. However, careful selection of network-based and/or application-based controls can be
+used to effectively mitigate SSRF.

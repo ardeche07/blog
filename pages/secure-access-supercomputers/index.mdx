@@ -1,0 +1,433 @@
+---
+title: Secure SSH Access for Supercomputers
+articleTitle: ECMWF - How Third Parties Securely Access Supercomputing Clusters
+description: Managing shell level access access is difficult enough when you know your users. So how do you implement secure access to a revolving door of users?
+date: "2021-01-13"
+author: Virag Mody
+logo:
+  image: ./assets/ecmwf-case-study-header.png
+  alt: ecmwf case study
+tags:
+  - security
+layout: blogArticle
+---
+import css from "@styled-system/css";
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote"
+
+
+To the average person, weather forecasts inform whether or not they need to bring an umbrella to the office. But to some, it can be quite
+literally a matter of life and death. Organizations like the European Center for Medium Range Weather Forecasting (ECMWF) sit at the center
+of a web of highly sensitive operations, providing them weather predictions and reports. Whether that is for space agencies, natural
+disaster response, or the military, the accuracy of their forecasts are core to the decision making process.
+
+So, it’s no wonder the ECMWF manages one of the world’s largest supercomputing clusters to run computationally-expensive predictive models.
+This post goes in-depth on how the ECMWF used Teleport to grant secure shell access to scientists and researchers without encumbering them
+with esoteric ssh commands and configuration.
+
+Teleport is an OSS tool that consolidates SSH access across all environments, implements security, meets compliance requirements, and has
+complete visibility with a developer-friendly solution that doesn’t get in the way.
+
+<BlogImage src="./assets/ecmwf-case-study-1.png" width="60%" alt="ecmwf logo" />
+
+### About [ECMWF](https://www.ecmwf.int/)
+
+The European Center for Medium Range Weather Forecasting is an independent organization, supported by participating member states. Hosting
+one of the largest supercomputing facilities and meteorological data stores in the world, the ECMWF provides invaluable forecasting
+predictions and reporting. The organization is a key component of Europe’s meteorological infrastructure, working with various national
+weather services to inform weather conditions for seaports, emergency response, airports, and space agencies. For nearly 50 years, the ECMWF
+has remained Europe’s foremost pooling of meteorological resources.
+
+## Reconsidering Secure Remote Access
+
+The ECMWF’s 10-year goals, set in 2016, had ambitious mandates; one of which required moving their datacenter from Reading, England to
+Bologna, Italy. The relocation was a massive undertaking, requiring multinational collaboration to move and construct a state-of-the-art
+data center in a 9,000 square meter facility. The infrastructure team at the ECMWF would use this opportunity to refurbish outdated
+services, one of which included a remote access service for members that needed to connect a shell to ECMWF’s computing powerhouse.
+
+As with most growing organizations, the ECMWF’s existing in-house solution, ecAccess, became difficult to maintain. Design choices from a
+decade ago prevented the adoption of new technologies like OIDC, and changing dependencies required more customer support resources. To
+achieve the goals set in the Roadmap to 2025 initiative, the infrastructure team would go on to uproot ecAccess and transplant it with a
+modern remote access tool. One that would improve security, provide greater visibility, and most importantly, scale with them.
+
+<Quote>
+  A key priority for ECMWF is on the one hand to remain an attractive
+  proposition for the best scientists in the world, whilst at the same time
+  ensuring it can provide them with the best-fitted computing capability to
+  deliver our core mission.
+</Quote>
+
+<small>
+  [Source](https://www.ecmwf.int/sites/default/files/ECMWF_Roadmap_to_2025.pdf)
+</small>
+
+## Accessing Supercomputing Clusters
+
+### ecAccess - Legacy Access Tooling
+
+The two computational behemoths housed by the ECMWF included a high performance computing Linux cluster and two [Cray XC40s](https://en.wikipedia.org/wiki/Cray_XC40) that constitute its supercomputer. Capable of up to hundreds of teraflops in processing power, these facilities are utilized by ECMWF’s users to perform data science and build machine learning models. Typically these jobs required remote shell access via SSH, which also exposes a way for hackers to siphon supercomputing resources. A recent example was the coordinated attempt to use other European supercomputers for [mining cryptocurrencies](https://www.zdnet.com/article/supercomputers-hacked-across-europe-to-mine-cryptocurrency/). For the ECMWF, the stakes are higher with large volumes of their data directly supporting emergency services. Days or even weeks of downtime is not tolerable.
+
+<BlogImage
+  src="./assets/ecmwf-case-study-2.png"
+  width="100%"
+  alt="eaccess architecture diagram"
+/>
+
+<small>Figure 1: ecAccess Architecture</small>
+Running a standard ssh agent, scientists from all around Europe could connect to
+the ecAccess gateway and would be greeted with a login prompt. At the bottom of the
+CLI, users are asked to enter a one time password they receive from an authenticator
+app. Despite being a preferred method of primary authentication, SSH keys were not
+given to any users - the risk being too high to leave keys across thousands of local
+machines and let them be copied, misplaced, or misused.
+
+### Growing Pains
+
+Having matured into a vital coordinated effort across Europe, the ECMWF expanded their reach and computational capability. Among them would
+include a growing staff of sysadmins and analysts supporting over 500 distinct internal systems to aid the work of thousands of personnel
+from an increasing list of member states.
+
+An important build vs. buy variable is the cost of maintaining internally-built software. The problem with this calculation is that, over
+time, costs may unpredictably change. Consider a couple of the reasons the ECMWF felt this pain:
+
+- **Upgraded Dependencies** - Having built custom ssh libraries for ecAccess, the infrastructure team had to keep pace with updates to the
+  protocol and maintain forward compatibility. **Support Resources** - Over time, two vectors forced scarce support resources to be diverted
+  to ecAccess. The ECMWF’s growth brought in a diverse base of users. They were faced with language barriers and users that did not have the
+  requisite knowledge to use ecAccess without a GUI. Amplifying an already complicated process, ecAccess documentation grew more confusing.
+
+- **Outdated Technology** - Nowadays it is quite common to use SAML or OIDC protocols to authenticate against an identity provider and MFA
+  with physical tokens like Yubikeys. Having barely existed at the time, ecAccess could not adopt either open standard. Instead, the ECMWF was
+  bound to a single authentication flow for decades - entering a OTP for every shell connection - while the rest of the world took advantage
+  of single-sign on. Amplifying this frustration, significant resources had been fed into updating the ECMWF’s identity management systems,
+  something they cannot fully integrate with until authentication can be decoupled from ecAccess.
+
+## What Modern Secure Access Means
+
+ECMWF had some precise requirements guiding their search for potential successor technologies: Not only did the upgrade have to be resistant to the pressures building inside ecAccess, but could fit within the constraints the ECMWF worked under.
+
+<table>
+  <thead>
+    <tr>
+      <th>Technical Requirements</th>
+      <th>Constraint</th>
+    </tr>
+  </thead>
+  <tbody
+    css={css({
+      h3: {
+        color: "dark-purple",
+        fontSize: "text-xl",
+        lineHeight: "lg",
+        marginTop: "0",
+      },
+      h4: { textTransform: "uppercase" },
+      p: { lineHeight: "lg" },
+    })}
+  >
+    <tr>
+      <td width="40%">
+        <h4>Backward Compatibility</h4>
+      </td>
+      <td>
+        <h3>OpenSSH Clients of Any Flavor</h3>
+        <p>
+          Being a public utility, the ECMWF’s computational power is accessed by
+          employees at third parties. With limited control over what client
+          software is run, the infrastructure team had to stay compatible with a
+          range of different OpenSSH and OS versions.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <h4>Security Externalities</h4>
+      </td>
+      <td>
+        <h3>Locked Down Environments</h3>
+        <p>
+          The users that constitute the ECMWF ecosystem largely consist of
+          mission critical and life-saving public infrastructure. The
+          cybersecurity standards upheld at these organizations often batten
+          down computing environments. Any client-side software would need to be
+          minimal and militantly secure.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <h4>Session Logins</h4>
+      </td>
+      <td>
+        <h3>Keys without Key Management</h3>
+        <p>
+          Key based authentication allows for clear session logins and leave key
+          fingerprints. However, issuing SSH keys was never a viable option of
+          the ECMWF. Keys would have to be distributed to a changing user base
+          with little control over what happens to those keys. Instead, they
+          employed the one-time password authentication pattern.
+        </p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## Transparency in Open Source
+
+Like most Linux shops, especially one that creates and freely distributes software themself, the staff at ECMWF had a healthy appreciation for open-source software. So when they first came across Teleport as a possible fit, they immediately went to the Github repo.
+
+<Quote>
+  Transparency is a big thing, we can look for ourselves and say ‘Yes, that’s
+  [Teleport] quality and it's done by people who know what they’re doing.’
+</Quote>
+
+<small>Oliver Gorwits - Manager at ECMWF</small>
+
+As engineers, the team felt reassured in knowing they could collaborate with a community that would continually improve the software. But as a service operator, the ECMWF needed commercial support - someone to pick up the phone.
+
+## Teleport for Secure Remote Access
+
+In the end, the infrastructure team at ECMWF chose Teleport as their solution. Adding some color to this decision, recall that the ECMWF evaluated tools that met minimum requirements and improved both security and ease of use.
+
+<table>
+  <thead>
+    <tr>
+      <th>Technical Requirements</th>
+      <th>How Teleport Fit</th>
+    </tr>
+  </thead>
+  <tbody 
+    css={css({
+      h3: {
+        color: "dark-purple",
+        fontSize: "text-lg",
+        lineHeight: "lg",
+        marginTop: "0",
+      },
+      a: { lineHeight: "lg" },
+      h4: { textTransform: "uppercase", fontSize: "text-lg" },
+      p: { fontSize: "text-lg", lineHeight: "lg" },
+    })}
+  >
+    <tr>
+      <td width="40%">
+        <h4>Backward Compatibility</h4>
+        <p>
+          Teleport needed to be highly portable, supporting various flavors of
+          clients, servers, and operating systems. Altogether, the ECMWF faced
+          hundreds of permutations it must accommodate.
+        </p>
+      </td>
+      <td>
+        <ul>
+          <li>
+            <a href="https://goteleport.com/docs/server-access/guides/openssh/#using-openssh-client">Teleport supported OpenSSH clients</a> from v6.9 onwards
+          </li>
+          <li>
+            Teleport
+            <a href="https://goteleport.com/teleport/download/">binaries could be downloaded</a> for all
+            manners of Linux distributions, including RPM, RHEL, DEB, and ARM as
+            well as MacOS.
+          </li>
+          <li>
+            Sacrificing advanced features, Teleport can run in agentless mode.
+            It is deployed solely as a proxy, no daemon needs to run on SSH
+            servers.
+          </li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <h4>Security Externalities</h4>
+        <p>
+          Running in production in many regulated or restricted environments
+          already, Teleport had passed security reviews on my occasions.
+        </p>
+      </td>
+      <td>
+        <ul>
+          <li>
+            Teleport is <a href="https://goteleport.com/resources/audits/">audited yearly</a> by
+            <a href="https://doyensec.com/index.html">Doyensec</a>, a firm with notable
+            cybersecurity research contributions.
+          </li>
+          <li>
+            Under 50 MBs in size, Teleport comes as a single binary without any
+            external dependencies. A separate binary exists for those who only
+            need the Teleport client.
+          </li>
+          <li>
+            Being a recognized member of the CNCF, Teleport is validated in the
+            open source community.
+          </li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <h4>Session Logins</h4>
+        <p>
+          The safest among ssh authentication protocols, certificates provide
+          the highest quality of life. But they are notoriously difficult to
+          implement. The ECMWF easily configured a certificate authority in
+          Teleport without having to manage the keys involved.
+        </p>
+      </td>
+      <td>
+        <ul>
+          <li>
+            By encoding a time-to-live into all <a href="/teleport/how-it-works/certificate-based-authentication-ssh-kubernetes/">certificates</a>
+            , Teleport can limit how long sessions last, instead of indefinitely
+            with keys.
+          </li>
+          <li>
+            Teleport’s audit and visibility utility comes from logs and
+            recordings that are collected per session.
+          </li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## An (Accelerated) Implementation
+
+Satisfied with the long-term viability of Teleport, the ECMWF first implemented Teleport in their facility in England, both as a POC and because of the immediate need for better auth. The idea was to have both ecAccess and Teleport in production and slowly wean users off ecAccess in preparation for their Italy data center, which would only support Teleport. But more importantly, the majority of the ECMWF’s staff, many of whom had elevated privileges, worked within the England facility. When fully transitioned to Italy, they would be a predominately remote workforce. In March 2020, this initiative was pushed into high gear as COVID spread.
+
+<BlogImage
+  src="./assets/ecmwf-case-study-3.png"
+  width="100%"
+  alt="how teleport works diagram"
+/>
+
+<small>Figure 2: How Teleport Works</small>
+
+#### Role Based Access Control (RBAC)
+
+The ECMWF connected Teleport to their identity management system and Keycloak login service - a popular open-source tool. No longer were users just a one-dimensional UID. They were now identifiable with traits like name, team, role, and groups. This level of detail could only be achieved by a pipeline feeding identity information with each session request. Consider two potential certificates an authorization server may receive:
+
+<BlogImage
+  src="./assets/ecmwf-case-study-4.png"
+  width="100%"
+  alt="two different user identities - john and alice"
+/>
+
+<small>Figure 3: Two Different User Identities</small>
+
+Both John and Alice present notably different profiles. John is a staff member, and a sysadmin at that. His privilege level is far superior to Alice’s, who received credentials through a member state government program. With Teleport, the ECMWF could partition different levels of authorization, enforcing access policies among staff, analysts, and third parties. A YAML file for John’s `admin` role may look something like this:
+
+```
+kind: role
+version: v3
+metadata:
+  name: admin
+spec:
+  # SSH options used for user sessions
+    max_session_ttl: 4h
+    forward_agent: true
+    port_forwarding: true
+    client_idle_timeout: never
+    disconnect_expired_cert: no
+  # allow section declares a list of resource/verb combinations
+  allow:
+    # logins array defines the OS/UNIX logins a user is allowed to use.
+    logins: [root, ec2-user]
+    # list of node labels a user will be allowed to connect to:
+    node_labels:
+      # a user can only connect to a node marked with all labels:
+      'environment': '*'
+```
+
+Whereas Alice’s may look like:
+
+```
+kind: role
+version: v3
+metadata:
+  name: Analyst
+spec:
+    max_session_ttl: 4h
+    forward_agent: true
+    port_forwarding: true
+    client_idle_timeout:600
+    disconnect_expired_cert: no
+  allow:
+    logins: [ec2-user]
+    node_labels:
+      'environment': 'staging'
+```
+
+By connecting the user login with an identity provider, identity information gets propagated to restrict activity, enforce logins, and control sessions.
+
+#### Authenticate with OIDC
+
+Frustrated with the OTP authentication flow, the ECMWF adopted the [OIDC](/blog/how-oidc-authentication-works/) standard. Unhitched from a process that could take minutes for each ssh connection, users could now SSO and use their preferred method of MFA. But more importantly, with Teleport, the ECMWF could now authenticate on both the proxy and the destination host, while simultaneously enforcing RBAC policies to restrict what nodes users may connect to.
+
+#### The Web UI
+
+The ECMWF’s 10 year plan intended to make computing resources available to a wider audience of researchers. One tactic was to lower the barrier to entry for those unfamiliar with the ssh-agent. Teleport’s web IU changed all of that.
+
+<BlogImage
+  src="./assets/ecmwf-case-study-5.png"
+  width="75%"
+  alt="teleport web console screenshot"
+/>
+
+<small>Figure 4: Teleport Web Console</small>
+
+In addition to a local agent, Teleport provides a fully featured web-based SSH console that can be used in-browser. This unlocked an entirely new cast of users that existed solely over the web. This demographic included people that had only used Windows machines and might still be using one. For example, some security policies have prevented users from downloading any agents on local devices, either for OpenSSH or Teleport. Others just found using the CLI daunting. For all these people, having a web client gave them a channel they previously had not had.
+
+Even for those experienced with Linux, the Web UI has been a welcomed addition to the ECMWF. A widely adopted OSS data science tool, JupyterHub, exists in-browser. By being able to hop between services by just switching tabs makes for a much more consistent experience for many data scientists.
+
+## Looking Ahead
+
+In 1975, the ECMWF embarked on a grand expedition; to foretell the weather with great accuracy. Their move to Italy marked the latest landmark. Committing to lofty goals for 2025, the ECMWF had to put more on the line. More compute. More people. More predictions. More _access_. Particularly, they needed shell access to the most powerful computers in the world across an ever-changing base of users.
+
+And yet still, despite an accelerated implementation, the ECMWF’s implementation was met with overwhelmingly positive feedback.
+
+<BlogImage
+  src="./assets/ecmwf-case-study-6.png"
+  width="auto"
+  alt="quote about teleport by ecmmwf: excellent"
+/>
+
+<BlogImage
+  src="./assets/ecmwf-case-study-7.png"
+  width="auto"
+  alt="quote about teleport by ecmmwf: brilliant"
+/>
+
+<BlogImage
+  src="./assets/ecmwf-case-study-8.png"
+  width="auto"
+  alt="quote about teleport by ecmmwf: fabulous"
+/>
+
+<BlogImage
+  src="./assets/ecmwf-case-study-9.png"
+  width="auto"
+  alt="quote about teleport by ecmmwf: like a dream"
+/>
+
+<small>
+  [Source](https://confluence.ecmwf.int/display/UDOC/Teleport+SSH+Access)
+</small>
+
+<EmailSubscribeViolet />
+
+### What’s Next for the ECMWF and Teleport?
+
+As all good managing teams do before making any decisions, the infrastructure team asked themselves, “Will Teleport meet possible future requirements?” To this end, the Teleport team is always hacking on improvements suggested by the community. Teleport’s commitment is not just to stay abreast with partners, but to anticipate their needs and give them the tools to do things they had not considered before.
+
+- **Audit and Visibility** - Though not in production yet, the ECMWF adopted Teleport knowing full well they would be using advanced
+  features in a couple years. Features like session recording and [audit logging](https://goteleport.com/how-it-works/audit-logging-for-ssh-and-kubernetes/) are slated for adoption in 2022, when backwards compatibility
+  constraints no longer apply.
+- **Kubernetes** - The ECMWF runs large Kubernetes clusters in their environments. In the same way Teleport secures servers, it does the
+  same for K8s clusters, but not currently at the ECMWF. The mere presence of the [Kubernetes
+  enhancement](https://goteleport.com/how-it-works/secure-kubernetes-access/) has made it much more likely that they will similarly gate access to
+  Kubernetes.
+- **Unifying Access** - Teleport’s goal is to free users from their environment. For the ECMWF, this is particularly true. Maximizing their
+  usefulness means casting the widest net. A data scientist’s ability to remotely access the resources they need should not be limited by the
+  hardware in use. Working together, the ECMWF and Teleport move closer to that outcome.
