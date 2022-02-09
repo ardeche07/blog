@@ -1,0 +1,275 @@
+---
+articleTitle: Okta Directory Security Hardening using Terraform
+title: How to secure your Okta directory
+description: The guide for Okta Directory security hardening using Terraform
+date: "2021-08-23"
+author: Travis Gary
+logo:
+  image: ./assets/hero.png
+  alt: Okta Directory Security with Terraform
+tags:
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+In this article I will show how to secure your Okta directory so it's ready to grant access to servers and other highly sensitive resources.
+There are 4 levels of Okta directory system security maturity we will walk through how to implement.
+
+## Okta Security Maturity Model
+
+- Level 0: Securing Authentication with Strong MFA
+- Level 1: Creating permission-based Directory Groups
+- Level 2: Writing role/attribute-based Group Rules
+- Level 3: Creating Custom Least Privilege Admin Roles
+- Level 4: SIEM Integration, Alerting on Changes Outside Terraform
+
+## Introduction
+
+Identity aware authentication has been a massive improvement for SaaS application security; Single Sign on portals have become the standard
+for organizations because they improve both security and the user experience.
+
+Now organizations are extending that model to resources behind firewalls: servers, databases and Kubernetes clusters, thanks to identity
+aware proxies such as Teleport. This big improvement over network parameter security, however, creates a new and often overlooked attack
+vector, SSO admin compromise.
+
+I would wager that at many companies, a single compromised IT helpdesk account could own an entire company's infrastructure because they can
+often grant access to directory groups, change passwords, reset MFA devices, change the RBAC rules or alter employee attributes that drive
+ABAC rules. While least privileged admin roles make sense in theory, in practice it can be quite difficult to achieve; however, Terraform
+changes the game entirely.
+
+Most companies have undergone a DevOps transformation (I helped Airbnb with theirs) where we stopped making changes in the console or CLI
+and started using infrastructure as code, which has numerous security, operational, audit, compliance and reliability benefits. If you're
+new to this, check out the [Hashicorp DevOps Maturity
+Model](https://medium.com/hashicorp-engineering/the-infrastructure-maturity-model-d8f80738d3d1). IT teams, however, have often lagged behind
+in this DevOps transformation and are usually still doing system admin work in manual ticket and console driven workflows. Tickets are often
+seen as a necessary evil due to compliance. Yet in [my last blog post I described how Terraform helped our SOC2 Audit process using GitHub
+PR’s rather than Jira tickets](https://goteleport.com/blog/teleport-cloud-soc2-compliance/). While the console can be faster upfront you will pay for it on the
+tail end, when you have to orchestrate large changes that are difficult to make manually, get hacked or lose your traditional SysAdmin job
+to an Infrastructure as code experienced Systems Engineer.
+
+To get your organization's directory ready to support using a modern identity aware access plane, we recommend working through these 4
+directory maturity levels.
+
+## Level 0: Securing Authentication with Strong MFA
+
+This article covers how to take steps to contain and detect compromised accounts however it's best to make sure they don’t get compromised
+in the first place and the absolute best way to do that is by requiring hardware MFA devices, TouchID and/or Yubikey. I know it's a pain to
+get employees to enroll these devices but don’t allow other methods because they are all vulnerable to phishing. Modern UTF tokens like
+Yubikey use origin binding to ensure that the domain matches to prevent man in the middle attacks. Getting all your engineers hardware keys
+is also helpful for authenticating SSH sessions and other privileged actions. It’s possible after all for Okta or the SAML protocol to be
+compromised so [Teleport supports per session UTF authorization](https://goteleport.com/docs/access-controls/guides/per-session-mfa/). I expect UTF checks
+throughout the tech stack to become more common so it's best to start your hardware key rollout soon.
+
+## Level 1: Use Permission-Specific Groups
+
+Resist the urge to assign team groups to applications. Your team's organization structure will change, and this does not provide enough
+permission granularity. Should interns on your dev teams get the same permissions as your senior engineers?
+
+In order to limit who can grant what access to apps and roles, we need to create directory groups for each app and role combination. Yes,
+this will create a massive amount of groups but Terraform will make it manageable.
+
+For instance, for Zendesk we have a group for the basic agent entitlement ‘app-Zendesk-Agent’ and a separate one for admins
+‘app-Zendesk-Admin’.
+
+Pro tip: You can push all your app groups to Google as email groups using [Okta Push Group
+Rules](https://help.okta.com/en/prod/Content/Topics/users-groups-profiles/usgp-about-group-push.htm) so that you can send emails to all the
+zendesk users about changes. Simply write a rule that checks for the prefix ‘app-’ and a comment like ‘managed by terraform’ or
+‘Google-Push-Group’. The same can be done with Slack Groups albeit with a manual step of assigning the handle to the group so you can easily
+@Zendesk-Admin to get help.
+
+With this setup, we can restrict helpdesk employees to only being able to administer the app-Zendesk-Agent group without granting any access
+to the Zendesk application config itself, where they or an attacker could choose to grant any role they choose.
+
+<BlogImage src="./assets/zendesk-saml.png" alt="Zendesk application config" />
+
+While admin access to Zendesk probably won’t keep your security team up at night, access to AWS production accounts is far more important.
+
+AWS SSO provides an excellent way to federate your Okta users with AWS where they can then be granted specific AWS roles using directory
+groups ([Teleport works very similarly](https://goteleport.com/docs/application-access/guides/aws-console/)). In this case we will create groups for each AWS
+Account and IAM Role combination that Developers will be able to assume within AWS.
+
+Now we can grant helpdesk admins access to manage all the app-groups that are not privileged and don’t require any approvals, like Zoom or
+Calendly accounts, but what about granting those AWS admin roles? The answer for all but a few exceptions is automating granting group
+access with ABAC rules.
+
+## Level 2: Writing RBAC and ABAC rules
+
+[If you’re new to RBAC and ABAC, check out Okta’s blog post on the
+differences.](https://www.okta.com/identity-101/role-based-access-control-vs-attribute-based-access-control/)
+
+Okta allows admins to write Attribute-Based Access Controls rules to assign users to groups based on attributes on the employees’ Okta
+profile such as their team, department, manager status, and employee type. These attributes should be pushed from your HRIS system to ensure
+they stay up to date and are change-controlled.
+
+For example, granting Calendly access to all of Sales looks like the following.
+
+<BlogImage src="./assets/add-rule-basic.png" alt="calendly access" />
+<BlogImage src="./assets/add-rule-expression.png" />
+
+
+The UI provides a way to construct basic rules but complex rules can also be written using [Okta Expression
+Language](https://developer.okta.com/docs/reference/okta-expression-language/) which is based on the familiar Java Spring Expression
+Language (SpEL).
+
+Many Okta administrators will likely have encountered writing a rule where they want to grant access to more than one department rather than
+creating more rules; we can create more specific rules using the expression language.
+
+```
+user.department=="Sales" OR user.department=="Marketing"
+```
+
+Writing the rules is straightforward, but if we update the rules to grant access to something like the AWS admin group, who has access to do
+that? How does change control work? If they open a Jira ticket, request the change and then make it via the UI, then we never reach the
+least privileged Okta admin role and achieve our DevOps goals.
+
+By Terraforming the rules, we can make a process that is secure and change-controlled using familiar GitHub Pull Requests.
+
+Let’s look at how our Terraform rule looks like for Salesforce, an app that Sales and Marketing shares.
+
+First, we define a map of apps groups and rules:
+
+```
+locals {
+  apps = {
+     "Salesforce"  = { rule = "user.department == \"Sales\" OR user.department == \"Marketing\" }.
+          }
+}
+
+resource "okta_group" "app" {
+ for_each = local.apps
+    name        = "app-${each.key}"
+    description = "Do Not Edit, RBAC"
+    #Do not add users here, use rules only
+}
+
+resource "okta_group_rule" "app" {
+ for_each = local.apps
+    name              = "rbac-app-${each.key}"
+    status            = "ACTIVE"
+    group_assignments = [okta_group.app[each.key].id]
+    expression_type   = "urn:okta:expression:1.0"
+    expression_value  = each.value.rule
+}
+
+```
+
+Next, we need to create two resources per app: a group to hold the users in (and assign to the app in Okta) and a rule to place the users in
+the group. Using two for-each loops, we can create both using the name:rule map.
+
+Pro tip: Prefix your apps and RBAC rules to make searching in the console easier (Okta only looks at the start of the string you're typing
+in the console). This also makes it easier to distinguish between groups/rules made outside Terraform and helps in push group rules.
+
+Now we can assign each permission group created by Terraform to the application config in Okta. Right now, we just have one permission group
+but can work on adding an admin permission group next.
+
+<BlogImage src="./assets/salesforce-saml.png" alt="Assign each permission group" />
+
+That's it! If you know how to write Okta expressions, now you can put them in code, add mandatory code reviews to your GitHub Branch
+protections and you have a change-controlled process that will pass your audits and prevent unauthorized group changes.
+
+You're probably thinking, ‘what about exceptions to the rule?’ Every IT department has lots of one-off [access
+requests](https://goteleport.com/features/access-requests/), and while we can get very specific with rules like only granting to managers and not to interns,
+there are always exceptions to the rule. Put those in code too by specifying user logins. Capture those exception notes in your Pull Request
+and get the approval needed right in GitHub.
+
+Rules can get long and hard to read so we found a trick to make them display nicely on multiple lines using join. The syntax is still not
+pretty, but it's more readable than long single lines.
+
+```
+"Salesforce-Admin"  = { rule = join(" ", [
+    "User.login == \"travis@goteleport.com\" OR", # IT Director
+    "User.login == \"henning@goteleport.com\""  # Sales Operations Manager
+   ])
+}
+```
+
+**Pro tip:** Get detailed with your comments; we managed to replace the app owner spreadsheet required by our SOC2 auditors by writing good comments in code. Comments also help provide invaluable clarity in complex cases like this one for GitHub teams.
+
+```
+# Owner: it-team-admin@goteleport.com
+# Approver(s): travis@goteleport.com, sasha@goteleport.com
+# Description: Top Level Team for all employees that are not members of a specific github child team defined below
+# Permissions: Grants read only access to most repos
+    # For hierarchy definition, see https://github.com/gravitational/github-terraform/tree/master/teams.tf
+    # permissions cascade down to child git teams, for mapping for teams to repos see https://github.com/gravitational/github-terraform/tree/master/team-repos.tf
+
+        "Github-Teleport-Employees" = { rule = join(" ", [
+          "user.userType == \"employee\"” AND”,
+          "!(user.GithubUserName == \"\" OR user.GithubUserName == null)   AND",
+          "!isMemberOfGroupNameRegex(\"app-Github-.*-Team\")"
+        ])
+        },
+```
+
+## Level 3: Creating a least privileged IT Helpdesk Admin Role
+
+To prevent a compromised admin account from simply granting themselves access to anything, we often limit the number of admins and try to
+use least privileged roles. Okta has 10 different standard admin roles with [permissions shown in this
+matrix](https://help.okta.com/en/prod/Content/Topics/Security/administrators-admin-comparison.htm); however, it's best to create your own
+custom roles.
+
+For instance, you can create an ‘IT-Helpdesk’ role with the “Group Membership Administrator” permissions that are restricted to only
+administering certain groups. For instance, we could allow IT Helpdesk admins to add employees to the group that grants Zoom accounts but
+not the group that grants AWS Admin access. This way, helpdesk can quickly grant access to groups with low security concerns as defined in
+your vendor onboarding and annual risk assessments (you're doing these, right?) but they need to use Terraform for granting elevated admin
+permissions and secure an approval before merging.
+
+Of course, we are going to Terraform the Helpdesk admin role too. So if helpdesk techs need additional permissions, they can open a GitHub
+PR to request them. While it may seem like a stretch to teach helpdesk to use Terraform, good helpdesk tech really want to learn more tech
+skills rather than doing repetitive console work. Editing rules is a good stepping stone to learning to manage more complex infrastructure.
+
+## Level 4: Log, Alert and Investigate admin actions
+
+While it would be the most secure to make every change in Terraform, it takes a long time to get there, so in the meantime we can start
+alerting on changes that happen outside Terraform. Even once we get to infrastructure as code nirvana where access to make changes via
+console/API is completely blocked, these alerts are still very valuable in case someone manages to find a way around your IaC process. If
+your IaC process is not really smooth, trust me, smart engineers will find a way around it; don’t punish them for it and instead improve
+your process so it's not so painful to follow.
+
+For those powerful admin accounts that remain and for those necessary helpdesk actions that present attack vectors like password/mfa resets,
+we can utilize alerting to investigate. Our IT Engineer Ada Lin has developed a SecOps process to respond to webhook events that could be
+indicators of compromise or policy violations.
+
+We export all our Okta logs to Panther SIEM, [which has a number of out of the box Okta
+alerts](https://github.com/panther-labs/panther-analysis/tree/master/okta_rules). Since alerts are written in Python, virtually anything is
+possible to alert on. The Panther rule simply detects events where the actor is not equal to our terraform service user. If your org does
+not have a SIEM yet, you can quickly build something with Webhooks and more budget-friendly tools like Zapier.
+
+Here is an example of the alert we get in Slack. We can also route these directly to PagerDuty for incident response once our confidence is
+high enough.
+
+<BlogImage src="./assets/panther-alert.png" alt="Panther Alert" />
+
+This idea can be extended with a Security Orchestration and Events Response (SOAR) platform like [Tines](https://www.tines.com/). Now we can
+add buttons to the details that came from Panther.
+
+<BlogImage src="./assets/okta-alert.png" alt="Okta Alert" />
+
+A Valid Exception should trigger a git issue creation where the user who made the manual change should later codify it and repent for their
+sins (just kidding — maintain a blameless culture, and if your engineers are circumventing the IaC process, it needs improving).
+
+A Security Incident should trigger PagerDuty where potentially both the subject and target Okta accounts are suspended and logs are reviewed
+to see if any damage was caused. Some organizations may want to automate this process where suspect activity immediately triggers a
+suspension. However, false positives can be high initially.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Privileged IT Okta admin accounts are a tempting target for hackers now that all our most sensitive servers, databases and internal websites
+rely on SSO for authorization; however, by using infrastructure as code, we can achieve the security benefits of least privileged roles
+while also gaining numerous additional benefits for reliability, disaster recovery, compliance and audit.
+
+By working to implement these 4 levels your organization can be confident that your directory is ready to grant access to everything and
+truly become a single sign on portal.
+
+- Level 0: Securing Access with strong MFA
+- Level 1: Creating permission-based Directory groups
+- Level 2: Writing role/attribute-based group rules
+- Level 3: Creating custom least privilege admin roles
+- Level 4: SIEM Integration, alerting on changes outside Terraform
+
+Interested in discussing more? [Join us on our community Slack](https://goteleport.com/slack) in the #okta channel.

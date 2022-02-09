@@ -1,0 +1,161 @@
+---
+title: AWS IAM in layman's terms
+articleTitle: How does AWS IAM role, STS and Identity Pool work with each other.
+description: In this post, we briefly talk about leveraging the right type of AWS IAM policy mechanisms to build the responsibility separation between the “central” team and the individual “development” team.
+date: "2021-06-16"
+author: Shuo Yang
+tags:
+  - programming
+  - cybersecurity
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Flex from "components/Flex";
+import BlogImage from "components/BlogImage";
+
+_This is a guest blog post from Shuo Yang in his blog series ["Transitioning to Programming the Cloud"](https://syang.substack.com/), as a
+part of our blog posts focusing on Identity, Security and Access._
+
+We alluded in one of our [previous posts](https://syang.substack.com/p/does-serverless-make-devops-job-less) that the development team will
+own a lot of responsibility defining application-related resource access control, simply because the dev team owns the infrastructure as
+code (IaC) responsibility themselves.
+
+No matter how security-savvy and security-educated a development team is, the central security team still needs some control, some kind of
+“trust but verify”. In this post, we briefly talk about leveraging the right type of AWS IAM policy mechanisms to build the responsibility
+separation between the “central” team and the individual “development” team. Here central and individual are relative: it can be the
+official central IT security team vs. individual product line; and it can be the official DevSecOp platform team vs. individual [two-pizza
+team](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/two-pizza-teams.html).
+
+## IAM policy types categorized in 1000 feet
+
+First of all, there are [several types of IAM policies](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html) and it’s a
+bit intimidating to the beginners to figure out how to use them. When an engineer starts using AWS, it is even hard to understand why AWS
+provides so many different types of IAM policy mechanisms in the first place. There are a lot of articles on the Internet talking about how
+to evaluate policy and how to write policies to protect resources — that’s not the focus of this post.
+
+In this post, we wanted to give a 1000 ft high view of these types of policies, and use an example to explain why they exist in the first
+place.
+
+<BlogImage src="./assets/policy-categories.png" width="100%" height="100%" />
+_IAM policy_
+
+We can use IAM policy from the regulation / control side and application owner needs side.
+
+On the left side of the diagram, a central team who may not necessarily know every detail of the application’s needs can define their access
+control policies; and on the right side of the diagram, individual application owners can define the policies related to their apps.
+
+### An example: combining boundary and identity-based policy
+
+Let’s use an example to illustrate how permission boundary policy and identity-based policy work together.
+
+Imagine the security team knows for sure (and therefore define it through policy) that a user or a group of users can only operate on the
+following resources:
+
+1. Cloudwatch
+2. S3
+3. EC2
+
+Then they can define the permission boundary accordingly:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:*", "cloudwatch:*", "ec2:*"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+When the application team accidentally allows the user or the group of users to have the privilege of “creating an IAM user” below.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "iam:CreateUser",
+    "Resource": "*"
+  }
+}
+```
+
+Then the permission leakage won’t happen, which is reflected in the following diagram: the privilege must be within the intersect of
+(security team’s) permission boundary and (an accidentally defined) identity-based policy.
+
+<Flex justifyContent="center" py={7}>
+  <BlogImage
+    src="./assets/permission-boundary.png"
+    width="242px"
+    height="236px"
+  />
+</Flex>
+_Evaluation of identity-based policies and permissions boundaries_
+
+### Another example: combining Organization SCP and identity-based policy
+
+When the org grows bigger and we may define organizations and give dedicated AWS accounts to a specific team, we can assign _Organizations
+Service Control Policy (SCP)_ to define the maximum permissions that the members of a specific account could possibly have.
+
+<BlogImage src="./assets/org-setup.png" width="100%" height="100%" />
+_Different organization (OU) may have different organization SCP policy_
+
+In the following Organization SCP policy, we make sure users can’t launch EC2 instances that are more expensive than medium size (there is
+no need for a developer to launch a 2x larger instance to see if his code works).
+
+```json
+{
+  "Sid": "limitedSize",
+  "Effect": "Deny",
+  "Action": "ec2:RunInstances",
+  "Resource": "arn:aws:ec2:*:*:instance/*",
+  "Condition": {
+    "ForAnyValue:StringNotLike": {
+      "ec2:InstanceType": ["*.nano", "*.small", "*.micro", "*.medium"]
+    }
+  }
+}
+```
+
+<BlogImage src="./assets/iam-account-bucket.png" width="100%" height="100%" />
+"Development team may have its own admin to manage their IAM group and policies")
+
+But within the dev account, our dev account admin defined a group of people to have certain privileges (identity-based policy) — see policy
+attached to Group 1 in the dev account below:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["ec2:*"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+The identity-based policy allows pretty much every action toward EC2 here. But since our organization SCP denies launching an EC2 instance
+more expensive than medium size, a user in dev account can’t launch an EC2 machine of xlarge size, which is an obvious waste of money
+unnecessarily 😊.
+
+<Flex justifyContent="center" py={7}>
+  <BlogImage src="./assets/org-permissions.png" width="242px" height="236px" />
+</Flex>
+_Evaluation of identity-based policies and SCPs_
+
+<EmailSubscribeViolet />
+
+### Summary:
+
+With different types of policies, we can give teams a lot of autonomy and velocity yet we can still maintain control. And we provided two
+simple examples to illustrate the use cases above.
+
+Hopefully, we have given a plain English explanation of why permission boundary and organization SCP policy exist. If you have any questions
+or experiences to share about how a small team can set up some security boundaries yet give the individual feature team maximal velocity,
+please leave your comments.

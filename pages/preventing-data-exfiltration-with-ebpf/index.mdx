@@ -1,0 +1,210 @@
+---
+title: Preventing Data Exfiltration with eBPF
+articleTitle: Preventing Data Exfiltration with eBPF
+description: An introduction to KRSI and how you can use it to dynamically prevent data exfiltration based on IP ranges.
+date: "2021-07-22"
+author: Eugene Yakubovich
+logo:
+  image: ./assets/ebpf_graphic_min.png
+  alt: Preventing Data Exfiltration with eBPF
+tags:
+  - security
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## The need for data exfiltration prevention
+
+To keep your business secure, it is important not only to keep the hackers from getting in but also to keep your data from getting out. Even
+if a malicious actor gains access to the server, for example via an SSH session, it is vital to keep the data from being exfiltrated to an
+unauthorized location, such as IP addresses not under your organization’s control. In considering a solution to protect against data
+exfiltration, it is critical to note that one policy does not fit all.
+
+Consider a service invoking webhooks. It will be running with limited data access but must be able to communicate with the entire Internet.
+Contrast that to an SSH session that’s been opened for troubleshooting purposes. It will have access to the entire machine but does not
+egress to an arbitrary IP.
+
+Before we dive into looking at the possible solutions, there’s another wrinkle to consider. The address space that defines the allow or deny
+policy is likely to change. It will happen either due to changing IP space used by the organization or because more rogue addresses are
+discovered.
+
+## Static configuration solutions
+
+There are several solutions to this problem. For example, to apply a policy to SSH sessions, we could move the ssh daemon to its own cgroup
+and use iptables or nftables to define rules that apply just to that cgroup. Another option is to use a security module, such as AppArmor to
+specify a network policy for sshd. However these solutions work best when configured statically during the provisioning of the machine. When
+deployed across a fleet of machines and in the face of changing policies, they become brittle to operate.
+
+## KRSI: the new kid on the block
+
+Google recently merged a new technology into the Linux kernel that provides us with another avenue to explore. It’s called Kernel Runtime
+Security Instrumentation (KRSI) and it combines two existing technologies that makes it possible to define security policies on the fly. The
+first puzzle piece is the Linux Security Module framework -- a set of hooks sprinkled throughout the kernel that are used by the likes of
+AppArmor and SELinux. These hooks are placed in code paths where a security decision may be warranted. Specific security solutions are able
+to apply their policies at these customization points.
+
+The second piece is eBPF -- a way to write code in C (or Rust), compile it to bytecode and inject into the kernel. This is similar to a
+kernel module except that it’s safer and easier to deploy. The safety comes from a verifier which validates the eBPF program prior to
+accepting it. Therefore it guarantees that the code will not crash or lock up the kernel. The ease of deployment comes from increased
+portability of the code. Unlike a regular module which must be compiled to a particular kernel version, eBPF programs can target many kernel
+versions at once. Finally, eBPF supports a variety of data structures, called BPF maps, such as arrays, hash maps, and trie maps which are
+visible simultaneously to a userspace daemon and an eBPF program. This makes pushing data into the kernel as easy as updating a map entry.
+
+KRSI allows implementing LSM hooks using eBPF. By leveraging a BPF trie map, we can store and dynamically update CIDR ranges for the LSM
+hooks to enforce. Let’s go through how a BPF program that hooks the socket’s connect() call would work. The first step is to include the
+necessary headers and boilerplate:
+
+```C
+#include <linux/errno.h>
+#include "vmlinux.h"
+#include <bpf/bpf_helpers.h>  /* most used helpers: SEC, __always_inline, etc */
+#include <bpf/bpf_tracing.h>  /* for BPF_PROG macro */
+
+#define AF_INET  2        	  /* IP protocol family.*/
+
+char LICENSE[] SEC("license") = "Dual BSD/GPL";
+```
+
+Next we define a BPF trie map to store a list of CIDR ranges to be denied. This trie is easily accessible in the eBPF code (in the kernel)
+as well via a userspace API. We’ll be using the trie map as a “set” so the mapped value can be ignored (we’ll just use char as the value
+type).
+
+The key consists of a 32-bit unsigned integer that specifies the length of the prefix in bits (e.g. `16 in 10.1.0.0/16` CIDR range) followed
+by the 32-bit IP address. The definition of the BPF trie looks a bit cryptic but it just instantiates a struct in the .maps section of the
+ELF binary. The userspace libbpf library will use this information to issue the necessary system calls to create the trie.
+
+```go
+// IPv4 addr/mask to store in the trie
+struct ip4_trie_key {
+	u32 prefixlen;    	// first member must be u32
+	struct in_addr addr;  // rest can are arbitrary
+};
+
+// Define a longest prefix match trie.
+// The key is the struct above and we ignore the value
+struct {
+	__uint(type, BPF_MAP_TYPE_LPM_TRIE);
+	__uint(max_entries, 128);
+	__type(key, struct ip4_trie_key);
+	__type(value, char);
+	__uint(map_flags, BPF_F_NO_PREALLOC);
+} denylist SEC(".maps");
+```
+
+Now we are ready to look at the LSM hook implementation. Every time a process tries to connect a socket, this BPF program will be called. It
+takes the passed in socket address and matches it against the prefixes stored in the denylist trie. If the match is successful, it returns
+`-EPERM` (permission denied) error. Otherwise it returns 0 to signify no error:
+
+```go
+SEC("lsm/socket_connect")
+int BPF_PROG(socket_connect, struct socket *sock, struct sockaddr *address, int addrlen) {
+	// Only care about IPv4 in this example
+	if (address->sa_family != AF_INET)
+    		return 0;
+
+	// Cast to IPv4 socket address
+	struct sockaddr_in *inet_addr = (struct sockaddr_in*)address;
+
+	// Form the key to lookup in the denylist trie
+	struct ip4_trie_key key = {
+    		.prefixlen = 32,
+    		.addr = inet_addr->sin_addr
+	};
+
+	// If the key matches a prefix in the deny list, deny the call
+	if (bpf_map_lookup_elem(&denylist, &key))
+    		return -EPERM;
+
+	return 0;
+}
+```
+
+## Userspace daemon
+
+This BPF program needs to be paired with a userspace daemon. Its job will be to load the program into the kernel and manage the deny list to
+adapt to the changes in the environment. For this example, we’ll write the daemon in Go and use libbpfgo library (a Go wrapper around C
+libbpf library) to handle the low level mechanics of loading the BPF objects into the kernel.
+
+Assuming that the BPF C program was compiled into a `demo.bpf.o` object file, the Go program will use the new “embed” mechanism in Go 1.16
+to attach the BPF program as a byte array into the executable. The first thing main() does is to pass the mentioned byte array to libbpfgo
+for it to get it ready to load into the kernel that we do in step two:
+
+```go
+//go:embed demo.bpf.o
+var bytecode []byte
+
+func main() {
+// Step 1: Create a module from the BPF bytecode embedded in the executable
+mod, err := libbpfgo.NewModuleFromBuffer(bytecode, "demo")
+panicOnError(err)
+
+// Step 2: Load the BPF program into the kernel. The kernel will validate the bytecode
+// and get it ready for attaching it to the hook.
+err = mod.BPFLoadObject()
+panicOnError(err)
+```
+
+Before we attach to the LSM hook, we want to populate the BPF trie map that stores our deny list.
+
+Step 3 below asks the module to get us the map object and Step 4 inserts a single entry into the map. While we choose to populate the deny
+list prior to attaching the hook, it’s not necessary. In fact, the BPF trie map, like all BPF maps, can be modified at any time, critical
+for a solution designed to update the policies on the fly.
+
+```go
+// Step 3: Grap the handle to the BPF trie map
+denylist, err := mod.GetMap("denylist")
+panicOnError(err)
+
+// Step 4: Insert an entry (CIDR range) into the map. The second parameter to
+// Update is the value and is not used by the BPF program.
+// See below for definitions of ‘toKey’ function.
+toDeny := mustParseCIDR("18.0.0.0/9")
+err = denylist.Update(toKey(toDeny), uint8(0))
+panicOnError(err)
+```
+
+The final step asks for the BPF program object and attaches it to the LSM hook. For demo purposes, our program sleeps after this step since
+everything is unloaded when the process exits.
+
+```go
+// Step 5: Grab the handle to the BPF program
+prog, err := mod.GetProgram("socket_connect")
+panicOnError(err)
+
+// Step 6: Attach the program to the LSM hook. Which hook was specified in the C file
+// via the section name: SEC("lsm/socket_connect")
+_, err = prog.AttachLSM()
+panicOnError(err)
+
+// Step 7: Keep the process running
+time.Sleep(time.Hour)
+}
+
+func toKey(n net.IPNet) []byte {
+	prefixLen, _ := n.Mask.Size()
+
+	// Key format: Prefix length (4 bytes) followed by 4 byte IP
+	key := make([]byte, 4+4)
+
+	binary.LittleEndian.PutUint32(key[0:4], uint32(prefixLen))
+	copy(key[4:], n.IP)
+
+	return key
+}
+```
+
+A complete solution would also look at the type of process making the request and act accordingly. The daemon would also provide a way for
+the policies to be updated without restarting the daemon.
+
+<EmailSubscribeViolet />
+
+## Teleport Restricted Session
+
+Teleport, the open source access plane, is about to launch Restricted Sessions with Teleport 7.0. It uses the KRSI technology described in
+this article to implement network security policies applied to SSH sessions. To facilitate changes to the computing environment, Teleport
+exposes a gRPC API. With a single API call the updated network policies can be propagated to the whole fleet.
+
+To learn more about Teleport and the newly released Restricted Sessions feature, please [visit our
+docs](https://goteleport.com/docs/ver/7.0/server-access/guides/bpf-session-recording/).

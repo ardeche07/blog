@@ -1,0 +1,110 @@
+---
+title: RBAC and ABAC with AWS IAM
+articleTitle: RBAC and ABAC with AWS IAM
+description: When talking about application authorizations, we often encounter two concepts RBAC (role-based access control) and ABAC (attribute-based access control).
+date: "2021-07-12"
+author: Shuo Yang
+tags:
+  - programming
+  - cybersecurity
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+_This is a guest blog post from Shuo Yang in his blog series ["Transitioning to Programming the Cloud"](https://syang.substack.com/), as a
+part of our blog posts focusing on Identity, Security and Access._
+
+We talked about how AWS CIP, STS and IAM can serve as the foundation of application authorization in our [last
+post](https://syang.substack.com/p/aws-iam-role-sts-and-identity-pool), i.e., how the application gets the temporary credential representing
+a specific role (i.e. privileges) to access the resources of the applications — an architecture understanding how different building blocks
+work together under the hood.
+
+Now, we need to strategize how we actually build the authorization mechanism. When talking about application authorizations, we often
+encounter two concepts RBAC (role-based access control) and ABAC (attribute-based access control).
+
+## RBAC: what is it?
+
+With role-based access control, RBAC, a user’s access privilege determines which role he is in. We often see roles in applications like
+user, manager, administrator.
+
+See the diagram below — as simple as it
+
+<BlogImage src="./assets/1-app-user-role.png" />
+
+## How/when did we define RBAC in AWS IAM?
+
+In our previous posts, we already alluded to concrete RBAC access control strategy without explicitly mentioning it.
+
+The first example was what we mentioned in [this post](https://syang.substack.com/p/iam-in-laymans-terms-2-managing-internal); that is, to
+define privileges for group and (try very hard) not to define privileges for users individually — it is an RBAC definition for managing your
+AWS account — here the “IAM Group” is the role (NOTE: Here the role is not “IAM Role”; it’s the generic term “role” in authorization.)
+
+<BlogImage src="./assets/2-dev-ops-group.png" />
+
+Another example was what we mentioned in [this post](https://syang.substack.com/p/aws-iam-role-sts-and-identity-pool); that is, application
+users getting privileges by assuming a role (through getting temporary credentials):
+
+<BlogImage src="./assets/3-auth-role-pool.png" />
+
+What common practices do they share? Privileges of individual user are defined by a role:
+
+- It could be an IAM role in the application building example.
+- It could be an IAM group in the internal AWS account user manage example.
+
+## ABAC: what is it?
+
+The Attribute-Based Access Control (ABAC) leverages attributes in various components inside the system, rather than the role, to control who
+/ when / where can access a resource.
+
+ABAC provides a much more fine-grained and much more sophisticated access control capability. Instead of defining roles with specific
+privilege, it relies on a rule engine that evaluate attributes.
+
+<BlogImage src="./assets/4-ABAC-rule-engine.png" />
+
+There are three types of attributes: user (principal) attributes, resource (asset) attributes, and environment attributes — the rule engine
+can define simple rules to achieve complex and fine-grained combination access control rules.
+
+## How can we define ABAC in AWS IAM?
+
+There is [an example](https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_attribute-based-access-control.html) in AWS IAM document
+about how we can use AWS IAM properties to define attribute-based access control. That’s probably a long example and deserves a dedicated
+post to explain it, but let’s get the high-level takeaway from it
+
+1. Use tags in the IAM policy definition to have a rich set of attributes
+
+   For example, you can attach tags to IAM resources, including IAM entities (users or roles) and to AWS resources. You can define policies
+   that use tag condition keys to grant permissions to your principals based on their tags.
+
+2. ABAC access control is very scalable for you to build a fine-grained access control policy
+
+   For example, we can define tags (i.e., attributes) for AWS entity (such as a user) and resource (such as an S3 bucket), and define the
+   rule as the following, which is very hard to define (and even if it gets defined, it becomes very hard to maintain) with RBAC:
+
+- allow users older than certain age to access a piece of content - allow users from certain geo-location to access a piece of content
+
+<BlogImage src="./assets/5-tags-and-rule.png" />
+
+## 10,000 feet high difference between RBAC and ABAC
+
+|                           | RBAC   | ABAC    |
+| ------------------------- | ------ | ------- |
+| Implementation Simplicity | Simple | Complex |
+| Dimension Scalability     | Low    | High    |
+| Access Granularity        | Low    | High    |
+
+- RBAC is much simpler to implement, as we have seen above — actually, the practice in the last post already provided one RBAC implementation;
+- ABAC provides almost infinite condition scalability (e.g., age > 21, employed by NGO and from US — a hypothetical example here, no real meaning);
+- ABAC provides highly granular access control.
+
+<EmailSubscribeViolet />
+
+## Summary
+
+We talked about RBAC access control with AWS IAM, which is a common case for a lot of applications, and the common practices we needed in
+our enterprise app security (we provided two examples).
+
+We also briefly mentioned that AWS IAM can offer ABAC access control if we need more complex and scalable access control policies — ABAC
+deserves several dedicated posts itself, but the takeaway from this post should be that AWS IAM tags and conditions offer the tool for us to
+build such an access control policy.
