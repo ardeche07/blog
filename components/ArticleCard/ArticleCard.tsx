@@ -29,7 +29,7 @@ interface ArticleCardProps {
 
 export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
   let imagePath = "";
-  if (needImg && meta.frontmatter.logo.image && meta.uri) {
+  if (needImg && meta.frontmatter.logo?.image && meta.uri) {
     imagePath = generateCoverImagePath(
       meta.frontmatter.logo.image,
       meta.uri,
@@ -39,7 +39,7 @@ export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
 
   return (
     <StyledCard href={meta.uri} flexDirection={needImg ? "row" : "column"}>
-      {!!(needImg && meta.frontmatter.logo.image) && (
+      {!!(needImg && meta.frontmatter.logo?.image) && (
         <StyledWrapperImage>
           <NextImage
             src={imagePath}
