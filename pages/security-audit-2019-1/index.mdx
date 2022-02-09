@@ -1,0 +1,85 @@
+---
+title: Security Audit Results for Teleport and Gravity
+description: Results and independent analysis from a third party on the Teleport project.
+articleTitle: Security Audit Results for Teleport
+date: "2020-02-25"
+author: Russell Jones, Kevin Nisbet
+logo:
+  image: ./assets/security-audit-1-header.png
+  alt: audit results
+tags:
+  - security
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+We now live in an era where the security of all layers of the software stack is immensely important, and simply open sourcing a code base is not enough to ensure that security vulnerabilities surface and are addressed. At Teleport, we see it as a necessity to engage a third party that specializes in acting as an adversary, and provide an independent analysis of our sources.
+
+This year, we had an opportunity to work with
+[Doyensec](https://www.doyensec.com), which provided the most thorough
+independent analysis of Gravity and Teleport to date. The Doyensec team did an
+amazing job at finding areas where we are weak in the Gravity code base. Here
+is the full report for [Teleport](https://goteleport.com/gravitational/pdf/teleport-audit-q2-2019.pdf) and
+and you can find all of our security audits [here](https://goteleport.com/resources/audits/).
+
+## Gravity
+
+Gravity has a lot of moving components. As a Kubernetes distribution and distributed system for delivering Kubernetes in many unique environments, the product’s attack surface isn’t small.
+
+All flaws considered medium or higher except for one were patched and released as they were reported by the Doyensec team, and we’ve also been working towards addressing the more minor and informational issues as part of our normal release process. Out of the four vulnerabilities rated as high by Doyensec, we’ve managed to patch three of them, and the fourth relies on a significant investment in design and tooling change which we’ll go into in a moment.
+
+### Insecure Decompression of Application Bundles
+
+Part of what Gravity does is package applications into an installer that can be taken to on-prem and air-gapped environments, installing a fully working Kubernetes cluster and application without dependencies. As such, we build our artifacts as a tar file - a virtually universally supported archive format.
+
+Along with this, our own tooling is able to process and accept these tar archives, which is where we run into problems. Golang’s tar handling code is extremely basic and this allows very old tar handling problems to surface, granting specially crafted tar files the ability to overwrite arbitrary system files and allowing for remote code execution. Our tar handling has now been hardened against such vulnerabilities, and we’ll write a post digging into just this topic soon.
+
+### Remote Code Execution via Malicious Auth Connector
+
+When using our cli tools to do single sign on, we launch a browser for the user to the single sign on page. This was done by passing a url from the server to the client to tell it where the SSO page is located.
+
+Someone with access to the server is able to change the url to be a non http(s) url and execute programs locally on the cli host. We’ve implemented sanitization of the url passed by the server to enforce http(s), and also changed the design of some new features to not require trusting data from a server.
+
+### Missing ACLs in the API
+
+Perhaps the most embarrassing issue in this list - the API endpoints responsible for managing API tokens were missing authorization ACLs. This allowed for any authenticated user, even those with empty permissions, to access, edit, and create tokens for other users. This would allow for user impersonation and privilege escalation. This vulnerability was quickly addressed by implementing the correct ACLs, and the team is working hard to ensure these types of vulnerabilities do not reoccur.
+
+### Missing Signature Verification in Application Bundles
+
+This is the vulnerability we haven’t been able to address so far, as it was never a design objective to protect against this particular vulnerability.
+
+Gravity includes a hub product for enterprise customers that allows for the storage and download of application assets, either for installation or upgrade. In essence, part of the hub product is to act as a file server where a company can store their application, and internally or publically connect deployed clusters for updates.
+
+The weakness in the model, as has been seen by many public artifact repositories, is that this security model relies on the integrity of the system storing those assets.
+
+While not necessarily a vulnerability on its own, this is a design weakness that doesn’t match the capabilities the security community expects. The security is roughly equivalent to posting a binary build to Github - anyone with the correct access can modify or post malicious assets, and anyone who trusts Github when downloading that asset could be getting a malicious asset. Instead, packages should be signed in some way before being posted to a public download server, and the software should have a method for trusting that updates and installs come from a trusted source.
+
+This is a really difficult problem that many companies have gotten wrong, so it’s not something that Teleport as an organization is willing to rush a solution for. There are several well known models that we are evaluating, but we’re not at a stage where we have a solution that we’re completely happy with.
+
+In this realm, we’re also going to end-of-life the hub product as the asset storage functionality is not widely used. We’re also going move the remote access functionality that our customers do care about over to our Teleport product.
+
+<EmailSubscribeViolet />
+
+## Teleport
+
+As we mentioned in the Teleport 4.2 release notes, the most serious issues were centered around the incorrect handling of session data. If an attacker was able to gain valid x509 credentials of a Teleport node, they could use the session recording facility to read/write arbitrary files on the Auth Server or potentially corrupt recorded session data.
+
+These vulnerabilities could be only exploited using credentials from a previously authenticated client. There was no known way to exploit this vulnerability outside the cluster by non-authenticated clients.
+
+After the re-assessment, all issues with any direct security impact were addressed. From the report:
+
+<Quote>
+  In January 2020, Doyensec performed a retesting of the Teleport platform and
+  confirmed the effectiveness of the applied mitigations. All issues with direct
+  security impact have been addressed by Teleport.
+</Quote>
+Even though all direct issues were mitigated, there was one issue in the report that
+continued to bother us and we felt we could do better on: “#6: Session Recording
+Bypasses”. This is something we had known about for quite some time and something
+we have been upfront with to users and customers. Session recording is a great feature,
+however due to the inherent complexity of the problem being solved, bypasses do exist.
+
+Teleport 4.2 introduced a new feature called [Enhanced Session Recording](https://goteleport.com/docs/server-access/guides/bpf-session-recording/) that uses eBPF tooling to substantially reduce the bypass gaps that can exist. We’ll have more to share on that soon in the form of another blog post that will go into the technical implementation details for that feature.

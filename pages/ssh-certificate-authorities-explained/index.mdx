@@ -1,0 +1,181 @@
+---
+title: Certificate Authorities Explained
+description: In this article, we explain what a certificate authority is and what role it plays in securing communication between a user and a resource.
+articleTitle: Certificate Authorities Explained
+date: "2019-10-14"
+author: Katie Carrel
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+<BlogImage src="./assets/cert-authority-hero.png" />
+
+We all know that security and safety on the internet is important but may not necessarily know what is happening behind the scenes to allow
+us to browse around the internet or connect to a remote resource securely. Typically, the everyday user browsing on the internet knows to
+look for two things when accessing a website:
+
+- a padlock icon (typically green) in the left-hand area of the address bar
+- `https://` preceding the website address
+
+While the everyday user may know to look for these two visual cues they likely do not know what is going on behind the scenes. And what is
+happening is a web site telling the browser _"here is my certificate, you can trust me now!"_
+
+But who issues these certificates and why does your browser know to trust them? In this post we'll explore this in more detail.
+
+It is also worth mentioning that certificates can be used to protect not only the web traffic, but they can (and should) also be used for
+SSH access instead of more traditional public/private key pairs.
+
+We're the creators of Teleport, an open-source [access management for SSH and Kubernetes](https://goteleport.com/) which uses the
+certificate authority approach, so we wanted to provide some background as to what a certificate authority is and what role it plays in
+securing communication between a user and a resource.
+
+If any of what you just read is unfamiliar, then you are in the right place to learn - let's dive in and explore this topic together!
+
+## What is a Certificate Authority?
+
+Think of a police officer asking to see your driver's license to verify your identity. They want to see proof that you are who you say you
+are. Consider the following:
+
+- What makes them trust the information in the drivers license?
+- What makes you trust them to be a real police officer?
+
+In other words, how is trust established in this context?
+
+What makes it possible, of course, is the state. You and the officer both trust the state of California (in our case), and you trust the
+credentials issued by the state, that's a police badge for the officer and a driver's license for you.
+
+A certificate authority (CA) works the same way the state of California does. In other words, a CA is an entity that is trusted by everybody
+and it is responsible for three major tasks:
+
+### Issues Certificates
+
+Every user and every computing resource such as a web site or an SSH server must have an identity and a way to prove its validity. A
+certificate is an electronic version of a "driver's license", it is just a file which contains the information about the identity of its
+owner.
+
+A certificate authority issues such certificates.
+
+### Confirms the identity of the certificate owner.
+
+A certificate authority guarantees that the identity information embedded in a certificate is valid.
+
+### Provides proof that the certificate is valid.
+
+A certificate authority can also guarantee that a certificate is valid. A certificate can become invalid for the following reasons:
+
+- It can expire, just like a driver's license.
+- It can be revoked.
+- It can be tempered with.
+
+A certificate authority can provide proof that a given certificate is valid.
+
+What this boils down to is "we, the certificate authority, vouch for the owner of the certificate and ensure that they are who they say they
+are because we have validated the information they claim".
+
+## How Does a Certificate Authority Work?
+
+At a high level, a certificate authority confirms that the information the certificate requester has provided is true and then issues a
+certificate for the requester to use. In general, the process for getting a certificate authority to issue a signed certificate goes like
+this:
+
+<BlogImage src="./assets/lets-encrypt-csr.png" alt="Encrypt Certificate" />
+
+<p>
+  How [Let’s Encrypt](https://letsencrypt.org/how-it-works/) does CSR
+  verification
+</p>
+
+1. The requester makes a private key and public key pair and submits an “application” called a certificate signing request (CSR) to a
+   trusted certificate authority. The CSR has all the information about the requester that will be shown on the resulting certificate if
+   approved.
+
+2. The certificate authority verifies whether the information on the CSR is true. If so, the certificate authority issues and signs a
+   certificate using its (the certificate authority's) private key then gives it to the requester to use.
+
+   - Let’s Encrypt issues a set of challenges to the requester to prove that the domain being requested is controller by the requester.
+     - Provisions a DNS record under example.com, or
+     - Provisions an HTTP resource under a well-known URI on http://example.com/
+   - In addition to challenge completion, Let’s Encrypt provides a nonce (an arbitrary number) that the requestor must sign with its private key pair to prove control of the key pair.
+   - Once the challenges and nonce signing is confirmed to be complete the requester is authorized to request, renew and revoke certificates for example.com.
+
+3. The requester can use the signed certificate for the appropriate security protocol:
+
+- HTTPS for web access
+- SSH for remote server access
+
+## What Kind of Certificates Can a Certificate Authority Provide?
+
+<BlogImage src="./assets/certificate-types.png" alt="Certificate Types" />
+
+Certificate authorities can issue and sign **SSL certificates** and **client certificates**. There are three types of SSL certificates with varying levels of validation requirements:
+
+- A **domain validation SSL certificate (DV)**
+- An **organization validation SSL certificate (OV)**
+- An **extended validation SSL certificate (EV)** - This type of certificate has drawn criticism due to the [high cost without actually
+  providing enhanced security](https://www.troyhunt.com/extended-validation-certificates-are-dead/)
+
+SSL certificates are used on servers and are the most common certificate that an everyday user would come in contact with. Nearly every
+modern browser checks that a server certificate is issued by a trusted certificate authority. If the browser detects that the server
+certificate is self-signed or not signed by an approved, trusted certificate authority then visitors will receive a warning that the server
+certificate cannot be trusted.
+
+This can negatively impact the traffic of a website as users will be less likely to continue using or trusting it. A website’s search engine
+optimization ranking will also be [negatively
+affected](https://searchengineland.com/effective-july-2018-googles-chrome-browser-will-mark-non-https-sites-as-not-secure-291623) if the
+server has a certificate not signed by a trusted certificate authority as Google flags those as a certificate error. To avoid
+unintentionally harming your product - utilize a trusted certificate authority for all your SSL certificate signing needs.
+
+When connecting via SSH to a server that is configured to accept client certificates (instead of the default key authentication), a client
+will only be authorized during the SSH handshake if the server trusts the certificate authority that signed the unexpired client certificate
+being presented. This is an efficient solution to authorization because the server already has the public keys of the certificate
+authorities it trusts and requires no extra effort. If you would like to dive deeper into how the SSH handshake works, check out this
+[post](https://goteleport.com/blog/ssh-handshake-explained/) by my fellow colleague Russell Jones!
+
+<BlogImage src="./assets/ssh-handshake.png" alt="SSH Handshakes" />
+
+## Conclusion
+
+A certificate authority plays the key role of establishing trust and facilitating secure communication between a user and a resource by
+verifying that the organization or client in question is who they say they are.
+
+There are several types of certificates and certificate authorities:
+
+- Use x509 certificates to protect web traffic. They are used by web sites
+  and web applications.
+- Use SSH certificates to protect servers. They are used by SSH implementations
+  such as [Teleport](https://goteleport.com/).
+
+If you would like to learn more about how Teleport makes implementing a certificate authority solution simple and secure, you can check out
+our [documentation](https://goteleport.com/docs/getting-started/) and try out the open source version!
+
+<EmailSubscribeViolet />
+
+## Important Terminology:
+
+**_SSH_** or **_Secure Shell protocol_** is a network protocol that secures communication between a client and a remote server.
+
+**_HTTPS_** or **_Hypertext Transfer Protocol Secure_** is a security protocol used to provide privacy, integrity and identification when sending data between a web browser and a website.
+
+**_SSL_** or **_Secure Sockets Layer_** is the encryption-based Internet security protocol used prior to 1999.
+
+**_Transport layer security_** or **_TLS_** is the successor to SSL and the currently adopted security protocol that facilitates privacy and data security for communications over the internet. SSL and TLS are used interchangeably.
+
+An **_SSL certificate_** or **_Secure Sockets Layer Certificate_** is a file hosted on a website’s server that contains information about the organization that the certificate was issued to, the certificate authority that issued it, the CA’s signature and the public key. This file is the basis of what ensures that the browser can recognize the website’s server as trustworthy.
+
+**_Self-signed SSL certificate_** is an identity file that is signed by the same organization whose identity it is certifying.
+
+A **_root certificate_** is a public key certificate that identifies which certificate authority signed the SSL certificate presented by the server.
+
+The **_TLS handshake_** is a process of communication between the user’s browser and the website’s server which involves exchanging and verifying information to provide communications security over networks.
+
+A **_public key infrastructure (PKI)_** is an encryption system involving cryptographic keys being used to facilitate authentication and encryption-key exchange securely.
+
+A **_public key_** is a cryptographic key that can be provided to and used by anyone to encrypt messages intended for a particular recipient who provided the public key and holds the matching private key.
+
+A **_private key_** is a cryptographic key that allows recipients to decode messages that have been encrypted using their public key. This key is meant to be kept secret and only used by the owner.

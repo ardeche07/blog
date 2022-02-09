@@ -1,0 +1,140 @@
+---
+title: Approval Workflow for Server Access
+description: The new Teleport Workflow API gives users a new way to escalate permissions with administrative approval.
+articleTitle: Simplifying Secure Server Access with Teleport’s Approval Workflow
+date: "2020-01-29"
+author: Ben Arent
+logo:
+  image: ./assets/workflow_api_head.png
+  alt: Teleport Workflow
+tags:
+  - teleport
+  - ssh
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Back in the early 2010s, a Forrester researcher, [John Kindervag](https://www.forrester.com/speakers/john-kindervag/), noticed that
+corporations had a binary view of trust and privilege. Once new employees have completed training, they are given full access to all the
+tools and VPNs needed to get their job done. Once they are logged on, they are trusted completely. Kindervag noticed that “trust” is a
+vulnerability that can be exploited.
+
+Since then, awareness of [Zero Trust](https://goteleport.com/blog/zero-to-zero-trust/) implementations has grown, in particular Google's
+[BeyondCorp](https://en.wikipedia.org/wiki/BeyondCorp). BeyondCorp provides micro-segmentation and micro-perimeters that require employees
+to verify identity and enforce policy. While these concepts are often first implemented for applications and SaaS applications used by
+"normal users", many organizations fail to properly implement them for accessing server infrastructure because those that manage and access
+server infrastructure are generally more sophisticated and "trust-worthy" (also, [the shoemaker’s children often go
+barefoot](https://en.wiktionary.org/wiki/the_shoemaker%27s_children_go_barefoot)).
+
+However, the reality is that attackers and their methods are also quite sophisticated and the consequences of a breach at the SysAdmin level
+can be much more dire. This has resulted in more focus on how to better extend [Zero Trust principles for infastructure
+access](https://goteleport.com/blog/zero-to-zero-trust/).
+
+## Should I be SSHing into machines in 2020?
+
+The last decade has also seen the rise of DevOps. Developers have become more involved in the deployment and operational concerns of running
+applications. A best practice is to define machine and application state with code, instead of the traditional
+[meatware](https://www.wired.com/2016/06/its-not-just-robots-skilled-jobs-are-going-to-meatware/). This is known as Infrastructure as Code
+(IaC). IaC provides visibility into infrastructure state. State is defined in code, thus resulting in reduction of errors from manual
+changes.
+
+A side benefit of IaC is you know the exact state of infrastructure and applications; if something needs to be updated, everything is
+recreated again. This is commonly known as immutable infrastructure. This means that once it’s been created, it will never be changed, and
+if an update is required, the application, container and infrastructure will be removed and rebuilt.
+
+Running immutable infrastructure has a range of benefits. If something goes wrong or a security fix needs rolling out, it can be quickly
+achieved through the magic of Infrastructure as Code and DevOps. During this journey to obtaining devops utopia, you have removed many of
+the traditional reasons to access production machines which is great news for companies that have strict security requirements.
+
+Some teams have proposed going as far as removing all user access to a production cluster. However, turning off **all remote** access is
+difficult to achieve in practice. Firstly, even in the [cattle vs
+pets](http://cloudscaling.com/blog/cloud-computing/the-history-of-pets-vs-cattle/) world, you still want to discover why a particular node
+is acting strangely by accessing the machine directly and using a range of debugging tools available to the operator. There are also ‘break
+glass’ events, which could include the need to patch a critical service with a zero day prior to the decommission of active Infrastructure.
+While removing all access to a production cluster theoretically seems great, there are still reasons to still have some access, in practice.
+
+So if you have to provide some access to production servers, you want to be sure only the right people with the proper permissions have
+access. In one interesting real-world example, Coinbase has special rules for production access, which include obtaining their fingerprints
+and having a special secure[ ‘SSH’ room with
+dropcam](https://blog.coinbase.com/how-coinbase-builds-secure-infrastructure-to-store-bitcoin-in-the-cloud-30a6504e40ba).
+
+## Security that doesn't get in the way
+
+Creating an ‘SSH’ war room is pretty extreme. How can you implement these principles with minimal operational overhead?
+
+Our open source privileged access management solution, Teleport, achieves this by integrating into existing identity systems and using
+[certificates](https://goteleport.com/how-it-works/certificate-based-authentication-ssh-kubernetes/) with the appropriate meta-data to provide fine grained access controls. The
+traditional SSH key based system is replaced with an identity aware proxy that provides role-based access and permissions based on that
+identity.
+
+While implementing Teleport is usually a big improvement, user feedback has revealed that we could improve adoption by better accommodating
+existing workflows. The best security systems are easy to use and don't modify existing workflows.
+
+To solve this, we’ve created a Workflow API that lets any Teleport user request additional roles, which has the side effect of providing
+escalated access with a full audit log of when people request access and who approved, creating a control mechanism called the [‘two-man
+rule’](https://en.wikipedia.org/wiki/Two-man_rule) .
+
+The Workflow API uses Teleport’s robust [RBAC](https://goteleport.com/docs/access-controls/introduction/) support. End users can be given a role of least
+privilege and can request new roles as defined in the resource. This protection mechanism helps prevent mistakes during the stresses of a
+“break glass” situation.
+
+```yaml
+kind: role
+metadata:
+  name: contractor
+spec:
+  options:
+    # ...
+ allow:
+    request:
+      roles: ['dba','cluster-a','sudo-admin']
+```
+
+Teleport users can now request a new role, in the below case...
+
+```bash
+# Bob requests a the DBA Role
+$ tsh login --user bob  --request-roles=dba --proxy=teleport.example.com:3080
+Seeking request approval... (id: bc8ca931-fec9-4b15)
+```
+
+The Teleport Admin, Alice, can then use `tctl` to approve this new role.
+
+```bash
+$ tctl request ls
+Token               Requestor Metadata    Created At (UTC)    Status
+------------------- --------- ----------- ------------------- -------
+bc8ca931-fec9-4b15  bob       roles=dba   07 Nov 19 19:38 UTC PENDING
+# Alice then approved Bob's request
+$ tctl request approve bc8ca931-fec9-4b15
+```
+
+<figure>
+  <BlogImage
+    src="./assets/workflow_api_diagram.png"
+    width="100%"
+    alt="Teleport Workflow API"
+  />
+  <figcaption>
+    The Workflow API allows users to escalate permissions to access
+    infrastructure via Teleport
+  </figcaption>
+</figure>
+
+Bob will now receive an updated access certificate that will provide him access to all of the database machines for a limited time.
+Teleport keeps an audit log of Alice's approval of Bob’s request for access. This workflow requires access to the Teleport Auth Server, or
+by leveraging Teleport’s remote [tctl execution](https://github.com/gravitational/teleport/pull/2991), Alice can verify from her machine.
+
+<EmailSubscribeViolet />
+
+## Accommodating existing tools
+
+We understand that while helpful, running `tctl request ls` every hour isn’t practical or useful. To provide more flexibility and visibility
+into who is requesting access, we are also creating [Teleport Plugins](https://github.com/gravitational/teleport-plugins). Our first plugin
+focuses on access and we will soon have two plugins that facilitate role escalation using your existing tools, starting with Jira and Slack.
+
+Role escalation and the Workflow API is available to all enterprise users, and we are here to help companies set up the correct roles and
+permission for the way they work. If you’re interested, please schedule a meeting with our customer success team. If you want to dive
+straight in, checkout our [Docs](https://goteleport.com/docs/access-controls/introduction/).

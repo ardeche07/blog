@@ -1,0 +1,136 @@
+---
+title: Getting Visibility Across Your Cloud Environments
+description: Most monitoring tools are great for a high-level view of how your applications and infrastructure are performing, but have many gaps when it comes to security. In this blog, we look at two areas where visibility is typically lacking:\ SSH and Kubernetes.
+articleTitle: Getting Visibility Across Your Cloud Environments
+date: "2019-10-21"
+author: Jordan Marin
+tags:
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Are you an engineer or a manager working on a cloud application running in production? Do you have to type `ssh` or `kubectl` frequently to
+get things done? Does auditing, compliance, or access control sound mildly painful? This blog post is for you!
+
+In a world full of hackers, data breaches, and data privacy legislation, getting visibility into who is accessing your infrastructure (i.e.,
+cloud or dedicated production environments where applications are hosted) and what they’re doing is vital.
+
+Modern cloud environments offer excellent performance and security monitoring. If you want to know how your applications are performing, who
+is using them, where errors are occurring, or how much bandwidth you're using, there's no shortage of tools to help you get the job done.
+
+Most monitoring and introspection is only skin deep. It gives you a high-level view of how your applications and infrastructure are
+performing — which is fantastic. But if your team is responsible for managing and securing your company's infrastructure, traditional
+monitoring solutions have some serious gaps that should keep you awake at night.
+
+This is something we’ve been focused on for a while now with [Teleport](https://goteleport.com/), our modern solution for setting privileged
+access across environments. Let’s look at two areas where getting complete visibility into user behavior is typically lacking.
+
+## SSH Visibility
+
+<BlogImage src="./assets/id-card.svg" />
+
+Take SSH, for example. Enabling SSH access to production servers for engineers is not the best strategy, yet it’s quite common. It provides
+a quick and easy way to connect to your production infrastructure for troubleshooting odd problems. Unfortunately, it also has some
+significant downsides.
+
+SSH, by default, has no way to keep track of what keys are in circulation, and which ones are in use _right now._ Many teams invest in [SSH
+key management](https://goteleport.com/blog/ssh-key-management/) tools thinking this covers all their security concerns. Unfortunately, they're not the silver
+bullet for your SSH security, particularly as you scale up cloud-native systems.
+
+If you had to provide a list of the last 100 people to SSH into your production infrastructure, could you? Would you be able to determine
+who connected, when they did so, what they did, and how long they stayed connected? Could you even come up with a list of every user
+connected via SSH right now?
+
+If you answered no to any of these questions, you have a problem. If you can't determine who has accessed your infrastructure, it's
+impossible to determine if your systems are _actually_ secure.
+
+To connect this to the real world, imagine for a moment that your company suffered a severe data breach because someone SSH'ed into your
+production servers and downloaded a copy of your database. It could be an outsider who got hold of an SSH key, but it could also be a
+disgruntled employee. If you're in charge of your company's infrastructure, you'll have to answer some tough questions. Would you have the
+data you need to answer those questions?
+
+## Kubernetes Security
+
+As another example, consider Kubernetes and `kubectl`. If you're trying to manage and deploy modern service-oriented applications at scale,
+Kubernetes might seem like a miracle. Instead of relying on an ad-hoc constellation of VMs, Chef scripts, and duct tape, Kubernetes gives
+you the ability to deploy and scale containerized applications quickly.
+
+Kubernetes comes with a dark side, however. Depending on how you configure it, the kubectl utility is a Swiss Army chainsaw that makes it
+easy to manage and change every part of your Kubernetes cluster.
+
+`kubectl exec -t <pod>` is your good old friend, `ssh <host>` just wearing fancier clothes.
+
+Even with built in support for Role-based Access Control (RBAC), Kubernetes does not, by default, have built-in tracking. It's still a
+challenge to manage and view who has access and what they are allowed to do. Ideally, you'd like to maintain strict control over who has the
+keys to your Kubernetes kingdom.
+
+But most importantly, Kubernetes clusters do not exist in a vacuum, they still need machines to run on, and those machines frequently have
+SSH access as well. Synchronizing kubectl credentials with SSH credentials is critical because each of them can be used to bypass the other.
+
+There's one final kick in the pants if you're concerned about infrastructure security: out of the box, neither SSH nor kubectl know who you
+are. Identity is a crucial aspect of an effective trust-but-verify security solution, and here’s why:
+
+Suppose, you want to enforce an obvious rule, like _“developers must never touch customer data in production”_. How would you do this? For
+starters, the rule must be enforced for _both_ SSH and Kubernetes. But it gets more complicated if we break down this requirement word by
+word:
+
+1. “Developers”: how would a server know if you’re a developer or not? Anyone with an SSH key for “root” can bypass Kubernetes RBAC and get in.
+2. How would a server or a Kubernetes cluster know if it’s part of a production or staging or test or whatever?
+3. And finally, how would a server (or a pod) know if there’s any production data on it?
+
+That’s why identity matters. A modern privileged access management system must be using
+[certificates](https://goteleport.com/blog/ssh-certificates/), not keys, that are tied to user identity, i.e., only if you’re a member of a
+“developers” group in Google Apps or Active Directory, then a server may authenticate you based on that. Additionally, hosts must
+authenticate using certificates too! Not only it would protect you against [honeypot
+attacks](<https://en.wikipedia.org/wiki/Honeypot_(computing)>) but the system will be able to tell the difference between staging and
+production.
+
+Also, it would be nice to have an ability to dynamically “color” specific nodes if there’s a database running on them or/and there’s a
+storage volume attached, so you can treat nodes with data differently from the stateless nodes in a cluster.
+
+## Getting Visibility and Control for Security and Compliance
+
+While development and DevOps teams can find many solutions for application monitoring, getting real time visibility and control over access
+is vital. These were the kinds of problems we were hearing from our customers and how we approached designing [Teleport](https://goteleport.com/), our
+open source solution for managing privileged access across both cloud-native and traditional environments.
+
+Identity-based security is key to ensuring that anyone who connects to servers inside or outside of the network requires verification before
+receiving access. Leveraging existing single sign-on (SSO) and two factor authentication (2FA) can provide clear control over who is
+accessing your systems.
+
+In addition, layering role-based access control (RBAC) behind SSO helps define what each user can do with their access. Kubernetes has some
+built-in functionality for this via an RBAC API which can help define roles and cluster roles (and Teleport works with these natively).
+
+The systems in place should support a process for collecting granular audit logs of every interaction and every user who has accessed
+infrastructure. This is vital, not just for security and peace of mind, but also for meeting compliance regulations such as GDPR, PCI,
+HIPAA, etc. Auditors expect organizations to produce evidence-based data on who touched each system.
+
+<BlogImage src="./assets/recorded-session.gif" />
+
+Since Teleport 2.4, every session is recorded. The session recording is on top of the RBAC privileged access (which works natively with
+Kubernetes-based solutions) and complete audit logs.
+
+AWS and other providers use labels or tags to add metadata which helps organize their environment. Tagging makes it easier to manage, search
+for, and filter resources. It can also be part of a security strategy. Teleport allows for the application of labels, key/value pairs for
+each node, and these tags can be used to define RBAC permissions to determine which resources users can or cannot access. Node labels can be
+dynamic, i.e. determined at runtime by an output of an executable. For example, you can implement “permissions follow workload” policies
+(eg., any server where MySQL is running becomes automatically accessible only by the members of the “DBA” group and nobody else).
+
+Coming soon, we're working on Teleport features that will offer live, real-time session monitoring, so you can see who is connected _right
+now_ and observe what they're doing. It will also include immediate session termination. If you see a user doing something they shouldn't
+be, you'll be able to close their session and revoke their access privileges before they can do any damage. Stay tuned!
+
+<EmailSubscribeViolet />
+
+## Connect with Confidence
+
+As we've seen, traditional access controls for your cloud-native environment, such as SSH and kubectl, can open up some scary, opaque
+infrastructure security black holes — the kinds of black holes that _should_ give companies nightmares.
+
+Teleport provides an easy solution that gives you much more control over your infrastructure while integrating with your existing investment
+in identity and authentication tools. As a technical manager, you have more than enough problems on your plate. Securing access across your
+production environments shouldn't be one of them.

@@ -1,0 +1,150 @@
+---
+title: Computer Wizard Woes:\ The Cursed Terminal Session
+description: How to use session recording and session sharing to troubleshoot an SSH Terminal Session Easily
+articleTitle: Computer Wizard Woes:\ The Cursed Terminal Session
+date: "2020-01-22"
+author: Katie Carrel
+logo:
+  image: ./assets/cursed-terminal-header.png
+  alt: Cursed Terminal Session
+tags:
+  - teleport
+layout: blogArticle
+---
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+It is likely that at some point in the span of your software engineering career, you will run into an issue that requires poring over audit
+logs to figure out what went wrong and who did it. This could be to troubleshoot a variety of issues ranging from an unauthorized change
+that a consultant or vendor made, to bad actors that have gained access to your system. During such times, it would be helpful to be able to
+play back exactly what happened — like using an arcane spell to recreate the situation or making remote collaboration as easy as casting
+[Rary’s Telepathic Bond](https://forgottenrealms.fandom.com/wiki/Rary%27s_telepathic_bond). At Teleport, in the absence of magic, we offer
+[Teleport](https://goteleport.com/how-it-works/) — our solution to privileged access management for cloud-native infrastructure. In this post, we will
+explore how two of Teleport’s features, session recording and session sharing, make these magical solutions a reality for developers.
+
+## A Cursed Terminal Session
+
+Imagine that you are in a cursed terminal session - everything is going wrong, you can’t figure out where the issue even began, and all of
+your coworkers who could sit down with you to help are out of the office. How do you go about fixing the problem?
+
+## Troubleshoot an SSH Terminal Session Easily
+
+### SSH Recording (Default Node Mode)
+
+<BlogImage
+  src="./assets/cursed-terminal-1.png"
+  width="100%"
+  alt="Troubleshoot an SSH Terminal Session Easily"
+/>
+
+By default, Teleport records all <a href="#one">SSH</a> terminal sessions by submitting SSH session traffic to the auth server for storage
+and later replay, allowing users and companies to have full audibility. The recorded sessions are streams of bytes that the terminal
+interprets from the user output and can recreate.
+
+### Benefits of Teleport’s SSH session recording:
+
+Thinking back to the scenario of a cursed terminal session, even sorting through audit logs may not help you figure out exactly what went
+wrong as you can easily become overwhelmed by the amount of information to sort through and the time it takes to do so by hand. This is
+where it becomes indispensable to have full Teleport session recordings that can be replayed via <a href="#two">tsh</a> play command or in a
+web browser. Being able to replay a video of the session in question allows the developer to easily pinpoint the actions being taken in a
+terminal session and the identity of the user who made the issue and eliminates the need to pull and review all audit logs one by one.
+
+Teleport’s replay features have some additional features that allow developers more flexibility:
+
+- Users can write shell scripts to capture pseudoterminal (PTY) output as a raw file then replay a session in time even without directly
+  using Teleport’s tsh.
+- When Teleport’s recordings are replayed, pauses in activity are skipped to ensure only relevant activity is shown.
+
+### Past Shortcomings of Teleport’s SSH Session Recording
+
+Although Teleport’s session recording is wonderful for the above scenario described, we identified the following three disadvantages to the
+4.1 configuration of Teleport’s session recordings:
+
+- **Information Obscured**: For example, even though the command
+  `$ echo Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg== | base64 --decode | sh` does not contain`curl http://www.example.com` , when decoded, that
+  is what is run.
+
+- **Shell Scripts Uncaptured:**
+  For example, if a user uploads and executes a script, the commands run within the
+  script are not captured, simply the output.
+- **Terminal Controls:** Terminals support a wide variety of controls including the ability for users to
+  disable terminal echo. This is frequently used when requesting credentials. Disabling
+  terminal echo allows commands to be run without being captured.
+
+Teleport recently rolled out an <a href="#three">eBPF</a> based enhanced SSH session recording solution to address the above concerns. Check
+out our [recent blog post](/blog/teleport-release-4-2/) for more information about this new enhancement!
+
+## Remote Collaboration via Terminal Made Simple
+
+<BlogImage
+  src="./assets/cursed-terminal-3.png"
+  width="100%"
+  alt="Troubleshoot an SSH Terminal Session"
+/>
+
+Teleport session sharing allows for teams to work across physical barriers. In the case of a cursed terminal session, a befuddled engineer
+can provide their out of office coworker a link to join an SSH session in order to collaborate easily and securely. Traditionally, for team
+members to troubleshoot a problem on a remote server, you would need to:
+
+1. Let them know which node you're on.
+2. Have them SSH in.
+3. Start a terminal multiplexer like screen or tmux and join a session there.
+
+Teleport’s session sharing removes the need for a terminal multiplexer and makes the experience seamless with normal terminal activity.
+
+1. Ask Teleport for the current session status
+   <BlogImage
+     src="./assets/cursed-terminal-4.png"
+     width="100%"
+     alt="Teleport for the current session status"
+   />
+2. Share the session URL (if joining through web browser) or session ID (if joining through terminal) with whomever you want to join
+   <BlogImage
+     src="./assets/cursed-terminal-5.png"
+     width="100%"
+     alt="Teleport Share Session"
+   />
+
+Behind the scenes, Teleport’s session sharing feature is sending the output of the same <a href="#four">pseudo-terminal (PTY)</a> to multiple users that are joined on the same node’s session ID. An important warning is that session sharing is functionally the same as giving your keyboard virtually to anyone who knows the session URL as it allows the user joining the session to send writing data to the session for execution. Don’t give it to someone that you don’t want to be able to have the same access and make the same changes that you can.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+When magical items or spells aren’t available to save you from a cursed terminal session or hunting down a root cause, Teleport is! Teleport can save engineers’ time and make collaboration in the terminal simple through the session sharing and recording features. If you would like to learn more about the real life magic of Teleport check out our [documentation](/teleport/docs/intro/) and try out the[ open source version](/teleport/download)!
+
+## Important Terms
+
+<p id="four">
+  <b>PTY (pseudo-terminal)</b> is a software implementation that appears to the
+  attached program like a terminal. Instead of communicating directly with a
+  “real” terminal, it transfers the input and output to another program.
+</p>
+
+The **four-eyes principle** is a control mechanism which requires the approval of at least two people (or four eyes).
+
+<p id="one">
+  <b>SSH</b> or <b>Secure Shell protocol</b> is a network protocol that secures
+  communication between a client and a remote server.
+</p>
+
+A **node** is a "server", "host" or "computer". Users can create shell sessions to access nodes remotely.
+
+A Teleport **proxy** is a stateless service which performs three main functions
+
+- Serves as an authentication gateway.
+- Looks up IP address for requested nodes and then proxies a connection from client to node.
+- Serves a Web UI for cluster users to use.
+
+Speciality configurations can allow SSH recording on a Teleport proxy.
+
+<p id="two">
+  <a href="/teleport/docs/architecture/overview/">**Tsh**</a>
+  is a Teleport client tool used by the end users that is similar in nature to an
+  OpenSSH client.
+</p>
+
+<p id="three">
+  <a href="https://lwn.net/Articles/740157/">**eBPF**</a> (extended <a href="https://en.wikipedia.org/wiki/Berkeley_Packet_Filter">Berkeley Packet Filter</a>) is an in-kernel virtual machine that can be used for non-networking
+  purposes.
+</p>

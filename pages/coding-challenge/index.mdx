@@ -1,0 +1,532 @@
+---
+title: Hiring:\ Coding Challenges Make Us Better
+description: In this article we explain how Teleport approaches hiring systems engineers
+articleTitle: Hiring:\ Coding Challenges Make Us Better
+date: "2019-10-08"
+author: Alexander Klizhentas
+tags:
+  - programming
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Flex from "components/Flex";
+import Quote from "components/Quote";
+
+<BlogImage
+  src="./assets/coding-challenge-hero.jpg"
+  alt="coding challenge"
+  width="680px"
+  height="448px"
+/>
+
+At Teleport, we build open source systems software that enables multi-cloud access and application management. This article is about the lessons I learned while trying to develop a hiring process that
+is transparent for the candidates, while producing good outcomes for my team.
+
+Here are some of the reasons why I prefer coding challenges:
+
+- Allows for a better sample work.
+- Hidden gems can shine.
+- Removes unnecessary stress.
+- Simulates actual working conditions.
+
+I started with a process set up at [Mailgun](https://mailgun.com), the previous company I worked at. However, while reimplementing it, I realized there was a lot to change and improve for Teleport.
+
+Below are some details on all of these points and I also share one of our challenges, which might be interesting for anyone thinking about using a coding challenge as a hiring tool.
+
+## Pros of Coding Challenges
+
+**Getting a sample of work**
+
+We have found the best way to hire systems engineers
+is to get the highest possible quality (and the smallest possible quantity)
+sample of their work.
+
+[PeopleWare](https://www.oreilly.com/library/view/peopleware-productive-projects/9780133440706/ch16.xhtml) has a good analogy:
+
+Circus Manager: How long have you been juggling?
+
+<Quote>
+Candidate: Oh, about six years.
+
+Manager: Can you handle three balls, four balls, and five balls?
+
+Candidate: Yes, yes, and yes.
+
+Manager: Do you work with flaming objects?
+
+Candidate: Sure.
+
+Manager: . . . knives, axes, open cigar boxes, floppy hats?
+
+Candidate: I can juggle anything.
+
+Manager: Do you have a line of funny patter that goes with your juggling?
+
+Candidate: It’s hilarious.
+
+Manager: Well, that sounds fine. I guess you’re hired.
+
+Candidate: Umm . . . Don’t you want to see me juggle?
+
+Manager: Gee, I never thought of that.
+
+</Quote>
+
+**Finding hidden gems**
+
+Relying solely on past credentials (extensive experience / prestigious degrees) is a good way to miss out on
+"Hidden Gems" - candidates who are considered junior (or consider themselves junior),
+without relevant industry credentials but have the right skills and abilities
+that qualify them as medium to senior level engineers.
+
+<Quote>
+  Nothing in Alex’s background offered a hint that this would happen. He had
+  Walter White’s resume, but Heisenberg’s aptitude. None of us saw it coming.
+  via [Thomas Ptacek's "The Hiring
+  Post"](https://sockpuppet.org/blog/2015/03/06/the-hiring-post/).
+</Quote>
+
+**Removing unnecessary stress**
+
+When graduating from high school, we had to pass a time-based math standard test. I vividly remember myself sitting there for what felt like forever, trying to divide 1 by 2. I froze and it seemed like nothing in my prior knowledge prepared me for this - how would you divide one by two, anyways, if one is clearly less?
+
+Many times when I have been an interviewee myself, I found my stress level to be so high
+that the best I could do was to provide solutions I had memorized before. I could certainly not think
+about creatively solving any problems and would sometimes get stuck on the simplest of questions.
+
+I think many people can relate to my experiences. That is why our coding challenges are
+designed to relieve unnecessary stress. We try to allow people to focus in an environment
+that is familiar and comfortable to them, at a pace that allows them to be creative and show their best quality of work possible. Exactly the environment any good manager would like to create on their team.
+
+There is always a certain amount of unavoidable stress associated with work:
+product delivery deadlines outlined in contracts, competition winning customers over and other
+challenges that keep us on our toes.
+
+However, adding superficial pressure to the mix is never helpful. People will always
+treat any such pressure as B.S. and act accordingly:
+
+<Quote>
+
+The company's chances for the best second quarter in history were in our hands, they said.
+They asked me to share that fact with the rest of the team, "to focus their efforts".
+I have never worked on a more focused team in my life, but I dutifully passed the word
+on the next morning. The energy went out of the team like wind out of a sail.
+The chief programmer summed it all up: "Who gives a rat's ass to their second quarter?"
+Half an hour later, they'd all gone home.
+
+[PeopleWare Chapter 21](https://books.google.com/books?id=TVQUAAAAQBAJ&lpg=PP1&pg=PP1#v=onepage&q&f=false)
+
+</Quote>
+
+**Simulating the work conditions**
+
+Coding challenges allow us to simulate the work conditions that exist on the job. At Teleport, we create a Slack channel with the hiring team of engineers, review candidates' design docs and provide a standard code review for their pull requests.
+
+This gives both us and the candidates the idea of what it is like to work at Teleport.
+Sometimes folks end up chatting with our engineers about our work/life balance,
+asking questions about the commute, offices and perks.
+
+## Lessons learned
+
+**Missing out**
+
+There is a lot of competition for talent and many senior and accomplished engineers
+don't have time for this challenge. They have so many offers that writing code
+for 4-8 hours is just not going to work for them. This is something that we have come to terms with and we hope the ability to find “hidden gems” outweighs this limitation.
+
+**Overly aggressive deadlines**
+
+<Quote>
+  The city of Denver, Colorado, set out in 1988 to build a new airport to
+  replace the existing one, Stapleton Airport. The new Denver International
+  Airport (DIA) was scheduled to open on October 31,1993. That was the plan. On
+  October 31, 1993, every other part of the vast air-port complex was ready to
+  go . . . honest it was. Really. Trust uson this. But the software wasn’t
+  ready, so the airport couldn’t open!
+</Quote>
+
+<Flex justifyContent="center">
+  <BlogImage
+    src="./assets/coding-challenge-dumpster.png"
+    width="50%"
+    alt="Coding Challenge Dumpster"
+  />
+</Flex>
+
+<Quote>
+This kind of dollars-to-dumpster simplification was a feature of newspaper and journal coverage of the DIA troubles from the first sign of delay in early 1993 until the partial opening in 1995.
+
+― Tom DeMarco, Waltzing with Bears: Managing Risk on Software Projects
+
+</Quote>
+
+The most experienced engineers can beat our best timing estimates and deliver outstanding code. However, our team has found that revealing this to candidates sets unreasonable expectations and those that spent more than the best estimates felt that they were doing something wrong.
+
+When I was in college, our professor asked us to write a simple shell interpreter in C with the intent
+of teaching us the basics of process lifecycle and interprocess communication.
+
+Everyone in our class coded a simple shell in a couple of days. We had so many assignments,
+that folks smartly built a minimum viable product and moved on to other things. However, the whole idea fascinated me so much that I disappeared from the classes for the rest of the week. I spent days and nights writing an BNF grammar spec in Bison, traversing abstract syntax tree of the shell, and ended up with a real interpreter.
+
+I use some of the tricks from this interpreter even to this day and I earned a great score from my professor. Although, I had a lot of catching up to do with the rest of the classes I skipped. I remember this coding streak as one of the happiest times I had in college.
+
+Would it matter to me if an engineer wrote a complex piece of functionality in one day or a week? If there are little to no bugs and it runs for years, then the value is a huge multiplier, regardless of the time spent.
+
+That's why I do not pay a lot of attention to reasonable fluctuations in time, only the final quality.
+
+**Keeping momentum**
+
+We are almost always hiring for various roles and so it is not important to us
+to get a great candidate hired by a certain time. So, we started off
+with vague deadlines or no deadlines at all - "Feel free to turn it in whenever".
+
+It turned out this was killing momentum and did not give folks a sense of importance. We had many cases when
+people never turned their code in, simply going on to other more important things in their lives.
+
+Once we added a "soft deadline" of 4 weeks, it significantly improved the completion rate. We made it clear though, that we don't expect candidates to code all 4 weeks.
+The actual coding time is closer to 4-8 hours but with the flexibility to spread this time
+over the most convenient time available.
+
+We let candidates know that if they found themselves coding more than 8 hours,
+they should get back to us to reduce the scope.
+
+**Scope explosion**
+
+<BlogImage
+  src="./assets/coding-challenge-scope.jpg"
+  width="100%"
+  alt="Coding Challenge Scope"
+/>
+
+Over the years of running our coding challenge, we have been constantly reducing the scope.
+We found that we had been asking candidates to write too much code that didn’t really matter. Things like backend integration, comprehensive test coverage (writing one or two test samples is enough) or implementing
+the configuration management part for the tool were all removed from the spec without affecting the end result.
+
+**Costs**
+
+Running a coding challenge is a very expensive way to hire people, as it takes our interview
+team of 3 people a couple of full days per candidate. Sometimes we submit close to a hundred of pull request comments and our CEO spends time with every single person going through the interview process.
+
+This approach might not be scalable for large companies, but works well for small
+to medium sized companies, where every single person on the team can make such a huge impact. To reduce the costs and filter out candidates who have very limited programming experience,
+coding challenges could be paired with external screening processes
+by companies like [Triplebyte](https://triplebyte.com).
+
+**Scorecards**
+
+We found it is important to have the same set of guidelines with the interview team and the candidate, so everyone understands
+what is required for success. After we started sharing a scorecard with the interview team and the candidate,
+the reviews from different team members became more consistent over time.
+
+**Fictional project**
+
+<Quote>
+  Big warning to readers: If Teleport asks you to complete an 'engineering
+  challenge' they are using you for free labour. 
+  
+  – Comment on Hacker News “Who’s Hiring” from someone who had submitted our previous generation of coding challenge.
+</Quote>
+We learned to pick a non-existent project that has little to no relation to what
+we do in production, to prevent any concerns that we might have ideas of using their
+work. Even if there is a slight resemblance to an actual project we have been working
+on, it could create unease with some people.
+
+That's why we ended up picking a completely fictional project that
+is commodity software, was implemented many times in open source and has no use
+on its own to us.
+
+**Design document**
+
+At first, writing a brief design document was optional. However, later on we made it
+a requirement because it allowed us to filter out the candidates who were too inexperienced
+in our area of work.
+
+Despite our guidance, many folks were going into "analysis paralysis", spending weeks writing docs with no end in sight.
+Others were submitting designs that would have never worked or showed lack of understanding of protocol essentials.
+
+Design documents helped us to clarify a lot of misconceptions and turn
+what would otherwise be a failed interview (because of misunderstanding of the project
+scope or intent) into a success.
+
+**Non-Adversarial hiring process**
+
+<Quote>
+"I've been hiring people for 10 years, and I still swear by a simple rule: If someone doesn't send a thank-you email, don't hire them."
+
+– [Jessica Liebman, Business Insider](https://www.businessinsider.com/how-to-write-thank-you-email-after-job-interview-2019-4)
+
+</Quote>
+
+In most work environments, we do not want or expect our co-workers to fail. In fact, we put forth a lot of effort for them to succeed - advice, code reviews, 1x1s, etc.
+
+We find this approach works well for the way we conduct our interviews, as well. We make it clear that our coding challenges do not contain
+any "hidden landmines". There are no special parts planted in the spec that the hiring team expects the candidate to fail on or implement in a certain (incorrect) way. Every single expectation we have from the candidate is clearly outlined in our interview guide.
+
+**Reviewing the code, not the candidate**
+
+```text
+From    Linus Torvalds
+Date    Sun, 23 Dec 2012 09:36:15 -0800
+Subject    Re: [Regression w/ patch] Media commit causes
+user space to misbahave (was: Re: Linux 3.8-rc1)
+
+> On Sun, Dec 23, 2012 at 6:08 AM, Mauro Carvalho Chehab
+> <mchehab@redhat.com> wrote:
+> Are you saying that pulseaudio is entering on some
+> weird loop if the returned value is not -EINVAL?
+> That seems a bug at pulseaudio.
+
+Mauro, SHUT THE FUCK UP!
+
+It's a bug alright - in the kernel. How long have you been a
+maintainer? And you *still* haven't learnt the first rule of kernel
+maintenance?
+```
+
+Needless to say, when reviewing code at work, we always review the solution and not the particular person who submitted it.
+Any "character assassinations" or other personal remarks are not only considered poor taste,
+but prohibited in our daily routine.
+
+It turns out this is the best way to conduct the interview, as well. We always invite the
+candidates to retry in 3-6 months if they feel they learned something new. We make it clear that they shouldn’t
+treat the submission as a verdict to their skill set from some authority, rather simply our teams' current feedback.
+
+**Do not share the resume with a hiring team**
+
+Sharing a resume with a hiring team provides too much context and expectation. I learned
+that it is best not to share the resume and prior experience with the hiring team, focusing them
+on evaluating the code and talking to the candidate.
+
+Just as Thomas Ptacek, I found the results to be surprising. Some candidates self rated themselves as junior, however their submissions were rated much stronger. In many cases the opposite was true.
+
+**Avoiding peer pressure**
+
+<Quote>
+"I thought that the conversation did not flow."
+
+– A Hiring Manager
+
+</Quote>
+
+After the hiring manager said this phrase on the hiring feedback session,
+the candidate got a very poor score from the team.
+
+Right after discussing the candidates submissions, sharing pros and cons, every hiring team
+member submits their score anonymously. When I'm the hiring manager, I usually
+deliver my feedback after everyone's scores submitted.
+
+This really helped us to avoid the peer pressure to rate candidate in a certain way or
+to set implicit expectations after hearing the hiring manager's feedback.
+
+**Always cool to back out**
+
+I was selling my car the other day and I found myself negotiating with the sales manager, although
+through a sales representative as a proxy.
+
+<Quote>
+  I'm sorry, but my manager is firm on the final price. That would be "No" from
+  him.
+</Quote>
+
+Why would they use this technique? I think one of the reasons is that it is much easier to say "no" if you have never seen the person or don't have to say "no" face to face.
+
+We try to make it as comfortable as possible for candidates to say "no" at any stage. It should be cool to simply
+drop us an email to say they don’t want to continue or not start the challenge in the first place.
+
+**Presenting offer brackets upfront**
+
+It was much easier for candidates applying to us to commit to spending their time
+on the challenge once we started presenting salary brackets before the coding started.
+
+**We are not an authority**
+
+Despite all our efforts, we don't always provide the best experience. We are still learning
+and making mistakes along the way. We learned to make that clear during the interview process
+to mitigate any feelings of failure if a candidate did not get enough votes from the team.
+
+## Conclusion
+
+The coding challenge process is delivering a lot of value for our team at Teleport and the candidates. Although, it comes at a huge operational price and is a very demanding way to conduct the interview process. We have learned many lessons along the way and are constantly improving the spec and the process.
+
+A full challenge spec is outlined below. Aren’t we afraid that publishing the challenge will put candidates who read it at an advantage? Not a bit, if someone can read it and get ready to ace it, all the better for them!
+
+I would like to thank [Greg Kogan](https://www.gkogan.co/) for reviewing the blog post and allowing us to use his wonderful illustrations.
+
+---
+
+## Our coding challenge spec
+
+This is our V3 Systems engineer coding challenge spec and the interview guide below.
+
+<Flex justifyContent="center">
+  <h1>Linux Job Worker</h1>
+</Flex>
+
+## Summary
+
+Implement a prototype job worker service that provides an API to run arbitrary Linux processes.
+
+## Rationale
+
+This exercise has two goals:
+
+- It helps us to understand what to expect from you as a developer. How do you write production code, how you reason about API design and how you communicate when trying to understand a problem before you solve it.
+- It helps you get a feel for what it is like to work at Teleport, as this exercise aims to simulate our day-to-day and expose you to the type of work we are doing here.
+
+We believe this technique is not only better, but also is more fun compared to the whiteboard/quiz interviews so common in the industry.
+
+We are not alone:
+
+http://sockpuppet.org/blog/2015/03/06/the-hiring-post/
+
+We appreciate your time and we look forward to hack on this little project together.
+
+## Objective
+
+The goal is to implement a small part of a distributed job scheduler: a Linux job worker server that executes arbitrary linux processes based on the direct API requests from clients.
+
+## Requirements
+
+**API**
+
+Job worker should provide an RPC API to start/stop/query status and get an output of a running job process. Any RPC mechanism that works for the task and is familiar to you is OK: GRPC, HTTPS/JSON API or anything else that can guarantee secure and reliable client-server communication.
+The API should provide a simple but secure authentication and authorization mechanism.
+
+**Client**
+
+Client command should be able to connect to worker service and schedule several jobs.
+Client should be able to query result of the job execution and fetch the logs.
+
+## Guidance
+
+### Interview process
+
+The interview team is assembled in the slack channel and consists of the engineers who will be working with you.
+You are encouraged to chat to them and ask questions about the engineering culture, work and life balance, or anything else that you would like to learn about Teleport.
+
+We understand that the interview is a two-sided process and we'd be happy to answer any questions!
+
+Before writing the actual code, we encourage you to create a small design document in a Google Doc and share it with the team. This document should consist of key trade-offs and key design approaches. Please avoid writing an overly detailed design document. Use this document
+to make sure the team can provide design feedback and demonstrate that you have investigated the problem space to provide a reasonable design.
+
+Split your code submission using pull requests and give the team an opportunity to review the PRs. A good “rule of thumb” to follow is that the final PR submission is adding a small feature set - it means that the team had an opportunity to contribute the feedback during multiple well defined stages of your work.
+
+Our team will do their best to provide a high quality review of the submitted pull requests in a reasonable time frame. You are spending your time on this. We are going to contribute our time too.
+
+After the final submission, the interview team will assemble and vote using +1, -2 anonymous voting system: +1 is submitted whenever a team member accepts the submission, -2 otherwise.
+
+If there is a positive result, we will connect you to our HR team who will collect one/two references and will work out the other details. You can start the reference collection process in parallel if you would like to speed up the process.
+
+After reference collection, our ops team will send you an offer.
+
+In case of a negative score result, the hiring manager will contact you and send a list of the key observations from the team that affected the result. Please don't be discouraged. Our code review process is focused on the submission, not the candidate and we will be excited for you to take another challenge at a later time if you feel you have addressed our comments!
+
+### Code and project ownership
+
+This is a test challenge and we have no intent of using the code you have submitted in production. This is your work, and you are free to do whatever you’d like with it.
+
+### Areas of focus
+
+Teleport focuses on networking, infrastructure and security, so these are the areas we will be evaluating in the submission:
+
+- Consistent coding style. Teleport follows https://github.com/golang/go/wiki/CodeReviewComments for the Go language. If you are going to use a different language, please pick coding style guidelines and let us know what they are.
+- Please write one test for authentication and another for the networking component.
+- Reproducible builds. Pick any vendoring/packaging system that will allow us to get consistent build results.
+- Consistent error handling and error reporting. The system should report clear errors and not crash under non-critical conditions.
+- Concurrency and networking errors. Most of the issues we've seen in production are related to data races, networking error handling or goroutine leaks. So we will be looking for those errors in your code.
+- Security. Use strong authentication and simple, but robust authentication. Set up the strongest transport encryption you can. Test it.
+- Error logging and handling. Consistent errors are key.
+
+### Trade-offs
+
+It is important to write as little code as possible. Otherwise, this task could consume too much time and the overall code quality will suffer.
+
+It is OK and expected if you cut corners. For example, configuration tends to take a lot of time and is not important for this task. So we encourage candidates to use hard codes as much as possible and simply add TODO items showing candidate's thinking.
+
+For example:
+
+```go
+// TODO: Add configuration system. Consider using CLI library to support both
+// environment variables and reasonable default values,
+// for example https://github.com/alecthomas/kingpin
+```
+
+Comments like this are really helpful to us because they save you a lot of time and demonstrate to us that you've spent time thinking about this problem and provide a clear path to a solution.
+
+Consider making other reasonable trade-offs and make sure you communicate them to the interview team. Here are some other trade-offs that will help you to spend less time on the task:
+
+- Do not implement a system that scales or is highly performing. Instead, communicate the performance improvements you add in the future.
+- High availability. It is OK if the system is not highly available. Write down how would you make the system highly available and why your system is not.
+- Do not try to achieve full test coverage. This will take too long. Take two key components, e.g. authentication/authorization layer and networking and implement one or two test cases that demonstrate your approach to testing.
+
+### Pitfalls and gotchas
+
+To help you out, we've composed a list of things that resulted in a no-pass from the interview team:
+
+- Scope creep. Candidates have tried to implement too much and ran out of time and energy. To avoid this pitfall, use the simplest solution that will work. Avoid writing too much code. For example, we've seen candidates' code introduce caching and make mistakes in the caching layer validation logic. Not having caching would have solved this problem.
+- Data races. We will scan the code with a race detector and do our best to find data races in the code. Avoid global state as much as possible. If using global state, write down a good description of why is it necessary and protect it against data races.
+- Deadlocks. When using mutexes, channels or any other synchronization primitives, make sure the system won't deadlock. We've seen candidates' code holding mutex and making a network call without timeouts in place. Be extra careful with networking and sync primitives.
+- Unstructured code. We've seen candidates leaving commented chunks of code, having one large file with all the code or not having code structure at all.
+- Not communicating. Candidates who submitted all the code to master branch, which does not give us the ability to provide feedback on the various implementation phases. Because we are a distributed team, structured communication is critical to us.
+- Implementing custom security algorithms/authentication schemes is usually a bad idea unless you are a trained security researcher/engineer. It is definitely a bad idea for this task - try to stick to industry proven security methods as much as possible.
+
+## Scoring
+
+We want to be as transparent as possible on how we will be scoring your submission. The following table provides a description of different areas you will be evaluated on and how they will affect your overall score.
+
+| Description                                                         | Possible Points Awarded | Possible Points Subtracted |
+| ------------------------------------------------------------------- | ----------------------- | -------------------------- |
+| The submitted code has a clear and modular structure                | +1                      | -1                         |
+| The candidate communicated their progress during the interview      | +1                      | -1                         |
+| The program builds are reproducible                                 | +1                      | -1                         |
+| README provides clear instructions                                  | +1                      | -1                         |
+| The candidate outlined the key design points in the design document | +1                      | -1                         |
+| The code has no obvious data races and deadlocks                    | +1                      | -1                         |
+| The code provides examples of tests covering key components         | +1                      | -1                         |
+| The code provides clear error handling and error reporting          | +1                      | -1                         |
+| The program is working according to the specification               | +1                      | -1                         |
+| The candidate demonstrates ability to handle and apply feedback     | +1                      | -1                         |
+| The client-server communication is implemented in a secure way      | +1                      | -1                         |
+
+## Asking questions
+
+It is OK (and encouraged) to ask the interview team questions. Some folks stay away from
+asking questions to avoid appearing less experienced, so we provided examples of questions
+to ask and questions we expect candidates to figure out on their own.
+
+This is a great question to ask:
+
+<Quote>
+  Is it OK to pre-generate secret data and put the secrets in the repository for
+  the purposes of POC? I will add a note that we will auto-generate secrets in
+  the future.
+</Quote>
+
+It demonstrates that you thought about this problem domain, recognize the trade off and save you and the team time by not implementing it.
+
+This is the type of question we expect candidates to figure out on their own:
+
+<Quote>
+  What version of Go should I use? What dependency manager should I use?
+</Quote>
+
+We expect candidates to be able to find solutions to common non-project specific questions
+like this one on their own. Unless specified in the requirements, pick the solution that works
+best for you.
+
+<EmailSubscribeViolet />
+
+## Tools
+
+This task should be implemented in Go and should work on a 64-bit Linux machine with kernel greater than 3.19.0.
+
+## Communication
+
+When in doubt, always err on the side of over communicating.
+We promise that we are not going to subtract any points for seemingly “silly” questions.
+
+Finally THANK YOU for taking your time to take the challenge. We understand that your time is valuable and we really appreciate it!
+
+We wish you good luck!

@@ -1,0 +1,58 @@
+---
+title: Teleport 4.1 Release includes IPv6, ProxyJump and Packages
+description: Hot on the heels of our 4.0 release, we now have another point bump to Teleport. Teleport now speaks IPv6, ProxyJump, Debian & RPM packages and much more.
+articleTitle: Teleport 4.1 - IPv6, ProxyJump and Packages
+date: "2019-10-02"
+author: Ben Arent
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introducing Teleport 4.1
+
+Hot on the heels of our Teleport 4.0 release, we now have another point bump to our [privileged access management solution](https://goteleport.com/).
+We’ve highlighted a few key features here, and have a full list of improvements and fixes attached to our [Teleport 4.1.0 GitHub
+release](https://github.com/gravitational/teleport/releases/tag/v4.1.0).
+
+## IPv6
+
+Our last major version added the ability for thousands of nodes to connect to Teleport from a single authentication endpoint. To help
+support the massive proliferation of IoT devices we now support their language, IPv6. Even if you’re not connecting IoT devices, we are
+starting to see many more organizations move to native IPv6 networking. Teleport now fully supports IPv6 for SSH services and also in the
+Web UI.
+
+<BlogImage src="./assets/teleport-4-1-IPv6.png" />
+
+## RPM & DEB Packages for Teleport
+
+Next up, we have solved one of our most commented feature requests - “Package the installer for common OSes”. We’ve updated our build
+process to create RPM/DEB packages for Teleport on Linux, as well as a handy .pkg installer for Mac.
+
+<BlogImage src="./assets/teleport-package1.png" />
+
+## ProxyJump compatibility
+
+Teleport now provides support for jump hosts using the new `-J` flag. Compared to our ‘ProxyCommand’ flag, ProxyJump provides the most
+secure end-to-end encryption, with all traffic passing through intermediate hosts always being encrypted.
+
+`tsh ssh -J proxy.example.com telenode`
+
+See [our docs](/teleport/docs/user-manual/#ssh-jumphost) for more information.
+
+## Other Updates
+
+There are many other improvements, upgrades, and bug fixes in Teleport 4.1, including the ability to [quickly backup dynamic cluster
+configuration](https://goteleport.com/docs/admin-guide/#backing-up-dynamic-configuration). For full details, visit the [Teleport Github Release
+page](https://github.com/gravitational/teleport/releases/tag/v4.1.0)
+
+<EmailSubscribeViolet />
+
+## Upgrading
+
+Point versions are compatible within major releases, but we do recommend rolling out the upgrade across the whole fleet and updating
+clients' `tsh` libraries as you upgrade. Enterprise and Pro customers should be sure to reach out to our support team if they run into any
+issues.

@@ -1,0 +1,172 @@
+---
+title: How to package SaaS Application
+description: The public cloud is a solution for many customer workloads but not for all. Teleport's insight into what it means moving from SaaS to on-prem.
+articleTitle: Packaging Your SaaS Application to Ship to Customers
+date: "2019-12-05"
+author: Jordan Marin
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+If it hasn’t happened yet, it will soon. A new or existing customer for your SaaS application will conclude that, while they value your
+application, they need a new way to consume it. For a host of reasons—compliance concerns, performance challenges, cost pressures—they want
+to run your application on-prem.
+
+While the public cloud is an ideal solution for many customer workloads, it’s not a universal answer. There are workloads that are yet to be
+migrated, and some that were migrated and are now coming back home. This is the customized multi-cloud world that many customers want.
+There’s a [first-mover advantage](https://goteleport.com/blog/time-to-reconsider-going-onprem/) in taking the lead to offer your customers a choice.
+
+Our customers want simple, seamless portability. For them, it means delivering their application to any location, over any infrastructure to
+provide new value:
+
+- **Competitive edge**: As the idea of SaaS on-prem gains credibility, customers will be anxious to find willing partners
+- **Stronger retention**: The same trends that mainstream SaaS on-prem could also drive your existing customers to consider the switch
+- **Higher revenue**: Building an on-premise option into your technology roadmap broadens your market appeal
+
+The question we get asked is: how does this change our approach to delivering software?
+
+## What changes, what doesn’t
+
+Bringing SaaS on-prem requires reframing both the software and the service. Customers are looking to reclaim autonomy and rethink the
+economics of productivity. But as these things change, other core expectations remain the same:
+
+- Customers need **balanced** **governance and convenience**. They’re not looking to go back to the dark days of pre-cloud application
+  management
+- Customers want the **same short cycles** of updates. They’re accustomed to daily updates. When upgrades break (because of code or
+  something local), they’ll park on an old version and all the complexity that means.
+- Customers also expect the **same long-term product roadmap**. They don’t want to be relegated to a “lite” version because they’re moving
+  to on-prem.
+- They also want **transparent** **and detailed schedules**. Communicating patches and point releases is critical – customers have planning
+  to do as well. You also have to account for any dependencies based on location, especially for [air gapped
+  instances](https://goteleport.com/features/).
+- Finally, and perhaps most important, they’ll need **assistance with achieving compliance**. You’ll need to help them assess audit needs,
+  verify controls, and generate required documentation.
+
+As you can see, software producers want the best of both worlds — and who wouldn’t? But delivering requires changes that resonate well
+beyond development. It’s a whole new model of managing, monetizing, and listening to your customers. It also requires you to develop some
+new processes and capabilities at the same time.
+
+## The culture: formalizing new capabilities
+
+Moving from SaaS to on-prem means lots of new action items that were previously mostly automated away. It means different business and risk decisions that have to be made by leadership across sales, development, and operations. Here are just a few things you’ll need to consider:
+
+- The first change is probably obvious: you’re now in the help desk and DevOps business. Customers won’t invest in dedicated IT (or much of
+  it) to make on-prem run seamlessly. That burden will mostly fall on your team. What does on-prem support SLA look like?
+- Getting software to customers is also a new challenge. Your teams will have to learn to publish software for download and communicate with
+  customers.
+- The licensing model is also another obvious problem. How does your per seat/per user model change? Third-party tools are even more
+  complicated – requiring new agreements with both developers and end-users.
+- You’ll need to develop minimum operating requirements for the on-prem environment. Even with these in place, lots of time can be lost to
+  troubleshooting services that are ultimately outside of your control.
+- Lastly, how will you monitor and measure usage? The third-party tools you use may not be appropriate or effective. So how do you listen?
+
+These are obviously big changes. But the first time you do it is the best time to get it right. So, making choices that scale here is critical.
+
+## The technology: empowering meaningful portability
+
+<BlogImage src="./assets/gravity-overview.png" width="100%" alt="Gravity Overview" />
+
+Our goal at Teleport is to enable real, confident application portability. The ability to consolidate and streamline the deployment of
+containerized applications gives customers the flexibility they need to build to their specific technical and compliance needs. Taking SaaS
+on-prem is a logical extension of this flexibility, another waypoint on the journey to the truly [multi-cloud
+future](https://goteleport.com/solutions/multi-cloud/).
+
+This is why we’re so excited by this story. [Gravity](https://goteleport.com/) can help SaaS providers unlock a sizable market opportunity by simplifying
+and scaling for on-prem delivery. Without containerization, you would essentially double your workload by managing two separate applications
+versions (hosted vs. on-prem). Thus the enormous popularity of Kubernetes.
+
+Gravity can help you standardize on one code base to build once and deploy anywhere; it provides a “bubble of consistency” for application
+deployment. Through careful alignment and automation, you can reduce the number of environment-driven flags and constraints. And this bubble
+also extends to managing multiple applications running on the same Kubernetes cluster.
+
+### Before: dealing with databases
+
+Conventional IT wisdom says stateful databases don’t belong in stateless containers, mostly due to worries over data corruption. This makes
+persistent databases a significant technical wrinkle that has to be ironed out during design and then across the lifecycle. There are
+several possible ways around it:
+
+- **Expert Kubernetes admin**: running Mongo DB, etc. with specialized stateful API. This can be risky because the K8s pods are transient,
+  so failure rates can be higher.
+- **Most everybody else**: the application can be deployed via container, the DB mounted locally, with a simple connection string set in
+  configuration
+
+### During: Containerizing the application
+
+Containerization works because it enables you to package applications and their run-time environments for any OS (and bare metal). Gravity
+then automates the installation of these containers. For on-prem installs, we need to turn the keys over to the customer.
+
+This means publishing updates they can invoke via script. This keeps the user in charge while also ensuring they stay up to date. After the
+initial installation, the same mechanism can be used to for patches and updates.
+
+### During: Deployment
+
+Once containerized into Kubernetes, ideally deploying on-prem should be the same as deploying to hosted environments. Gravity takes this
+convenience a step further, fully automating the multiple Kubernetes applications inside a single easily managed and monitored cluster.
+
+By fully packaging all dependencies into the cluster, we can give customers a fully standalone image that can be installed without the
+assistance of outside modules. This is especially critical for [air gapped](https://goteleport.com/blog/airgap-deployment/) instances.
+
+- Dependencies all included
+- Infrastructure, load balancing, attached storage are all abstracted
+- Components split into separate packages
+
+The ability to pause and roll back is critical, especially when deploying for the first time on top of infrastructure and services you don’t
+control. With Gravity, the same simple command that launches the installation or update can be paused or restarted at a completed phase in
+the event of failure—no going back all the way to the start.
+
+Once launched, Gravity enables secure tunneling capabilities that enable you to reach the on-prem instance for troubleshooting and
+maintenance. In accordance with compliance controls, these sessions are fully recorded down to the keystroke, making log analysis fast and
+simple.
+
+### After: Monitoring and measuring
+
+As we’ve already mentioned, monitoring activity and usage is obviously trickier on-prem vs. a hosted application. Users will not likely
+share data, and you have to figure out a way to measure usage vs. license terms, as well as watching for events that might require
+intervention by either you or your customers.
+
+As with databases, there are several options for restoring the visibility you’re used to in a hosted environment. For example, you would use
+K8s native tools. In the case of Gravity, that includes Prometheus for event and activity monitoring, and Grafana for simple analytics and
+visualizations.
+
+Beyond secure tunneling through Teleport, [Gravity Hub](https://goteleport.com/gravity/docs/hub/) has native cluster management tools that make this easier. With
+visibility into the app and infrastructure restored, you can get back to the more complex challenge of figuring out how to workflow incoming
+support issues.
+
+### After: Upgrading
+
+As we discussed at the start, collaborating with your customers on cadence will matter more than the actual publishing of new releases.
+Customers need to get accustomed to a newer release schedule, and developers must find ways to ensure customers stay up to date.
+
+Additionally, adhering to strict semantic versioning lets customers know what to expect from a release and plan accordingly. Failure on
+either of these points will lead to varied install base that’s hard to support and secure.
+
+Where air gapped instances might seem problematic, Gravity’s ability to achieve real portability solves for these increased security
+expectations with a single cluster carrying all dependencies. A self-contained Docker registry is then shipped, enabling customer to pull
+from local registries and not the Internet.
+
+By publishing instead of pushing, SaaS providers ensure that on-prem customers retain control while staying up to date. This gets us back to
+that best of both worlds scenario we were looking for at the start. Customers get the ability to precisely manage requirements while taking
+full advantage of the applications on the market.
+
+### Before and after managing codebase
+
+In the days before containerization, maintaining distinct codebases for hosted vs. on-prem versions would be complicated and time intensive.
+Kubernetes and Teleport let you maintain a single body of code that can be managed in discrete environments. Instead of overloading code
+with environment calls, the flags mentioned earlier are a lighter-weight way to update in real time.
+
+<EmailSubscribeViolet />
+
+## The time is now, the opportunity is near
+
+As SaaS to on-prem deployments continue to rise, giving your customers more ways to accomplish critical user goals [without compromising on
+security](https://goteleport.com/blog/saas-vs-on-prem-security/), performance, or value. At Teleport, we’re proud to help play a role in their emerging new space,
+where we can leverage lessons learned in the cloud to make a difference on-prem. This is the ultimately extension of the portability that’s
+core to our promise, and we’re confident our expertise can make a difference.
+
+For a more in-depth overview of making applications portable, download our [On-Prem Survival
+Guide](https://goteleport.com/resources/).
