@@ -1,0 +1,44 @@
+---
+author: Jon Silvers
+date: "2019-08-29"
+tags:
+  - gravity
+title: "A Case Study on Anaconda: How it Delivers its Platform"
+articleTitle: "Case Study: How Anaconda Delivers its Platform"
+layout: blogArticle
+description: Learn why Anaconda selected Teleport to package their Kubernetes-based application to Enterprise customers.
+---
+
+import Video from "components/Video";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+<figure>
+  <Video src="https://www.youtube.com/embed/WspsicD8zD8?rel=0" marginTop={["auto", "-60px"]} frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen/>
+  <figcaption>Learn how Teleport helped Gladly secure cloud-native systems.</figcaption>
+</figure>
+
+## The Challenge of Supporting Multiple Environments
+
+The Global Data Science Platform Market is accounted for $19.75 billion in 2016 and is expected to reach $128.21 billion by 2022. One of the leaders in that pack is Austin-based[ Anaconda](https://www.anaconda.com), who in 2019 was named by Gartner as a Peer Insights Customer Choice for Data Science and Machine Learning Platforms. Anaconda offers the premier open source Python/R distribution for data science and machine learning used by thousands of data scientists around the world.
+
+Anaconda also offers an Enterprise edition that is built for scale and power for processing large data sets. Enterprise customers are often analyzing terabytes or petabytes of data and frequently have additional requirements around data security and compliance. The data science ecosystem has expanded rapidly from jobs processed by Hadoop or Spark in on-premises environments to data analysis in the cloud on Amazon EMR or machine learning via hybrid data management platforms.
+
+With such a vast range of deployment targets, Anaconda understood that to sell into Enterprise environments meant having to support any combination of cloud, hybrid, and on-premise configurations while meeting the toughest security and compliance needs. In 2017, the company rolled out an all new edition of its Anaconda Enterprise platform and sought a partner to help bring it to market faster.
+
+“When we went to Anaconda Enterprise 5 we went to a cloud-native model; we’re building everything on top of Kubernetes. We needed a partner who could help us with the installation process, make it as easy as possible for end users to be able to install the application,” said Krishnan Aghoramurthy, VP Engineering Operations at Anaconda.
+
+<EmailSubscribeViolet />
+
+## Build vs Buy: Delivering a Kubernetes-based Application On-premises
+
+To accomplish this, Anaconda turned to [Gravity](/), an open-core Kubernetes packaging solution that takes the drama out of deploying applications into [multi-cloud](https://goteleport.com/features/) or on-premise environments.  Gravity makes it possible to run, access, and distribute Kubernetes-based applications consistently for customers who want to run applications in restricted or highly secure environments.
+
+“We were looking for a simplified way to be able to package up the Kubernetes infrastructure – to be able to set it up, to manage it, provide all the underlying tool sets – so we picked a partner that knows how to do this piece of it. It's a build versus buy decision, so we decided to go with people where Kubernetes is their core competency,” said Aghoramurthy.
+
+Gravity packages up Kubernetes clusters and all their dependencies into a single image that can be deployed anywhere, even air-gapped environments. Additionally, Gravity includes a secure SSH gateway — for accessing the clusters to perform maintenance or upgrades — while providing full logging and session recording for audits. Through a single hub, Anaconda can deploy their Enterprise edition clusters into even the most restricted environments.
+
+“The support that Teleport provides is not just specific to Gravity but it’s really within the entire realm of the Kubernetes ecosystem. Their level of expertise is always consistent and it’s one great thing for us to rely on,” said Matt Brock, Principal Engineer at Anaconda.
+
+Because Gravity ensures Anaconda Enterprise can be deployed into any environment, the Anaconda team can spend more time building a great data science experience and less time supporting multiple bespoke code bases.
+
+“We’ve gotten incredible levels of support from the Teleport team [which allows us to sell more Enterprise licenses],” added Aghoramurthy.

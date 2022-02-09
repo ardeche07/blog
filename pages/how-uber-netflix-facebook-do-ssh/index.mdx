@@ -1,0 +1,110 @@
+---
+author: Jon Silvers
+date: "2019-07-16"
+tags:
+  - ssh
+  - security
+title: "SSH strategy: Uber, Facebook, and Netflix"
+articleTitle: "How Uber, Facebook, and Netflix Do SSH"
+description: "How are some big, well-known companies approaching SSH? We took a look at three who are setting an example for others to follow."
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+According to one study, there is a cyber security attack every [39 seconds](https://www.securitymagazine.com/articles/87787-hackers-attack-every-39-seconds). Defending against such attacks has become of paramount importance to how businesses operate today. The traditional approach to securing IT infrastructure is perimeter-oriented solutions such as firewalls, VPNs, and password policies. While these are all good and necessary, they don’t speak to the security vectors that are “built in” to an organization at the code or infrastructure level. This is perhaps why we’re seeing more security fall into non-traditional areas such as compliance, devops, or engineering.
+
+On the devops level, where many of our customers and end-users are working, more teams are putting their focus on protecting infrastructure, and often that begins and ends with Secure Shell (SSH) network protocol. SSH is used to securely access remote machines, and for authentication and encrypted data communication. Under a typical server-client SSH setup, the server trusts the client if the client’s public key is in a list of authorized public keys, and the client trusts the server’s public key upon the first encounter.
+
+There are some flaws with this basic setup. First, authorized_keys files can become large and unmanageable. Next, many SSH clients allow trust on first use (TOFU), which offloads the decision making to the user on what to trust. Many users will bypass the messages which will allow connections to untrusted hosts and potentially leave machines vulnerable to man-in-the-middle attacks. A solution to these problems is to move from using public keys to using SSH certificates and certificate authorities (CA) as the trust mechanism. Using SSH certificates, administrators can set specific rules for obtaining them and defining expiration rules.
+
+Some of the largest companies in the world are working through SSH flaws by taking major steps like not issuing keys or taking a “Zero Trust” approach to authenticating and authorizing network users or devices. The term, [coined by Forrester](https://www.forrester.com/playbook/The+Zero+Trust+Security+Playbook+For+2019/-/E-PLA300), refers to flawed trust assumptions security leaders make about internal network traffic, employees, and 3rd parties who may have access to systems.
+
+One of the most well-known examples of a Zero Trust model is Google’s [BeyondCorp](https://cloud.google.com/beyondcorp/) model. While many other companies have been adding layers of firewalls, restrictions, and VPNs to gain access to systems, Google has done the opposite. No longer does the company rely on a network perimeter, but rather exposes internal systems to the public internet. This requires all systems employed within the BeyondCorp model to be built with the same skill and hardening as required by any public internet solution.
+
+As a company who sells a [modern, cloud-native alternative solution to SSH bastions](/) to address infrastructure-related security, we asked ourselves, how are some bigger, well-known companies approaching SSH? We took a look at three companies who are setting an example for others to follow and who have written publicly how they’re approaching SSH -- Uber, Facebook, and  Netflix.
+
+
+## Uber
+
+The Uber security team saw several problems with SSH public/private keypair model. In addition to the key management problem mentioned earlier, there was no automated process to expire keys. The longer that keys are valid, the greater the risk the key is to be lost or stolen.
+
+The team was also concerned about the excessive number of two-factor authentication (2FA) requests employees received. Constant prompting for 2FA would lead to fatigue and employees  might start accepting any kind of 2FA request.
+
+Most of these issues were resolved when Uber started using SSH certificates with [OpenSSH](https://goteleport.com/blog/introducing-teleport-4-point-3-modern-replacement-for-openssh/) 5.4, but the organization still felt there was no current solution that met their unique needs. Specifically, they needed support issuing both user and host certificates, and they wanted to be able to continuously authenticate a user instead of just at a single point in time.
+
+They developed the [Uber SSH Certificate Authority](https://medium.com/uber-security-privacy/introducing-the-uber-ssh-certificate-authority-4f840839c5cc) (USSHCA) along with a [pam module](https://github.com/uber/pam-ussh) for continued validity of a user. Uber employees are issued SSH certificates by USSHCA. Each certificate has a lifespan and can be configured based on the individual employee role or their group within the company.
+
+
+## Facebook
+
+Facebook’s security team uses certificates instead of public key authentication for the following reasons:
+
+*   Local account management will get unruly as the company continues to grow.
+*   Central authentication is a single and dangerous point of failure.
+*   It’s almost impossible to scale trust of individual key-pairs.
+
+In [developing a system](https://code.fb.com/security/scalable-and-secure-access-with-ssh/) that met the company’s needs, Facebook borrowed a widely-used concept used for HTTPS traffic. The company configured its SSH servers to trust their CA and everything that it signs. The next step is authorization; the certificate contains all access and privileges for specific employees. Thus, everyone has the exact amount of access that they require.
+
+Facebook also uses OpenSSH to collect logs in real-time on certificates that were used for authentication, a necessary task for compliance and accountability.
+
+
+## Netflix
+
+Netflix’s security team developed its [BLESS](https://github.com/Netflix/bless) (Bastion’s Lambda Ephemeral SSH Service) certificate authority to align security with its engineering culture of “freedom and responsibility.” Engineers at the company [are expected to](https://speakerdeck.com/rlewis/how-netflix-gives-all-its-engineers-ssh-access-to-instances-running-in-production):
+
+*   Proactively and openly share information
+*   Provide context as to why an action is performed
+*   Operate all services that their team creates
+
+As a result, almost every engineer at Netflix needs SSH. And they need to be able to access their services with as little friction as possible.
+
+BLESS runs on AWS Lambda and uses Amazon’s Key Management Service for encryption. Netflix’s SSH bastion architecture reduces friction by using SSO to authenticate users and issuing short-lived certificates. The company protects itself by running automatic scanning of SSH usage and sounding alerts if something suspicious is suspected.
+
+## Why SSH Key Management Is Hard
+
+As mentioned above, SSH alone has some problems. Let's review briefly how SSH works. It is a key-based system that requires all users and servers to have their own private keys. Servers typically generate their own private keys when an SSH server is installed on them. When users try to access a server via SSH, two things will happen:
+
+* The server will need to authenticate users. A user presents his or her public key, and the server then scans a list of public keys to determine if is trusted so it can accept or reject the connection.
+* Similarly, a user must also ensure that a server can be trusted. What if an attacker somehow managed to assign a well-known, trusted IP address to a rogue machine? To accomplish this, a server must present its public key to a user, so a user can check her known_hosts file to decide either this server can be trusted.
+
+Secure shell authentication has been around for twenty years beginning at a time when there were fewer servers and users to manage. While this system can work (and has been working for more than 20 years), it requires two conditions to both be true:
+
+1. Every user must have a list of public keys of all servers he or she wants to access.
+1. Every server must have a list of public keys of all users who can be admitted.
+
+This critical list of trusted public keys also needs to be updated on a regular basis, because servers and users change all the time. With the proliferation of servers, users, and devices, companies often turn towards SSH key management solutions. But as mentioned above, even with the best SSH key management, human errors and malicious attackers can bypass secure systems and leave the door open for unprivileged users.
+
+This is why some of the most technologically advanced companies have eschewed this approach in favor of short-lived, automatically expiring SSH certificates.
+
+## What Is an SSH Certificate?
+
+An SSH certificate is simply a public key signed by a well-known, trusted entity called a certificate authority (“CA”). A certificate authority is the ultimate grantor of trust in an organization. This means that copying keys around is no longer necessary; users and servers simply must agree on which CA to trust.
+
+SSH Certificates have a few important properties:
+
+* A “certificate” is a public key bundled with its digital signature algorithmically derived from a CA’s private key. This means that only a CA can issue a certificate.
+* A certificate can be supplied with a date range for when it’s considered valid. This means that certificates can automatically expire.
+* A certificate can contain arbitrary cryptographically signed metadata, which allows a CA to encode additional instructions to how a certificate must be handled. For example, one can think of encoding various SSH options into it, like “do not allow port forwarding”.
+
+When a user tries to access a server, there is no need for users and servers to know each other’s public keys ahead of time. Instead, they exchange their certificates and validate that they are signed by the same certificate authority (CA).
+
+In this way, CA's both provide a simplified and less error-prone path to SSH.
+
+<EmailSubscribeViolet />
+
+## Try Teleport for Zero Trust Infrastructure
+
+<BlogImage src="./assets/teleport-proxy-diagram.png" width="100%" alt="Teleport Proxy implements a special method to let clients get short lived certificates signed by auth's host certificate authority"/>
+
+Forrester says that companies must implement Zero Trust security principles to “future-proof” their businesses and protect themselves against advanced cyber attacks. But where do you begin? Do you take Google’s approach and develop an entirely new security model? Or you could take Facebook’s, Uber’s, or Netflix’s approach of internally developing your own safeguards. While rolling your own certificate authority solution is ideal, it’s still out of scope for many organizations who want to stay focused on their core business.
+
+The good news is that you don't have to have a Google-sized budget to afford or
+implement a certificate authority approach. [Teleport](/) works with
+your existing SSH to provide role-based access controls. With Teleport,
+security teams don’t have to worry about managing keys, firewalls, or VPNs. If
+you’re interested to explore more, you can [download Teleport](https://goteleport.com/download/) to see if an open source
+version works for your needs, or [sign up](/pricing/) for our commercial, cloud-hosted version.
+
+Check out more articles on [SSH Key Management](/blog/ssh-key-management/) and [SSH Certificates for Kubernetes](/blog/remotely-controlling-kubernetes-clusters-ssh-certificates/) for more information.

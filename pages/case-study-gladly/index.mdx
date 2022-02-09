@@ -1,0 +1,51 @@
+---
+author: Jon Silvers
+date: "2019-09-11"
+tags:
+  - teleport
+title: "Security for Gladly’s Cloud-Native Systems"
+articleTitle: "Securing Gladly’s Cloud-Native Systems"
+description: Teleport helped Gladly secure their cloud-native infrastructure, provided logs for customers and auditors, and allowed their team to focus on building a great product rather than managing privileged access.
+layout: blogArticle
+---
+
+import Video from "components/Video";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+<figure>
+  <Video src="https://www.youtube.com/embed/_mIeYEoH3m0?rel=0" marginTop={["auto", "-60px"]} frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen/>
+  <figcaption>Learn how Teleport helped Gladly secure cloud-native systems.</figcaption>
+</figure>
+
+There’s no doubt today that companies can compete and win in their respective markets on providing great customer service. Gladly is redesigning the customer service experience for B2C companies who want to provide omnichannel support for their customers.
+
+Based in San Francisco, [Gladly](https://gladly.com) offers a SaaS-based platform to help brands personalize customer experiences. (The secret sauce: they put people -- rather than cases -- at the center of the experience.)
+
+As a modern SaaS application that manages customer data across channels such as email, telephony, social media, SMS, etc., Gladly needed to ensure its infrastructure was secure. A big challenge with many security systems is that they actually get in the way of developers doing their jobs. Gladly wanted to provide a way for their engineers to get access to their cloud-native systems to build a great product without sacrificing agility and speed.
+
+In addition, for storing personal information that complies with US and EU privacy laws, they needed a way to provide auditors and customers with evidence that their data was secure.
+
+“We want our customers to think of Gladly not only for our product and offering, but as a platform that is secure and gives them this assurance that [we’re] doing everything to protect [their users’] data,” said Charles Soesanto, Head of Security at Gladly.
+
+
+### Introducing Teleport at Gladly
+
+The company selected [Teleport](/) to secure the cloud-native infrastructure undergirding their SaaS platform and internal systems. Teleport works with their single sign-on service to provide role-based access controls (RBAC), which ensures that only the right users can access systems.
+
+Rather than using static credentials or managing SSH keys to gate access, Teleport acts as a [certificate authority](/how-it-works/certificate-based-authentication-ssh-kubernetes/) to automatically provide [privileged access](/how-it-works/fedramp-ssh-kubernetes/) to infrastructure based on user identity. It also records each session and gathers complete audit logs to provide managers with full visibility into every user session.
+
+“With auditors or some of our customers, when they ask about the efficacy of our security process, they ask for evidence. Teleport gives us this ability to see things in real-time. So, when I show this to the auditors or show it to customers, they [say], ‘Wow. you’re capturing all of this. This is awesome,’ said Soesanto.”
+
+<EmailSubscribeViolet />
+
+### Teleport ROI
+
+With traditional SSH key management solutions, keys can be lost and securing systems based on user identity unenforceable. Bringing new systems or people online requires new keys to be issued and managed, and the problem grows exponentially with elastic, cloud-native solutions that can scale quickly.
+
+Teleport eliminated the difficulty of managing roles and access, which meant their engineers could focus on building a great product rather than accessing systems. The ROI for Teleport was the time saved from having to write and maintain custom systems for managing privileged access.
+
+“We’ve been able to step back from writing all these custom toolings, how to maintain that tooling, key management etc., and just focus on how do we map our single sign-in provider into roles in Teleport,” said Daren Desjardins, Principal Engineer at Gladly.
+
+Every time a user loses their SSH credentials or a company loses track of which keys are on which servers, a company would need to spend time issuing new keys or rebuilding machines. With Teleport, that’s no longer necessary.
+
+“We no longer have to worry about key management, we no longer have to worry about different places we’re managing user access, we all just do it through one single place which is fantastic,” added Desjardins.
