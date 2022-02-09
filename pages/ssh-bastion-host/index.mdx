@@ -1,0 +1,145 @@
+---
+title: What is an SSH Bastion? | SSH Bastion host setup
+description: In this blog post, we’ll go over the installation and configuration of SSH bastion hosts using two open source products.
+articleTitle: Setting Up an SSH Bastion Host
+author: Ev Kontsevoy
+date: "2020-07-28"
+tags:
+  - ssh
+logo:
+  image: ./assets/ssh-jump-server-header.png
+  alt: Teleport 4.4 Announcement, ssh and Teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+What is an SSH bastion and how is this different from an SSH jump server or an SSH proxy? In this post, we’ll answer this question and will show you how to set it up using two popular open source projects.
+
+
+
+1. [OpenSSH](https://en.wikipedia.org/wiki/OpenSSH) is the older and better known SSH server. It comes pre-installed by default with the vast majority of Linux distributions and is the easier option to get started with.
+2. [Teleport](https://en.wikipedia.org/wiki/Teleport_(open-source_software)) is a much newer SSH server, its first production-quality release came out in 2016. Teleport has been optimized for elastic multi-cloud environments and supports other access protocols in addition to SSH.
+
+Both Teleport and OpenSSH support bastions, and they are extremely similar as they are both single-binary Linux daemons. Both require a simple configuration file usually stored somewhere under /etc/.
+
+
+## What is an SSH Bastion?
+
+An SSH bastion host is a regular Linux host, accessible from the Internet. What makes it a bastion is the fact that it’s the only server which accepts SSH connections from the outside. If a user wants to access another machine, they need to connect to the bastion first, and then make another SSH connection from the bastion to the final destination. Sometimes this process is called “jumping” and SSH bastions are also called “jump hosts”.
+
+The process of “jumping” can be automated, i.e. an SSH client can be configured to “jump” automatically and we’ll cover this below.
+
+
+## Setting up an SSH Bastion
+
+An SSH bastion is a critical component of your computing environment, as it reduces the attack surface to just one machine. Therefore, setting up security on this machine is absolutely critical. Before we get to SSH configuration, make sure that the regular Linux security hardening is applied:
+
+
+
+* All network ports except those needed for SSH are not accessible from the Internet, either using a network firewall / load balancer (or security groups on cloud providers like AWS) or using the machine's built-in firewall, iptables.
+* SSH port is moved from #22 to something else.
+* You have a process in place for applying software updates and security patches in a timely manner.
+* `root` user is disabled
+
+When doing your infrastructure planning, it’s a good idea not to re-use the SSH bastion server for any other purpose. In fact, the best SSH bastion should allow SSH clients to do anything else, other than “jump” to their final destinations.
+
+We’ll show how to set up an SSH bastion with two open-source projects: OpenSSH and Teleport. We’ll start with OpenSSH as it’s the most common and it’s probably already installed on your Linux hosts.
+
+The configuration examples below make a couple of assumptions:
+
+
+
+* They use the domain name `example.com`
+* The bastion host address resolves to `bastion.example.com`
+
+
+## OpenSSH
+
+OpenSSH is usually preinstalled on most Linux and Mac computers. Let’s look at the client first. If your bastion host is accessible via `bastion.example.com` then you can access other hosts behind it (on the same VPC/LAN) via `-J` command line flag, i.e. on the client:
+
+```
+$ ssh -J bastion.example.com 10.5.5.10
+```
+
+The bastion host is specified via `-J` flag and it is used to jump to another host (10.5.5.10). Note that 10.5.5.10 is the remote host’s address on a local datacenter network (or a VPC), not the local network of the client.
+
+To avoid using `-J` flag many times, you can configure your client to apply this flag automatically based on the destination host name or address, and you can use wildcards:
+
+```
+Host 10.5.5.*
+    ProxyJump bastion.example.com
+```
+
+With `~/.ssh/config` updated as shown above, a user can simply type:
+
+```
+$ ssh 10.5.5.10
+```
+
+Now let’s take a look at the bastion server configuration. First, we need to disable interactive SSH sessions so regular users won’t be able to SSH into the bastion.  Update `/etc/ssh/sshd_config` like so:
+
+```
+# Prohibit regular SSH clients from allocating virtual terminals, forward X11, etc:
+PermitTTY no
+X11Forwarding no
+PermitTunnel no
+GatewayPorts no
+
+# Prohibit launching any remote commands:
+ForceCommand /usr/sbin/nologin
+```
+
+The configuration above will completely disable SSH logins into the bastion server, for everybody. That’s quite restrictive but sometimes it may work if a bastion is created from an AMI pre-configured this way. But you may also want to allow SSH sessions for certain users.
+
+For that to work, create a separate user account for regular users. In this example we’ll call it `bastionuser`:
+
+```
+Match User bastionuser
+	PermitTTY no
+	X11Forwarding no
+	PermitTunnel no
+	GatewayPorts no
+	ForceCommand /usr/sbin/nologin
+```
+
+And the regular users will have to use the following client configuration:
+
+```
+Host 10.5.5.*
+    ProxyJump bastionuser@bastion.example.com
+```
+
+The examples above will work only if the public SSH keys of your users are copied to both the bastion host and the destination machines, which can be a hindrance. We advocate against using SSH keys and moving to [SSH certificates](/blog/ssh-key-management/) instead. Teleport, the next open source SSH solution we’ll talk about, uses SSH certificates by default and it does not require any configuration on the destination SSH nodes.
+
+<EmailSubscribeViolet />
+
+## Teleport
+
+Teleport is a relative newcomer on the SSH scene. It was released in 2016 and it is a somewhat  controversial SSH solution that uses SSH bastion (Teleport calls it “SSH proxy”) by default, and Teleport’s bastion comes with a built-in web UI.
+
+One interesting feature of Teleport is that it is environment-aware, and makes all SSH hosts to register and form a cluster, so users can see all hosts that are online:
+
+
+<BlogImage src="./assets/ssh-jump-server-1.png" width="100%" alt="Teleport 4.4 Announcement, ssh and Teleport"/>
+
+Teleport supports other protocols in addition to SSH, so the same bastion can be used to access other resources behind NAT, such as Kubernetes clusters or even internal applications via HTTP(s).
+
+Teleport’s own quick start guide includes easy instructions for setting up the bastion, so we won’t be copy-pasting the instructions from there. Just start by [downloading Teleport](https://goteleport.com/download/) for your platform and follow the [quick start guide](/docs/quickstart/).
+
+## Conclusion
+
+An SSH bastion host is one of the industry best practices for setting up SSH access to production infrastructure. Here, we covered a bastion host setup using two open source projects, but which one is best for your situation?
+
+We recommend OpenSSH if:
+
+* You have a small number of SSH hosts and a small number of users, so the overhead of distributing and rotating SSH keys is small.
+* Another good reason to use OpenSSH is because you already have it on your machines (clients and servers), so there’s nothing extra to download.
+
+Consider adopting Teleport if:
+
+* Your server fleet is growing or/and your team is growing as well.
+* You need to have a bastion for other protocols, as Teleport supports Kubernetes access, or HTTPS access to apps behind NAT, in addition to SSH.

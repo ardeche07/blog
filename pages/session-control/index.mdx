@@ -1,0 +1,90 @@
+---
+title: What is SSH session control? | Teleport 4.4
+description: Announcing Teleport 4.4! This release brings the SSH session control to apply restrictions on sessions which is critical for FedRAMP compliance.
+articleTitle: Session Control for SSH and Kubernetes in Teleport 4.4
+date: "2020-10-20"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/session-control-header.png
+  alt: Teleport 4.4 Announcement, ssh and Teleport
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+Teleport 4.4 is here! The major innovation we’re introducing in this version is much improved control over interactive sessions for SSH and Kubernetes protocols. We’ll do a deeper dive into session control later, but for those who aren't familiar with it, Teleport is an open source project. It provides access to SSH servers and Kubernetes clusters on any infrastructure, on any cloud, or any IoT device, anywhere, even behind NAT. Teleport is an alternative to OpenSSH with support for additional protocols like Kubernetes.
+
+_[How Teleport Works](/how-it-works/)_ is a good introduction.
+
+
+## What is an SSH Session?
+
+Every time a user types `ssh user@host`, a connection is established between the user’s machine (a client) and the target host. In Teleport, this connection is never direct. Teleport does not expose hosts to the Internet by default, so every connection is transparently established via a proxy.
+
+A user may execute a remote command, or a sequence of commands, and be waiting for their completion. A user may execute a remote shell or any interactive terminal application. For this to work, the context of the connection needs to be maintained. The state of the information exchange that takes place over this connection is called a _session_. Teleport provides useful metadata for each session and stores it in [the audit log](/how-it-works/audit-logging-for-ssh-and-kubernetes/):
+
+
+
+* Client and server IPs, even if they are separated by a NAT
+* Client user name
+* Client identity, such as an email address, if configured with an SSO such as Okta, Google Apps, or even Github
+* List of commands the client executed
+* Full recording of `stdin`, `stdout`, `stderr`
+
+When a user types `kubectl exec pod-name command` something similar happens, but uses the Kubernetes protocol instead of SSH.
+
+
+## What is a Session Control?
+
+We don’t want any team member to have SSH access to any server or any Kubernetes environment. Role-based access control (RBAC) allows us to configure that. Session control is different.
+
+Session control allows us to apply restrictions on sessions that are allowed. In practice, some  restrictions are not only obvious and useful, they are required to achieve FedRAMP compliance. Such restrictions supported by Teleport 4.4 include:
+
+* Number of _concurrent connections_ that a single client is allowed to create.
+* Number of _concurrent sessions_ that a single client is allowed to create. The difference between a session and a connection in SSH context is subtle but significant. SSH protocol allows multiplexing, i.e. a single connection can be used to create multiple sessions.
+
+Session control is useful as it allows to prevent an accidental or intentional DDOS attack on a valuable SSH endpoint by a single misbehaving client.
+
+
+## Idle Sessions
+
+WIth the recent switch to working from home, we are no longer surrounded by the safe environment of a company’s office. We work from home, but sometimes from a park or even in an outside cafe. What happens then, when an engineer establishes a connection to a node, gets distracted, and steps away from their machine?
+
+Hopefully they have configured their desktop environment to self-lock after a short amount of time, so a stranger couldn’t have unauthorized access.
+
+It is much better not having to rely on this. Teleport 4.4 automatically terminates idle connections after a configurable amount of time. We recommend that it be set to 15 minutes because this is sufficient for FedRAMP and PCI compliance.
+
+
+## Automatic Session Termination
+
+Suppose an employee reports that their laptop just got stolen. Or perhaps an employee moves to a different group within an organization, or even changes jobs.
+
+The best practice in this scenario is to ensure that no active sessions exist anywhere on any environment of this user’s. Teleport 4.4 does not provide this functionally just yet, but in this version, we have laid down the technical foundation to launch this capability [very soon](https://github.com/gravitational/teleport/issues/3360).
+
+<EmailSubscribeViolet />
+
+## Session Sharing
+
+Unlike legacy SSH servers, Teleport offers two unique capabilities regarding session management:
+
+* _Session recording_, when everything a user types in their terminal is getting recorded. This is useful not just for audit purposes, but also for education: any Teleport user can share a link to their recorded SSH or Kubernetes session to show how to do something.
+* _Session sharing_, when you can see what other users are doing in a production environment, i.e. you can see all current active sessions across the entire server fleet. By clicking on a user’s active session, it’s possible to see what is happening.
+
+Session Sharing is a powerful tool but isn’t always wanted. Teleport provides RBAC with fine grained controls to limit who can join or view recorded sessions. This lets companies set up dedicated accounts for auditors, that can only review Teleport Activity but not join or create any sessions.
+
+
+## Conclusion
+
+This release contains a healthy dose of usability and performance improvements. One of them was to improve session streaming i.e. how the session data gets from a host to the audit log. Not only did we make it more scalable, we also made it fit the constraint of compliance standards such as FedRAMP.
+
+Teleport is an open source project and the full list of closed tickets can be found on this [Github milestone](https://github.com/gravitational/teleport/milestone/40).
+
+To learn more or take Teleport for a spin:
+
+* [How Teleport works](/how-it-works/)
+* [Download Teleport](https://goteleport.com/download/) and watch [Teleport 4.4. Webinar](/resources/videos/ssh-compliance-visibility/) .
+* Are you a security engineer or a UX engineer? [Join our engineering team!](https://jobs.lever.co/teleport)
