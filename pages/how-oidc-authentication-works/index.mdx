@@ -12,7 +12,6 @@ logo:
 layout: blogArticle
 ---
 
-import { Table, Row, Cell, HorizontalHeader } from "components/Table";
 import Quote from "components/Quote";
 import BlogImage from "components/BlogImage";
 import Box from "components/Box";
@@ -73,22 +72,20 @@ While this distinction may seem like splitting hairs, understanding how authenti
 ## OIDC vs SAML
 
 
-<Table
-  color="dark-gray"
-  border="none"
-  borderCollapse="collapse"
-  boxShadow="0 8px 32px rgb(0 0 0 / 24%)"
-  my="40px"
->
-  <Row>
-    <HorizontalHeader bg="white" border="none" py="2">Authentication</HorizontalHeader>
-    <HorizontalHeader bg="white" border="none" py="2">Authorization</HorizontalHeader>
-  </Row>
-  <Row border="none">
-    <Cell bg="lightest-gray" border="none">SAML & OIDC</Cell>
-    <Cell bg="lightest-gray" border="none">SAML & OAuth 2.0</Cell>
-  </Row>
-</Table>
+<table>
+  <thead>
+    <tr>
+      <th>Authentication</th>
+      <th>Authorization</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>SAML & OIDC</td>
+      <td>SAML & OAuth 2.0</td>
+    </tr>
+  </tbody>
+</table>
 
 To discuss federated identity without mentioning SAML would be disingenuous. Recall that federated identity is the ability to use the same digital identity across multiple domains, meaning we are primarily concerned with the act of authentication, which involves proving who you are. There are two main protocols for authentication over networks: OIDC (OpenID Connect) and SAML (Security Assertion Markup Language). We will take a brief pitstop to better understand their differences and unique use cases before continuing to learn more about OIDC.
 
