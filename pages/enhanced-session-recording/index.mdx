@@ -1,0 +1,250 @@
+---
+title: BPF to transform SSH Sessions to Structured Event
+description: Teleport’s Enhanced Session Recording feature can add vital extra visibility into commands being run on your systems.
+articleTitle: BPF to transform SSH Sessions to Structured Event
+date: "2020-02-27"
+author: Russell Jones
+logo:
+  image: ./assets/enhanced-session-recording-header.png
+  alt: enhanced session recording
+tags:
+  - security
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Teleport 4.2 introduced a new feature called Enhanced Session Recording that takes an unstructured SSH session and outputs a stream of
+structured events. It’s the next step in Teleport's evolution that uses new technology (eBPF or now simply known as BPF) to close some gaps
+in Teleport's audit abilities. Below you can see an illustration of this feature and if you keep reading, we’ll get into some of the
+technical details.
+
+<video autoplay loop muted playsinline>
+  <source src="./assets/ssh-enhanced-session.mp4" type="video/mp4" />
+  <source src="./assets/ssh-enhanced-session.webm" type="video/webm" />
+</video>
+
+_Figure 1: Demonstration of how Enhanced Session Recording transforms an unstructured SSH session into a stream of structured events._
+
+## Background
+
+Teleport has included session recordings since the initial version. Session recordings capture everything that the user sees printed to the
+terminal and can later be played back like a video for auditing purposes. This has an inherent advantage: these recordings are easy to
+understand and provide valuable context around what a user was doing during the session.
+
+However, it also has some disadvantages, mainly that there are a variety of ways a user can bypass the session recording.
+
+- _Obfuscation_. Even though the command \
+  **`echo 'Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg==' | base64 --decode | sh`** does not contain <strong>`curl http://www.example.com`</strong>, that is what is run when decoded. The curl command never shows up in the SSH session recording.
+- <em>Shell scripts</em>. If a user uploads and executes a script, the commands
+  within the script that are run are not captured, simply the output of the
+  script. This makes understanding the actions of even legitimate tools like
+  Ansible difficult.
+- <em>Terminal controls</em>. Terminals support a wide variety of controls
+  including the ability for users to disable terminal echo. This is commonly
+  used by applications like <strong>`sudo`</strong> when they prompt a user for
+  credentials. Disabling terminal echo can also be used to run commands without
+  them being captured in the SSH recording.
+
+Furthermore, due to the unstructured nature of a TTY stream, session recordings can be somewhat difficult to ingest and monitor.
+
+## Implementation
+
+To close this gap in auditing, Teleport needed a way to transform an unstructured SSH session into a structured stream of events that occur
+during that session. What should those structured events contain? As a starting point, we wanted to show what program was executing (program
+on disk) and what was it doing (its behavior).
+
+We investigated a variety of approaches. The things we looked into varied from ad-hoc approaches like regex pattern matching to more complex
+attempts like parsing the raw SSH session ourselves. We also investigated a variety of APIs and systems that Linux provides like Audit,
+fanotify, and BPF.
+
+We had a couple of critical criteria when selecting which technology to build on.
+
+- _Reduce false positives, ideally to zero_. If your system has a high degree of false alerts, less attention is paid to an alert. This can
+  cause critical issues to go unnoticed.
+- _Reduce any performance impact caused by monitoring, ideally to zero_. The chances of a company adopting a monitoring system that reduces the performance of a system any substantial amount is low. Furthermore, this offloads the burden of adding additional resources to the user.
+
+These ad-hoc approaches all suffered from the false positive problem. There is no way that we could parse and interpret the stream of bytes
+that compose a SSH session with enough accuracy to not cause alert fatigue.
+
+We investigated other approaches. We ruled out Linux Audit due to performance reasons. This is something Dino Dai Zovi has mentioned on
+[several](https://twitter.com/dinodaizovi/status/1171762209090953217)
+[occasions](https://twitter.com/dinodaizovi/status/1214729783755628544).
+
+When looking at file system access some alternatives exist. The two that stood out the most are **`inotify`** and <strong>`fanotify`</strong>. The lack of recursive directory monitoring in <strong>
+`inotify` </strong> makes it a non-starter for Teleport. <strong>`fanotify`</strong> is more promising, but it has two problems.
+
+- As Brendan Gregg mentions in _[BPF Performance Tools](http://www.brendangregg.com/bpf-performance-tools-book.html)_, during heavy load
+  comparing **`fanotify`** to <strong>`opensnoop`</strong>, <strong>`fanotify`</strong> used 67% CPU while
+  <strong>`opensnoop`</strong> used 1%.
+- The kernel recently merged in a patch set to make <strong>`fanotify`</strong> more performant and make it suitable for whole
+  filesystem monitoring which more closely aligns with its use in Teleport. Unfortunately, these changes were merged in Linux 5.1, which means
+  there are no mainstream distributions where this would even work out of the box at the moment.
+
+With these considerations in mind, we ended up building a solution around a few BPF programs that reduced the false positives and had
+minimal impact on performance. For a more in depth discussion about the alternatives, take a look at the Alternatives section below.
+
+### What is BPF?
+
+Brendan Gregg, a prolific author of BPF programs, has frequently said it’s “[a new type of
+software](http://www.brendangregg.com/blog/2019-12-02/bpf-a-new-type-of-software.html).” BPF allows userspace programs to hook and emit
+events from certain places within the kernel in a safe and performant manner.
+
+What does safe and performant mean? In this context, “safe” means BPF programs can not get stuck in infinite loops bringing down the system.
+BPF programs are unlikely to crash the entire operating system like a kernel module has the potential to. BPF programs are also performant,
+dropping events if they can not be consumed fast enough instead of dragging down the entire systems performance with it.
+
+### How does Teleport use BPF?
+
+Teleport uses three BPF programs at the moment: [execsnoop](http://www.brendangregg.com/blog/2014-07-28/execsnoop-for-linux.html) to capture
+program execution, [opensnoop](http://www.brendangregg.com/blog/2014-07-25/opensnoop-for-linux.html) to capture files opened by a program,
+and [tcpconnect](http://www.brendangregg.com/blog/2015-10-31/tcpconnect-tcpaccept-bcc.html) to capture TCP connections established by a
+program.
+
+To get a better understanding of the power of these BPF programs, take a look at the output of execsnoop when running **`man ls`**.
+
+```
+# ./execsnoop
+Tracing exec()s. Ctrl-C to end.
+   PID   PPID ARGS
+ 20139  20135 mawk -W interactive -v o=1 -v opt_name=0 -v name= [...]
+ 20140  20138 cat -v trace_pipe
+ 20171  16743 man ls
+ 20178  20171 preconv -e UTF-8
+ 20181  20171 pager -s
+ 20180  20171 nroff -mandoc -rLL=173n -rLT=173n -Tutf8
+ 20179  20171 tbl
+ 20184  20183 locale charmap
+ 20185  20180 groff -mtty-char -Tutf8 -mandoc -rLL=173n -rLT=173n
+ 20186  20185 troff -mtty-char -mandoc -rLL=173n -rLT=173n -Tutf8
+ 20187  20185 grotty
+```
+
+_Figure 2: [Sample output of execsnoop when running of man ls provided by Brendan
+Gregg](http://www.brendangregg.com/blog/2014-07-28/execsnoop-for-linux.html)._
+
+You can already start seeing the power of BPF programs. What seemed like simply running the **`man`** binary turned out to be the
+execution of a variety of other programs under the hood.
+
+Teleport [embeds these programs within](https://github.com/gravitational/teleport/tree/master/lib/bpf) its binary and when Enhanced Session
+Recording is enabled, it builds and runs them.
+
+<BlogImage
+  src="./assets/bpf-diagram.png"
+  width="100%"
+  alt="Using BPF to Transform SSH Sessions into Structured Events"
+/>
+
+_Figure 3: The BPF components that compose Teleport Enhanced Session Recording_
+
+On their own, these programs are excellent tools for debugging and tracing because they tell you what’s executing on the whole system,
+rather being limited to one user. In fact, that’s how we initially ran into these tools: we used them to debug some issues with Teleport
+that were causing it to run out of file descriptors in certain scenarios. However, our goals with Teleport were a bit different. We wanted
+to correlate program execution with an SSH session and identity.
+
+To correlate program execution with a particular SSH session, we use cgroups (cgroupv2 in particular). When Teleport starts a SSH session,
+it first re-launches itself and places itself within a cgroup. This allows not only that process, but all future processes that Teleport
+launches to be tracked with a unique ID. The BPF programs that Teleport runs have been updated to also [emit the cgroup ID of the program
+executing](https://github.com/torvalds/linux/commit/bf6fa2c893c5237b48569a13fa3c673041430b6c) them. This allows us to correlate events with
+a particular SSH session and identity.
+
+### Limitations
+
+We’re not done with Enhanced Session Recording. There are clearly some gaps that still exist and we’ll be addressing them in the future.
+
+Until that post is up, it’s worth pointing out that with session recording, Teleport is able to capture the stream of bytes that compose a
+session due to its privileged position (the stream of bytes must flow through Teleport). Critically, the integrity of a session recording
+does not rely on any information self reported by a host. The enhanced auditing, however, relies on the host accurately reporting
+information to Teleport. If the integrity of the host is compromised, the integrity of the enhanced auditing is inherently compromised.
+Furthermore, Teleport only monitors a subset of system calls that we felt were most critical, not all of them.
+
+That means, at the moment, Enhanced Session Recording works best for non-root users. Users who have access to root can disable Enhanced
+Session Recording in a variety of manners.
+
+## Getting Started
+
+With the background out of the way, you can use [this script on Github
+Gist](https://gist.github.com/russjones/01fe0e5f0bfbabf73fb50b93f4d119ed) to take Enhanced Session Recording for a spin yourself to see its
+power.
+
+First spin up an Ubuntu 19.04 or RHEL/CentOS 8 VM and run the script linked to above. This script simply installs kernel headers and
+bcc-tools, the prerequisites for running Enhanced Session Recording. It also installs jq, but that’s more to help in visualizing the
+structured event stream.
+
+Once you've typed in `curl https://goteleport.com` to the terminal like the instructions say, you should see something like the following
+printed on the screen.
+
+```
+{
+  "argv": [
+    "https://goteleport.com/"
+  ],
+  "cgroup_id": 4294967355,
+  "code": "T4000I",
+  "ei": 15,
+  "event": "session.command",
+  "login": "root",
+  "namespace": "default",
+  "path": "/bin/curl",
+  "pid": 2315,
+  "ppid": 2294,
+  "program": "curl",
+  "return_code": 0,
+  "server_id": "e56dc762-0171-4d6e-aa56-24f2ae268c7f",
+  "sid": "72aabcd8-38c8-11ea-af55-42010a800031",
+  "time": "2020-01-17T01:27:05.07Z",
+  "uid": "4b493296-7df2-4ec7-9282-a19c0d98e261",
+  "user": "test-user"
+}
+{
+  "cgroup_id": 4294967355,
+  "code": "T4002I",
+  "dst_addr": "104.24.97.116",
+  "dst_port": 80,
+  "ei": 0,
+  "event": "session.network",
+  "login": "root",
+  "namespace": "default",
+  "pid": 2315,
+  "program": "curl",
+  "server_id": "e56dc762-0171-4d6e-aa56-24f2ae268c7f",
+  "sid": "72aabcd8-38c8-11ea-af55-42010a800031",
+  "src_addr": "10.128.0.49",
+  "time": "2020-01-17T01:27:05.145Z",
+  "uid": "42831223-1da2-4b26-a783-08060fd8d7b1",
+  "user": "test-user",
+  "version": 4
+}
+```
+
+From this you can see that the **`curl`** program was executed by the user in two ways. The first is the execution of the program
+itself. The second is the behavior of the program, <strong>`curl`</strong> made a network request and you can see that as well.
+
+You can try other things, like scripts or other forms of obfuscation, and you should see the results of execution in the logs.
+
+### Requirements
+
+The minimum requirements for Teleport Enhanced Session Recording is Linux Kernel 4.18 with [BPF support
+enabled](https://github.com/iovisor/bcc/blob/master/INSTALL.md#kernel-configuration). There are several distributions where you get this out
+of the box, including Ubuntu 19.04, Debian 10, and RHEL/CentOS 8.
+
+You’ll also need to install kernel headers and bcc-tools. For the operating systems listed above, you can install these from packages and
+it’s simply a matter of running **`yum install -y kernel-headers bcc-tools` or <strong>`apt install -y linux-headers-$(uname -r) bpfcc-tools`</strong>.** If bcc-tools have not been packaged, you’ll have to build them from source.
+
+To enable Enhanced Session Recording in Teleport, simply toggle it on in file configuration like so:
+
+```
+    ssh_service:
+       enhanced_recording:
+          enabled: yes
+```
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+While no monitoring system is entirely infallible, using a strategy of [defense in
+depth](<https://en.wikipedia.org/wiki/Defense_in_depth_(computing)>) with multiple safeguards can help you identify issues and take
+appropriate action. Teleport’s Enhanced Session Recording can add vital extra visibility into commands being run on your systems.

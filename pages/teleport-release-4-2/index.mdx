@@ -1,0 +1,205 @@
+---
+title: Teleport 4.2 -  Session Recording, Workflows
+description: Teleport 4.2 delivers a strong foundation of new features, with greater visibility into what's happening during sessions and our new Workflows API.
+articleTitle: Teleport 4.2 Released - Enhanced Session Recording, Workflows, and GCP
+date: "2020-01-07"
+author: Ben Arent
+logo:
+  image: ./assets/Teleport_4.2.png
+  alt: Teleport_4.2
+tags:
+  - teleport
+  - ssh
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introducing Teleport 4.2
+
+Teleport 4.2 delivers a strong foundation of new features. We have a full list of improvements and fixes attached to our [Teleport 4.2.0
+GitHub release](https://github.com/gravitational/teleport/releases/tag/v4.2.0). Below are a couple of the highlights:
+
+- Teleport now provides greater visibility into what's happening during a
+  Teleport session with our Enhanced Session Recording.
+
+- We've also laid the groundwork for a world of possibilities with our
+  enterprise-only Role Escalation via a Workflows API.
+
+Read on for more details into how these foundational changes enhance Teleport's
+auditing capabilities and integrate with your existing workflows.
+
+## Enhanced Session Recording - Alpha Release
+
+Teleport has offered session recording since it's inception and it still can blow people away to view detailed live recordings of sessions.
+Teleport 4.2 takes session recording to the next level with the ability to not only see the commands that are run but detailed information
+about the commands run, plus network connections and file activity. How detailed?
+
+If you tried to audit...
+
+```bash
+echo Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg== | base64 --decode | sh
+```
+
+What do you think is happening?
+
+Apart from looking like gobbledygook, the user has base64 encoded something to obfuscate their command.
+
+With Enhanced Session Recording you'll be able to see exactly what's happening when someone tries to do this during a session.
+
+It turns out the user is running three commands, `sh`, `base64` to decode the message, and `curl` which was hidden in the string which was base64 encoded.
+
+The resulting output will is returned in Teleports Audit log.
+
+```json
+{
+  "event": "session.command",
+  "path": "/bin/sh",
+  "program": "sh",
+  "argv": [],
+  "login": "centos",
+  "user": "jsmith"
+}
+{
+  "event": "session.command",
+  "path": "/bin/base64",
+  "program": "base64",
+  "argv": [
+    "--decode"
+  ],
+  "login": "centos",
+  "user": "jsmith"
+}
+{
+  "event": "session.command",
+  "path": "/bin/curl",
+    "argv": [
+    "http://www.example.com"
+  ],
+  "program": "curl",
+  "return_code": 0,
+  "login": "centos",
+  "user": "jsmith"
+}
+{
+  "event": "session.network",
+  "program": "curl",
+  "src_addr": "172.31.43.104",
+  "dst_addr": "93.184.216.34",
+  "dst_port": 80,
+  "login": "centos",
+  "user": "jsmith",
+  "version": 4
+}
+"_comment": "Extra log info has been removed for clarity",
+```
+
+From this Audit Log, it's now possible to know that the user ran `curl http://www.example.com`.
+
+What else can this be used for?
+
+- **Understand shell scripts**. For example if a user uploads and executes a script, the commands run within the script are not captured, only the output is captured. With Enhanced Session Recording turned on, you'll be able to see any network requests and subsequent Linux commands which are run.
+
+- **Terminal controls**. Terminals support a wide variety of controls, including the ability for users to disable terminal echo. This is frequently used when requesting credentials. Disabling terminal echo allows commands to be run without being captured. This is fixed when Enhanced Session Recording is on, pleasing the most paranoid of CISOs.
+
+Usually session recordings are unstructured, making them difficult to ingest and perform monitoring and alerting on. The Enhanced Session Recording's logs output and makes it easy to send session monitoring data to SIEM solutions or a centralized logging solution for alerting and monitoring.
+
+### What magic is this? 🔮
+
+Teleport 4.2 has the ability to capture low-level Linux activity via the magic of Extended BPF. This method has been recently popularized by Brendan Gregg at Netflix for observability and he coined a BPF a [‘New Type of Software’](http://www.brendangregg.com/blog/2019-12-02/bpf-a-new-type-of-software.html). Many of these new features are available in 4.19 Linux Kernel.
+
+To obtain this new superpower, we require a few things.
+
+1.  All Teleport components should be upgraded to 4.2. We recommend starting with the Auth Server.
+2.  Teleport Nodes with the `ssh_service` enabled should be running the `4.19 Linux Kernel or higher`. For a list of compatible distros, see our [docs](https://goteleport.com/docs/server-access/guides/bpf-session-recording/#1-check-patch-kernel).
+3.  BCC tools should be compiled and built on the node.
+    Follow [instructions per distro](https://github.com/iovisor/bcc/blob/master/INSTALL.md) here. We plan to use the packaged tools in future releases.
+4.  Enhanced Auditing should be turned on from within `teleport.yaml`.
+
+    ```yaml
+    # snippet from teleport.yaml
+    ssh_service:
+    enabled: yes
+    enhanced_recording:
+      enabled: true
+    ```
+
+    🎉 Success: It should be setup. Check `/var/lib/teleport/log/` You can now easily alert and monitor on session activity.
+
+👨‍🔬**Coming Soon:** We'll have the ability to replay and view the logs in the Teleport UI. [Contact
+ben@goteleport.com](mailto:ben@goteleport.com) for early access.
+
+Visit our [Enhanced Session Recording](https://goteleport.com/docs/features/enhanced-session-recording) documentation to learn more.
+
+_Warning: This feature uses cutting edge software & kernels. Administrators should be comfortable with using new distros and patching
+kernels. In testing we've found small VMs can't build the supporting tools to compile BCC tools, it often requires 4G+ of RAM._
+
+## Role Escalation via a new Workflows API
+
+[Role Based Access Control](https://goteleport.com/docs/access-controls/introduction/) is a cornerstone feature of [Teleport
+Enterprise](https://goteleport.com/teleport/features/rbac-for-ssh/). It lets administrators define roles for users with a granular level of detail, allowing
+admins to apply the principle of least privilege. Sometimes the role you have isn’t enough.
+
+Teleport 4.2 lets users request another role and provides a streamlined admin workflow to approve requests.
+
+```bash
+# User is requesting an escalated DBA Role.
+$ tsh login teleport-cluster --request-roles=dba
+Seeking request approval... (id: bc8ca931-fec9-4b15)
+
+# Admins can use tctl to view role escalation requests.
+$ tctl request ls
+Token              Requestor Metadata       Created At (UTC)    Status
+------------------ --------- -------------- ------------------- -------
+bc8ca931-fec9-4b15 alice     roles=dba      07 Nov 19 19:38 UTC PENDING
+
+## An admin can now approve or deny the request.
+$ tctl request approve bc8ca931-fec9-4b15
+
+```
+
+We are currently working on integrations with Jira and Slack to provide approval workflows. If you have a tool we should integrate with,
+please mail it to [ben@goteleport.com](mailto:ben@goteleport.com)
+
+Visit our [Access Controls](https://goteleport.com/docs/access-controls/introduction/) documentation to learn more.
+
+## High Availability Teleport on Google Cloud Platform
+
+Thanks to an external contributor, [gh:joshdurbin](https://github.com/gravitational/teleport/pull/2821), Teleport can now be setup in a high
+availability mode on GCP using Google Firestore and Google Storage. We’ve outlined all of the components needed to run Teleport in HA mode
+in our new [GCP Infrastructure Guide](https://goteleport.com/docs/setup/deployments/gcp/).
+
+<BlogImage
+  src="./assets/gcp-teleport.svg"
+  width="100%"
+  alt="High Availability Teleport on Google Cloud Platform"
+/>
+
+## Other Updates
+
+There are many other improvements, upgrades, and bug fixes in Teleport 4.2. For full details, visit the [Teleport Github Release
+page](https://github.com/gravitational/teleport/releases/tag/v4.2.0)
+
+<EmailSubscribeViolet />
+
+## Upgrading
+
+Minor versions are compatible within major releases, but we do recommend rolling out the upgrade across the whole fleet and updating
+clients’ `tsh` libraries as you upgrade. We always recommend backing up your Auth Server and updating it first. Enterprise and Pro customers
+should be sure to reach out to our support team if they run into any issues.
+
+### Bonus.. Invite the whole team to the Teleport Dashboard.
+
+You can invite additional team members to the Teleport Dashboard. This can be helpful if you have different people in the organization
+rolling out Teleport and who require access to the Teleport License or to invite Milton from Accounting.
+
+<BlogImage
+  src="./assets/dashboard.gravitational.com_add_users.png"
+  alt="Inviting team members via the Teleport Dashboard"
+/>
+
+## Try it now.
+
+Download the latest packages from the [Teleport Dashboard](https://dashboard.gravitational.com/web/) or if you are an OSS user, you can
+download from the [Teleport Download](https://goteleport.com/teleport/download/) page.

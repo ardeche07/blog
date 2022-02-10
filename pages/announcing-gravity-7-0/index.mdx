@@ -1,0 +1,108 @@
+---
+title: Announcing Gravity 7.0
+description: Gravity 7.0 allows users to deploy Gravity cluster images into Kubernetes clusters and makes it easier to run Gravity clusters in secure environments.
+articleTitle: Announcing Gravity 7.0
+date: "2020-03-04"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/gravity-7-0-header.png
+  alt: gravity 7.0
+tags:
+  - announcements
+layout: blogArticle
+---
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today, we are excited to announce the release of Gravity 7.0! Gravity is a tool for developers to package multiple Kubernetes applications
+into an easily distributable .tar file called a "cluster image". A cluster image contains everything an application needs and it can be used
+for quickly creating Kubernetes clusters pre-loaded with applications from scratch or loading applications contained within an image into an
+existing Kubernetes cluster like OpenShift or GKE.
+
+Gravity is used by organizations that need to deploy their Kubernetes applications into "uncharted territories" such as their customers’
+infrastructure (cloud or on-prem), edge locations, or to package applications for easy internal distribution, across different clouds, and
+infrastructure form factors.
+
+### What's New?
+
+Gravity 7.0 is an important milestone for us because with this release, we’re tackling the two most frequently requested capabilities:
+
+1. Deploying Gravity Cluster Images into existing Kubernetes clusters
+2. Making it easier to run Gravity clusters in environments where security and compliance are paramount
+
+Let’s dive deeper into these areas.
+
+### Deploying into Existing Kubernetes Clusters
+
+Normally, Gravity cluster images are used to create Kubernetes clusters pre-loaded with applications from scratch, or to update clusters
+that were created with Gravity earlier. This capability is what makes Gravity the default go-to open source solution for organizations that
+need to run large numbers of clusters distributed all over the world.
+
+However, there are use cases where users already have an existing Kubernetes cluster deployed in a target environment, managed by an
+existing team that wisely prefers to avoid fixing what’s not broken.
+
+Gravity 7.0 allows such users to leverage their existing Kubernetes clusters and inject applications contained within a Gravity cluster
+image into an existing environment like OpenShift or GKE, simplifying application delivery into locations where Kubernetes is already
+present.
+
+### Security & Compliance Enhancements
+
+Most Gravity users operate in industries where security and compliance are paramount, e.g. finance, insurance, government, or any
+organization that offers solutions to those institutions. They’ve talked to us and we’ve listened. Gravity 7.0 comes with the following
+security-oriented features:
+
+- <span style={{ textDecoration: "underline" }}>Support for SELinux</span>.
+  SELinux needs no introduction. It’s a common platform, originally envisioned
+  and built by the NSA for hardening Linux-based environments. Prior to this
+  release, Gravity clusters could only be instantiated on servers with SELinux
+  disabled. This release of Gravity allows you to create security-hardened
+  Kubernetes clusters on infrastructure that is also protected by SELinux.
+- <span style={{ textDecoration: "underline" }}>
+    Native integration with SSH Gateway
+  </span>
+  . Gravity has always included an integrated SSH/Kubernetes gateway to synchronize
+  role-based access control for both protocols and providing a unified authentication
+  for both SSH and K8s API. The gateway is called [Teleport](https://goteleport.com/)
+  and it can be used separately from Gravity to protect SSH and Kubernetes infrastructure.
+  However, Gravity used to use its own authentication mechanism. Users had to use
+  a different command ("tele login") to retrieve SSH and Kubernetes certificates
+  from a Gravity cluster. This new release further integrates Gravity with Teleport,
+  so Teleport users can login into Gravity clusters via `tsh login`.
+
+### Other Improvements
+
+Besides supporting legacy Kubernetes clusters and security enhancements, Gravity also adds these two frequently requested features:
+
+- <span style={{ textDecoration: "underline" }}>OpenEBS support</span>.
+  Kubernetes clusters created with Gravity are now automatically configured to
+  run [OpenEBS](https://openebs.io/). This makes it significantly easier to
+  package databases and other stateful services into Gravity cluster images.
+- <span style={{ textDecoration: "underline" }}>Timeline View</span>. Gravity
+  users often describe it as "a robot that runs Kubernetes so I don't have to".
+  To help troubleshoot issues, Gravity has always included the 'gravity status'
+  command, which nicely explains what's wrong with your K8s cluster. However,
+  some issues cannot be diagnosed as easily: intermittent hardware failures are
+  a thing, or someone runs an Ansible script that reconfigures the kernel on
+  your fleet - something that doesn't lead to an immediate failure but causes
+  one over time. Gravity 7.0 offers a "timeline view" which allows you to see
+  how a cluster's status has changed over time. This helps engineers
+  troubleshoot the past.
+
+<BlogImage
+  alt="Gravity 7.0 timeline"
+  src="./assets/announcing-7-0-timeline.png"
+  width="100%"
+/>
+
+<EmailSubscribeViolet />
+
+### What's Next?
+
+We have plenty of exciting things on the roadmap. The general direction continues to be making Gravity the only game in town when:
+
+- You need to run hundreds or thousands of Kubernetes clusters on autopilot
+- You need to work on infrastructure that you have limited access to
+- Security and compliance matter
+
+Stay tuned and subscribe to our mailing list for updates! In the meantime, download and try out
+[Gravity](https://goteleport.com/teleport/download/), and let us know you think. Make sure to select pre-releases in the dropdown!
