@@ -1,0 +1,70 @@
+---
+title: How to Conduct a Successful Teleport Proof of Value Evaluation
+description: This blog describes lessons learned working with customers to conduct a successful Teleport Proof of Value evaluation.
+articleTitle: 5 Tips for a Successful Teleport Proof of Value Evaluation
+date: "2021-12-28"
+author: Colin Wood
+logo:
+  image: ./assets/proof-of-value.png
+  alt: proof of value
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Most car purchases start with a test drive. Increasingly, enterprise software purchases (including security software) are made the same way. These evaluations are often called a Proof of Concept or PoC. This term is a great fit for lots of situations, especially when the solution evolves a novel way of combining established tools or a hard-to-define use case that can only be judged in practice. But for more established solutions used in production by hundreds or thousands of organizations, Proof of Concept as a name is not a great fit. Instead, we should talk in terms of a Proof of Value.
+
+A Proof of Value places the focus on the customer and their needs. Rather than answering the question “Does this software work?” we seek to answer the question “Does this software deliver the necessary value?” In order to answer this second question effectively, the Proof of Value process needs to be well-defined and include the following five elements.
+
+## 1. Identify the problem
+
+The first step to be taken prior to beginning any Proof of Value evaluation is to understand and define the problem that you’re seeking to solve. You may have heard this before as “seek first to understand” or “diagnose before you prescribe” but the principle is clear — you cannot solve a problem you do not understand. That’s why the first step of our Proof of Value is the completion of an analysis that allows us to clearly define the problem.
+
+Working with a lot of customers, these are some of the infrastructure access pains that I commonly see to get you thinking:
+
+- Moving between different VPNs to access a variety of internal systems like CI/CD, Gitlab, Grafana dashboards, etc.
+- Enforcing nuanced RBAC for different protocols (SSH, RDP, Kubernetes, etc.) instead of generic “dev” permissions across protocols.
+- Difficulty enforcing MFA for infrastructure operations
+- Granting just-in-time access to on-call SREs
+
+## 2. Constrain the scope to the purpose
+
+Once you understand the problem you’re trying to solve, it is much easier to constrain the scope of the Proof of Value to those aspects essential to addressing the problem. Constraining the scope means only including those aspects of the product or solution that actually address the problem defined in stage one in the success criteria. An unconstrained scope can lead to time being spent on testing parts of the solution you may never use, while the essential parts of the solution are not fully vetted. Further, scope creep can result in the optimal solution to the problem at hand being discarded in favor of another solution that does more things but does not adequately solve the actual problem you started with. Well-defined success criteria that are limited in scope to addressing the problem definition allow you to focus on what matters.
+
+Let’s assume you want to run a Proof of Value for Teleport to manage access to your Linux servers in GovCloud. This means you need to be able to pass a [FedRAMP audit of your access controls](https://goteleport.com/resources/white-papers/fedramp-how-to/). You might have evaluation criteria such:
+
+| Evaluation Criteria                                                                                                                                                   | Pass/Fail | Comments |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | -------- |
+| Verify ability to install a FIPS 140-2 compatible version of solution                                                                                                 |           |          |
+| Verify that solution can pull roles from SSO provider (Okta)                                                                                                          |           |          |
+| Create the following roles in Teleport and verify that individual with each role is properly constrained: _ Role 1- Read-only _ Role 2- Editor \* Role 3- Root Access |           |          |
+| Verify that per-session MFA works for Role 3                                                                                                                          |           |          |
+| Verify that assuming Role 3 must be authorized by two people with sufficient privileges                                                                               |           |          |
+| Verify that all syscall logs are available for Role 3                                                                                                                 |           |          |
+| Additional Evaluation Criteria                                                                                                                                        |           |          |
+
+Your actual evaluation criteria will likely be more detailed than this, with clear criteria on pass/fail. The key to a successful Proof of Value is knowing what you are testing and what the success criteria is.
+
+## 3. Set expectations for shared responsibility
+
+Now that the problem is clearly defined, and the scope has been limited and clear success criteria defined, it is time to set expectations for shared responsibility. Many Proof of Value evaluations fail because one side or the other is not prepared for the amount of effort that will be required on their side. For example, if you’re interested in completing a Proof of Value that involves self-hosting the Teleport proxy, you will be responsible for procuring compute resources and deploying the solution. Using the Teleport Cloud can make this part of the process much easier, and even if you decide to run Teleport self-hosted for your production deployment, you may still be able to test all the required functionality with Teleport Cloud. Discussing roles and responsibilities upfront will avoid the project stagnating and the delays that will result. Our Proof of Value plan that should be finalized together includes clear discussions about exactly what steps will be involved and who is responsible for each.
+
+## 4. Communicate regularly & often
+
+So we understand the problem, we’ve defined success, and everyone knows their job. Now we work together and stay in frequent contact with each other. The best way to do this is by using two methods of communication: informal real-time communication helps keep things progressing in a low friction way, and regularly scheduled synchronous meetings.
+
+For real-time communication, we create a dedicated Slack channel staffed by our solution engineers and sales teams but supported by the entire organization during the Proof of Value. These channels allow us to clear any roadblocks as soon as they arise.
+
+Additionally, we use weekly check-in meetings to ensure things are progressing smoothly and to work through any larger issues.
+
+## 5. Keep it short
+
+In addition to limiting the scope of the Proof of Value, it is also important to limit the duration. If you allow too long, there won’t be sufficient urgency to keep it on track and both sides can lose focus. Of course, if it is too short, there won’t be enough time to adequately prove out the value of the solution. Given the ease with which Teleport can be deployed and the availability of our SaaS offering, we are able to complete the majority of our Proof of Value engagements within two weeks.
+
+<EmailSubscribeViolet />
+
+## Final thoughts
+
+Purchasing software can often be a difficult process, but it doesn’t have to be. By first focusing on the problem and then demonstrating the value the software delivers in solving that problem, the choice can be made easily. The Teleport Proof of Value is delivered by a team of technical and business professionals who stay focused on demonstrating value in solving customers’ problems. Ready for your own Proof of Value, or just want to learn more about Teleport? [Reach out to us today](https://goteleport.com/pricing/).

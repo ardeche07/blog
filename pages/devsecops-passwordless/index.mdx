@@ -1,0 +1,39 @@
+---
+title: Passwordless Access is Key to DevSecOps
+description: Passwordless access is a big trend in DevSecOps. Here is why it makes infrastructure access so much easier.
+articleTitle: Why DevSecOps is Going Passwordless
+date: "2021-12-31"
+author: Sarah O’leary
+logo:
+  image: ./assets/passwordless.png
+  alt: Passwordless Access is Key to DevSecOps
+tags:
+  - compliance
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+I talk to a lot of engineers every day. SREs. Systems Architects. Security Engineers. What I am hearing from them is that they are [moving away from passwords](https://goteleport.com/blog/no-passwords/) — both in their personal lives, opting for more secure forms of authentication like biometrics and second factors, and at work. It just doesn’t make sense anymore to protect your personal bank with a second factor, but to share around an SSH key to access critical server infrastructure.
+
+Passwords are still the leading way to grant access to infrastructure, even though [stolen or hacked credentials are the number one cause of data breaches](https://www.verizon.com/business/resources/reports/dbir/2021/results-and-analysis/).
+
+<BlogImage src="./assets/security-methods.png" />
+
+But this is changing. Look at the 32% of respondents in our recent [The State of Infrastructure Access & Security Report 2021](https://goteleport.com/resources/white-papers/2021-infrastructure-access-report/). We surveyed 1000 IT, DevOps and Security professionals to find out what they were thinking about some of the most important security issues at the moment.
+
+Short-lived identity-based certificates are a small part of the overall security toolkit today, but they are rightly seen as superior to SSH keys and other shared credentials that are just passwords by another name.
+
+When asked why they had implemented certificates, people said that they were more secure, more feature-rich, and limited the attack surface in time.
+
+<BlogImage src="./assets/short-lived.png" />
+
+<EmailSubscribeViolet />
+
+All of this is why 77% of companies view moving towards a passwordless infrastructure
+as “very important” or “important”. In case you are wondering, they are also adopting
+zero-trust networks (86%) and just-in-time infrastructure access (89%).
+
+Are you currently implementing passwordless access for your infrastructure? If so, we’d love to help. [Reach out and one of our expert solution engineers](https://goteleport.com/signup/enterprise/?utm_ref=sarah) will help you architect the solution in a way that is not only more secure, but also more agile.

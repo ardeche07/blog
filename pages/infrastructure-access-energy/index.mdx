@@ -1,0 +1,80 @@
+---
+title: Protecting our energy means protecting our energy infrastructure. Here’s how.
+description: Energy markets are critical infrastructure. Protecting them is just as critical. This blog shows how you can get started.
+articleTitle: Why Energy Infrastructure is National Security and How to Protect It
+date: "2021-12-23"
+author: Joseph Rodriguez
+logo:
+  image: ./assets/cyber-threats-energy.png
+  alt: Energy Infrastructure is National Security
+tags:
+  - compliance
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+I am writing this from my home office in Texas. Texas isn’t just my home. It is the home of the best brisket on the planet, some of the most iconic high tech brands in the world, and energy production that powers the global economy. In the morning, I might meet with one of the fastest growing SaaS companies in the country about achieving the rigorous FedRAMP certification so they can sell to federal agencies. In the afternoon, I might meet with the systems engineering team of an energy company who are rolling out a new Kubernetes-powered analytics platform that needs to be protected from unauthorized access.
+
+This post highlights some of the most important things that I see dynamic organizations doing that can be easily implemented in the energy industry to help mitigate risk and maximize developer productivity.
+
+## Why the energy sector infrastructure is a national security issue
+
+As our nation diversifies our energy production sources, it is important to protect all critical energy supplies. The recent [Colonial Pipeline attack](https://goteleport.com/blog/passwordless-infrastructure/) is illustrative of what can happen when outdated security methods are used to protect critical infrastructure.
+
+With Colonial Pipeline, a former employee’s account was left active and had access to the Colonial Pipeline Virtual Private Network (VPN) which was accessed using just a username and password. The rest is history.
+
+## The state of infrastructure security
+
+Could this happen again? Unfortunately, yes, as [a recent survey of 1000 IT, DevOps and Security professionals](https://goteleport.com/pdf/state-of-infrastructure-access-2021.pdf) conducted for Teleport by the Schlesinger Group, an
+independent research company, points out.
+
+First, 59% of respondents are "concerned" or "very concerned" about ex-employees leaving with secrets and/or knowledge into how their organization accesses infrastructure.
+
+<BlogImage src="./assets/concerned.png" />
+
+Shockingly, 83% of respondents cannot guarantee that ex-employees can no longer access their infrastructure.
+
+Despite the existence of superior and accessible technologies like identity-based short-lived certificates to grant access, a majority of companies are still relying on outdated methods like passwords and VPNs.
+
+<BlogImage src="./assets/bars.png" />
+
+[Passwords have two fundamental issues](https://goteleport.com/pdf/state-of-infrastructure-access-2021.pdf) which are worth pointing out given their role in energy sector attacks. First, passwords are possible to guess using brute-force and other methods. Long complex passwords partially address this problem, but only partially. Second, hackers can intercept and steal passwords well before any breach is detected.
+
+## The path forward for a secure energy (infrastructure) future
+
+While used by only 32% of the sample, short-lived identity-based certificates are a way forward. The innovative SaaS companies that I work with have standardized on certificates, rather than passwords, to grant access to their infrastructure. Why is this important?
+
+<BlogImage src="./assets/primary-reason.png" />
+
+### Certificates give an identity to people and machines
+
+The log4j exploit is top of mind for many of my customers. Let’s look at how certificates might mitigate a log4j attack. When an exploit happens with log4j, malicious code is executed on the infected server. This code can then spread out laterally from the infected host. It can then spread to other hosts, by running malicious commands. What if one of those commands is to perform a deployment using a Jenkins server? Or to login to an Elasticsearch cluster? That can only happen if the machines running those applications are not enforcing identity-based authorization. If every machine has an identity, and those identities are authorized to only perform certain actions, then an infected machine will not be able to spread malicious code throughout a network. Identity-based access is important not just for humans, but also for machine-to-machine trust.
+
+### Certificates limit attack surface in time
+
+Passwords can be revoked, but in practice they are forever. And SSH keys and other shared credentials are just passwords. Certificates are different. By design, certificates are short-lived. If you are granted access to a server, or a database, or a Kubernetes cluster using a certificate, you will need to reauthenticate again after a certain period of time. So even if your computer is stolen, the scope of the exploit is limited.
+
+### Just-in-time access? Zero trust? Passwordless? Yes.
+
+In the survey mentioned above, we asked people how important a variety of innovation security practices were to their business. Uniformly, respondents pointed out the importance of moving towards just-in-time, zero-trust and passwordless access. And certificates, with their improved security and increased functionality, are key to these moves.
+
+| How important is moving towards:   | Very Important or Important |
+| ---------------------------------- | --------------------------- |
+| Just-in-time infrastructure access | 89%                         |
+| Zero-trust architectures           | 86%                         |
+| Passwordless infrastructure        | 77%                         |
+
+<EmailSubscribeViolet />
+
+### More secure AND more productive
+
+Security is important. No doubt. But does it have to come at the cost of agility? Absolutely not. History has shown that simple and easy-to-use software is key to first-class security because it reduces the risk of a human error. That is what is so powerful about using Teleport to secure infrastructure. You improve national security, and improve your bottom line.
+
+Everyone understands that developer productivity is king when it comes to staying competitive. This is especially true in lower-margin businesses where wasted time is wasted money.
+
+Despite the importance of developer productivity, 61% of enterprises have experienced a time when an expert engineer has been unable to contribute to the resolution of an issue due to access issues. That is bad, but just as bad is when you roll out a new security solution but it is not adopted, perhaps due to poor user experience, by employees as has happened in 53% of enterprises. Luckily, choosing between security and productivity is now a false choice.
+
+Do you work in the energy sector? What is your view of the national security implications of energy computing infrastructure? Are you ahead of the game, or just getting started? In all cases, I would love to know if the team here at Teleport can help. [Reach out to us with questions anytime](https://goteleport.com/signup/enterprise/)!

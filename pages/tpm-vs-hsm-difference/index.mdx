@@ -1,0 +1,128 @@
+---
+title: TPM vs HSM - What’s the Difference?
+description: On the surface, trusted platform modules and hardware security modules seem to be performing similar functions. In this blog post we dive a bit deeper to find out what is the difference between the two.
+articleTitle: TPM vs HSM - What’s the Difference?
+date: "2021-11-16"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/hsm-vs-tpm.png
+  alt: hsm vs tpm
+tags:
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Hardware security modules (HSM) and trusted platform modules (TPM) seemingly do
+the same thing: they manage secret keys and enable data protection.
+
+But what does “managing secrets” mean, and what’s the difference between the
+two? Before diving deeper, let’s explore why computers need help with managing
+their secrets.
+
+## What are TPMs and HSMs for?
+
+Sensitive data needs to be protected, that is why data centers employ physical
+security. But what if an attacker gains remote access to a computer system over
+the Internet? Encryption can provide an additional layer of protection.
+Encryption algorithms use secret keys, sometimes simply called secrets. An
+attacker must also know the secret to decrypt the data.
+
+But where do we store the keys? The good ones are long and hard to remember,
+and we need quite a few of them for different reasons. Storing data is what
+computers are for. Thus, we have the Catch-22: we need computers to store
+encrypted data, and we also need them to store an encryption key, which itself
+is data!
+
+The trivial example illustrates the need for devices like HSM and TPM. Their
+purpose is to allow computers to resolve the Catch-22 above.
+
+## What is a HSM?
+
+HSM stands for hardware security module. HSMs are hardware devices that can
+reside on a computer motherboard, but the more advanced models are contained in
+their own chassis and can be accessed via the network.
+
+The basic principle of why HSMs are better than simply storing secrets on an
+SSD is because they allow applications to easily generate secrets and perform
+operations on secrets, but they do not allow them to easily read secrets.
+
+In other words, a piece of software can use an HSM to generate a key, and send
+data to an HSM for encryption, decryption or cryptographic signing, but it
+cannot know what the key is. In fact, even physically gaining access to an HSM
+is not a guarantee that the keys can be revealed. Many HSMs automatically
+destroy keys if tampering attempts are detected.
+
+If an attacker gains access to a computer system with encrypted data, they will
+not be able to decrypt it without a key. And if they gain access to an HSM,
+they will not be able to read the keys.
+
+But HSMs can do more than just storing keys. High-end models can offer
+significant hardware acceleration of cryptographic functions such as key
+generation, encryption, decryption and cryptographic signing and signature
+validation.
+
+## What is a TPM?
+
+TPM stands for trusted platform module. TPMs are small hardware devices that
+are usually embedded into computer motherboards.
+
+A TPM contains a secret key which is not accessible to the outside world.
+Because a TPM is usually integrated with its host computer, it can be used to
+uniquely sign/encrypt and decrypt data created on this computer. One practical
+application of this is securing boot: a computer UEFI will refuse to boot if
+its storage device or other hardware has been tampered with, using a TPM as a
+root of trust.
+
+A TPM also allows storing other keys and performing basic cryptographic
+operations, similar to an HSM.
+
+## What is the difference between TPM and HSM?
+
+So far it seems that a TPM is just a smaller HSM embedded onto a computer
+motherboard. This is not quite true:
+
+- HSMs are more powerful. High end HSMs can be faster than a computer CPU when
+  performing cryptographic operations and, in addition to enhanced security,
+  they provide meaningful acceleration of encryption or decryption. Some are
+  even capable of running their own operating system and executing custom
+  programs designed specifically to run inside of an HSM!
+- HSMs are generic devices that conform to APIs such as PKCS #11. They are
+  accessible to any application that wants to use their services. While TPMs
+  are usually more closely integrated with their host computers, their
+  operating system, their booting sequence, or the built-in hard drive
+  encryption.
+- HSMs are meant to be used in data centers, while the scope of a TPM is
+  usually a single system.
+
+<EmailSubscribeViolet />
+
+## Usage examples for TPMs and HSMs
+
+All iPhones contain a TPM inside, but Apple calls it T2. This chip secures the
+lock/unlock sequence, the booting process and provides the encryption for the
+iPhone’s storage. It ensures that even if the phone’s storage is physically
+removed, it will be impossible to read elsewhere.
+
+Another example is protecting data centers. Remote access to cloud computing
+resources is usually implemented using remote access protocols such as SSH,
+RDP, or built-in protocols for databases. The common configuration of these
+protocols requires every resource to know the key of every user. This is not
+only insecure, it is also impractical when the number of servers, databases, or
+users constantly grows.
+
+A much better approach is to move away from keys to certificates, e.g.
+automatically-expiring keys signed by a certificate authority. This means that
+instead of protecting thousands of keys, only a single key called a certificate
+authority (CA) needs to be stored in a secure place, such as an HSM.
+
+[Teleport](https://goteleport.com/) is an open-source certificate-based multi-protocol access proxy
+that allows data center and cloud operators to get rid of keys in their
+infrastructure and reduce the attack surface to a single, most secure component - an HSM.
+
+## Conclusion
+
+So, what is the difference between TPM and HSM? In a nutshell, they are quite
+similar but HSMs offer more features, more performance and are available in
+more form factors at a much higher price.
