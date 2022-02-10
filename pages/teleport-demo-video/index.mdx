@@ -1,0 +1,47 @@
+---
+title: Teleport Demo and Overview Video - Modern SSH
+articleTitle: Teleport Demo Video - Modern SSH
+description: Teleport allows easy implementation of SSH best practices. Here is a video that takes a deep dive into how Teleport works.
+author: Ev Kontsevoy
+date: "2020-07-16"
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import Video from "components/Video";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+We recently launched Teleport 4.3 and received an overwhelming response from newer members of the community. They have requested that we go back and explain from the start what Teleport is and why it is better than using the built-in SSH machinery that comes with every Linux or BSD distribution.
+
+## What is Teleport?
+
+Teleport is an open source Linux server that allows you to easily implement SSH best practices. We have covered [SSH best practices](/blog/how-to-ssh-properly/) using OpenSSH on our blog before. And while OpenSSH is the de-facto standard, it requires significant expertise and time commitment to do the following:
+
+* Move away from SSH keys to SSH certificates - the [benefits of SSH certificates](/blog/ssh-key-management/) are hard to ignore, especially as your infrastructure and your team continue to grow
+* Set up SSH bastions, AKA jump hosts
+* Single sign-on (SSO) with an identity provider like Github, Google or Active Directory
+* Centralized audit log with [SSH session recording](/blog/how-to-record-ssh-sessions/)
+* Synchronize SSH access with Kubernetes access because you do not want users to bypass K8s security simply by using SSH
+* Connect to edge devices via SSH
+
+Teleport does all of the above out of the box, by default, and with minimal configuration. We have recorded a 5-minute demo video to show how this works.
+
+<EmailSubscribeViolet />
+
+## Teleport 4.3 demo
+
+In the video below, you will see how to:
+
+* Download Teleport
+* Receive an SSH certificate using Github as an authentication provider
+* Get SSH access using the command line
+* Get SSH access via the browser
+* Explore the audit log, including the recorded sessions
+* SSH into a Raspberry Pi which is running on a cellular network
+
+You can just hit “play” or proceed to the [Quick Start Guide](https://goteleport.com/docs/getting-started/) and do all of the above yourself. It only takes 30 minutes to get up and running:
+
+<Video src="https://www.youtube.com/embed/v8qvmjvZpBE?rel=0" margin="24px 0 40px 0" />
+
+[Download Teleport](https://goteleport.com/download/) and try it for yourself!

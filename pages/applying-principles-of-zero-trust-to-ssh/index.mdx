@@ -1,0 +1,89 @@
+---
+author: Steven Martin
+date: "2020-03-17"
+tags:
+  - teleport
+  - security
+title: "SSH: Applying Zero Trust Principles"
+articleTitle: Applying the Principles of Zero Trust to SSH
+description: The Zero Trust approach to SSH and security is based not on where you are, but who you are, making it possible to access resources in cloud-native, hybrid cloud, or legacy environments securely.
+logo:
+  image: ./assets/zero-trust-header.png
+  alt: Zero Trust
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+_The Zero Trust approach to security is based not on where you are, but who you are. This model shifts the focus from network and perimeter-based security to identity-based access. In simple terms, this means:_
+
+
+*   _Assume that every device or service in your organization is freely accessible from the Internet._
+*   _Enforce the rule that every device or service in your organization must authenticate based on user identity._
+*   _Users and software must be treated the same. For example, a robot needs to authenticate with devices and services using its identity just as a human would._
+
+Zero Trust security provides a powerful approach to keeping an organization's resources secure and usage auditable. The castle and moat approach to trusting those inside the castle causes substantial danger if the perimeter is penetrated, and is not designed to stand up to the challenges of a distributed workforce.
+
+Given the trend of more people working remotely, many organizations are feeling the stress on their traditional perimeter-based security infrastructure. While applying Zero Trust principles is often a change to existing business practices, it is better suited for this "new normal" of a completely distributed workforce.
+
+Part of [embracing Zero Trust](/blog/workflow-api/) is to use tools that meet security requirements without disrupting (and sometimes even improving) business flow.
+
+
+## Defining Zero Trust
+
+Zero Trust is defined in detail by [NIST](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207-draft2.pdf). Essentially, we no longer assume that being in an internal network or location is sufficient with a static credential.
+
+Zero Trust security upends traditional security strategies where companies trust certain groups of users by default based on factors like their location (assuming that anyone on your local network or VPN can be trusted) or past status (for example, verifying a user's access rights once, then giving them a token that lets them retain those rights forever).
+
+This means that you can’t use static files or credentials and that usage of resources is auditable and tracked. This also means that the person who got access to the resource cannot remove all traces of access.
+
+_“Zero Trust Architecture should allow developers and administrators to have sufficient flexibility to satisfy their business requirements while using logs and audit actions to identify access behavior patterns.” ([NIST doc](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207-draft2.pdf))_
+
+
+## Applying Zero Trust to SSH Access
+
+Site reliability engineers (SRE), administrators, developers and [plenty of others](/blog/how-uber-netflix-facebook-do-ssh/) leverage SSH to access resources within their infrastructures to access and adjust their applications. A fraudulent party being able to access these resources is a significant danger to an organization, especially when that user account has modification access. This access is often a result of using SSH keys and the user being on a trusted network.
+
+_Zero Trust focuses on protecting resources, not network segments, as the network location is no longer seen as the prime component to the security posture of the resource. ([NIST doc](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207-draft2.pdf))_
+
+It's worth noting that access-control strategies based on SSH keys tend to go hand-in-hand with standard security principles, like assuming that logins from certain hosts can be trusted based on a network location or IP address. This is a poor strategy in an age when it's relatively easy to hijack IP addresses, and network perimeters don't mean as much as they did before infrastructures began sprawling across on-premise and cloud-based environments.
+
+The best Zero Trust tools used by an organization should feature:
+
+
+*   Authentication and authorization confirmation for each new session
+*   Straightforward role configuration that can match to an organization's policies
+*   Auditing and logging capabilities that allow reconstruction of actions
+*   Secure, modern methods of authenticating and authorizing usage
+*   Nimble capabilities that do not hamper innovation and change
+
+
+## Achieving Zero Trust
+
+Teleport is an example of an open-source solution that achieves these features for organizations, whether their infrastructure lives in the cloud, on-premises or a hybrid of both. The goal is to step away from traditional SSH keys to leverage role based access controls with the same Command Line Interface that users are used to.
+
+
+<BlogImage alt="Zero trust diagram" src="./assets/zero-trust-diagram.png" width="100%"/>
+
+
+Instead of SSH keys, Teleport acts as a certificate authority that applies your role-based access control for a designated time period. Roles are confirmed for each user session so there are no old authorizations sitting around that no longer apply. Roles are also applicable to particular clusters - useful when there are often different authorization levels across systems.
+
+An organization that has a large amount of traditional SSH key usage with multiple different roles should expect to iterate to achieve Zero Trust. Before defining too many roles that are overly coarse or fine-grained, it’s best to try them out. Confirm that the user can still perform their business functions while there are approval requests in place for modifying resources.  Having a deadline to achieve Zero Trust vs. never letting go of static credentials is best to fully embrace the approach.
+
+Teleport’s configuration is easily updated in real-time by authorized users and facilitates rapid deployment and iteration. This keeps a tight feedback loop and allows organizations to get the most value.
+
+<EmailSubscribeViolet />
+
+### Auditability and Event Logging
+
+Achieving Zero Trust requires being able to review the actions of users and react to potential threats in the environment.
+
+One way to address auditability (or observability) is by enabling the recording of SSH and kubectl sessions. The recordings should allow for complete playback of a given session. Recording data should be stored externally from the systems on which the activity takes place, making it virtually impossible for users to modify it.
+
+Teleport’s log is written in a JSON format that is easily streamable to monitoring systems, which can react quickly if they see unusual activity.
+
+
+## Conclusion
+
+Zero Trust security strategies are essential for managing the security threats of today's complex, highly distributed infrastructures. Accessing resources in cloud-native, hybrid cloud, or legacy environments can be done securely without broad, static rights by using the right tools. Those tools should also facilitate access and keep the user experience the same or make it better. Teleport is one of the key tools that has embraced Zero Trust.

@@ -1,0 +1,105 @@
+---
+author: Roman Tkachenko
+date: "2020-03-10"
+tags:
+  - kubernetes
+  - gravity
+title: Deploying to Kubernetes Clusters with No Access
+articleTitle: Deploying to Kubernetes Clusters with No Access
+description: This post looks into preparing a Kubernetes app to be deployed into a large number of Kubernetes clusters, even without direct access to them all.
+logo:
+  image: ./assets/external-cluster-support-header.png
+  alt: Cluster Support
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+_For the impatient, in this blog post, we’ll look into the problem of preparing a Kubernetes application to be deployed into a large number of Kubernetes clusters, even if you, the developer, do not have direct access to them all. The tutorial parts of this post will utilize Gravity 7.0, which you can [download here](https://goteleport.com/gravity/download/). This version is in beta at the time of publication, so be sure to select pre-releases in the dropdown on the download page to access it._
+
+Suppose you have the need to deploy a complex Kubernetes application. You know that supporting multiple, and possibly different, deployment targets is hard. Here are some examples of this problem:
+
+*   Deploying an application into a Kubernetes cluster owned/controlled by a different company: the dreaded “on-premise deployment option”.
+*   Deploying an application internally into a large number of Kubernetes clusters maintained by other teams within your organization.
+*   Deploying an application into a large number of deployment sites, like Chick-fil-A did, by having a Kubernetes cluster at each restaurant.
+
+Whichever use case you’re dealing with, you will need to deliver your application, keep it up-to-date, and provide operational support while keeping your overhead low.
+
+Building applications is certainly more exciting than thinking about how you’re going to bring them to your users. Nonetheless, the question of packaging and delivery comes with its own set of challenges. How do you ensure reproducibility, like Docker images your application pulls  that haven’t changed in the registry? How do you install your application to a remote datacenter in an underground bunker without any internet access? Traditional CI/CD pipelines built with a single production environment in mind break apart when your deployment targets start to multiply.
+
+Here we’re going to use an open-source packaging tool for Kubernetes apps, called Gravity, to show how this can be done.
+
+
+### The Emergence of Kubernetes
+
+With the emergence of Kubernetes, many software vendors started adopting it as a way to deploy applications. Migration to Kubernetes-as-a-platform has a lot of benefits, such as being able to describe an entire complex application in a declarative way, self-healing capabilities, and resource management, but imposes an additional burden on the vendor. For example, while becoming more and more popular, Kubernetes is still the new kid on the block in more traditional industries such as banks, insurance companies, and other traditional enterprises. This means vendors have to come up with a way to both, deliver their applications to customers that have already adopted Kubernetes in their infrastructure as well as support the BYOK (Bring Your Own Kubernetes) approach.
+
+Even with a lot of tooling built around Kubernetes, it remains a complex system with a lot of moving parts, which is difficult to set up and maintain without proper knowledge. This means that developers often have to become experts in managing Kubernetes clusters rather than focusing on application development.
+
+Gravity was created and open-sourced to help developers focus on applications and think less about complexities of deployments, so let’s take a look at the new 7.0 release.
+
+
+### External Cluster Support with 7.0
+
+Gravity provides a way to package complex Kubernetes applications into a single file called, “cluster image,” that can be deployed to different types of environments. For example, it can be deployed to existing Kubernetes clusters and to environments where Kubernetes is not available. Think of a Gravity's cluster image as a Docker container for your entire cluster.
+
+The earlier releases of  Gravity focused on delivering applications to multiple remote, restricted, and regulated environments without pre-existing Kubernetes infrastructure. To do this, Gravity lets you build a cluster image that contains your application, all of its dependencies (such as Docker images), and even the Kubernetes runtime. In other words, everything needed to stand up an entire cluster from scratch:
+
+<BlogImage src="./assets/gravity-create-cluster-image.png" width="100%" alt="Gravity Create Cluster"/>
+
+With the 7.0 release, Gravity lets you take the same appliance-based approach and apply it to a scenario where you need to deploy an application into an existing Kubernetes cluster. An application image is a lighter version of a cluster image that packages all application resources and dependencies, but does not include the Kubernetes itself:
+
+<BlogImage src="./assets/gravity-create-app-image.png" width="100%" alt="Gravity Create App"/>
+
+Application images can be deployed into existing Kubernetes clusters, be it Gravity clusters or clusters from other vendors or cloud providers such as GKE or OpenShift.
+
+It is easy to get started, too.
+
+Chances are, if you’re a Kubernetes shop (or in the process of adopting Kubernetes), you are already using Helm charts to package your applications and are looking for ways to deploy them to different customer environments in a consistent and reproducible manner.
+
+Helm is great for packaging Kubernetes manifests, but it does not answer the question of where your users are going to get all your Docker images from. This is especially true for strictly regulated environments which may not have access to the external registries (and you, the developer, may not have access to those environments either!)
+
+Application images aim to solve this problem by packaging your application resources and Docker images together in a single deployable tarball (with cluster images going a step further by adding Kubernetes to the mix as well). An application image can be given to a 3rd party so they can “inject” your application into their own cluster, even if it is air-gapped.
+
+Gravity plays well with Helm and lets you take your existing Helm charts and build application images out of them using simple CLI flow.
+
+<EmailSubscribeViolet />
+
+### How to Use it
+
+To get started, download Gravity CLI tools from our [Downloads](https://goteleport.com/gravity/download/) page. Gravity 7.0 is in beta, so be sure to select pre-releases in the dropdown on the download page to access this version. The CLI tool used to build images is called “tele” and the command that builds an image is called “tele build”.
+
+Point it to your Helm chart to produce an application image:
+
+```
+$ tele build ./chart -o app-0.0.1.tar
+```
+
+The resulting image is a .tar file that contains all your application resources and Docker images, and can be deployed to any Kubernetes cluster. Since this is a regular tar archive, it can be delivered as an appliance to a customer site and installed into their Kubernetes cluster:
+```
+$ gravity app install app-0.0.1.tar \
+    --registry=registry.customer.internal:5000
+```
+
+Notice how the application images are getting pushed to the customer’s internal Docker registry from which the Kubernetes pods will pull them. When used inside a Gravity cluster, the images will be automatically synchronized with the in-cluster private registry.
+
+The initial deployment is just the beginning - applications need to be kept up-to-date. To help with that, Gravity supports a full set of application lifecycle management commands that allow you to perform an upgrade or rollback using the same appliance-like approach.
+```
+$ gravity app upgrade my-app app-0.0.2.tar \
+    --registry=registry.customer.internal:5000
+```
+Gravity seamlessly integrates with your existing Kubernetes applications to help you deliver them to your customers and keep them up-to-date.
+
+
+### Conclusion
+
+As developers embrace Kubernetes, not just at start-ups, but also at larger companies, it is becoming the de-facto deployment target in the cloud and in traditional datacenters.
+
+Many technologists may not realize that Kubernetes has finally given us the path towards true application portability. It has the potential to erase the difference between classic “cloud-native” apps, on-premises apps, and even desktop-style downloadable apps.
+
+With application images introduced in Gravity 7, you can package a Kubernetes application to be delivered into your own clusters, someone else’s clusters and even into environments where Kubernetes is not present.
+
+Gravity can be [downloaded](https://goteleport.com/gravity/download/) here, found on [Github](https://github.com/gravitational/gravity), and you can learn more by checking out the [documentation](https://goteleport.com/gravity/docs/quickstart/).
+
+_Remember, Gravity 7.0 is in beta, so be sure to select pre-releases in the dropdown on the download page to access this version._

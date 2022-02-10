@@ -1,0 +1,127 @@
+---
+author: Kevin Nisbet
+date: "2020-06-03"
+tags:
+  - security
+title: VPNs and Zero Trust - Evolution of Remote Access
+description: Compare Zero Trust with “traditional” network security models focusing on the access portions of networks
+logo:
+  image: ./assets/vpns-and-zero-trust-header.png
+  alt: VPNs and Zero Trust
+articleTitle: "VPNs and Zero Trust: Thoughts on the Evolving Nature of Remote Access"
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Organizations of all sizes are currently under siege by adversaries with unlimited time and enough technical skill to exploit the cracks in our information systems and networks. All organizations have something to protect, whether large or small, and they are always looking for new technology to help against these adversaries.
+
+Zero Trust has become the latest framework to solve all of our security woes. On its face, calling this framework Zero Trust doesn’t really make sense, since we’ll always have trust somewhere in the systems we deploy. Regardless, it has become the accepted terminology to help create the competitive matrices easily consumed by the Fortune 500 c-suite.
+
+In this post, we’ll try to bypass the buzzwords to break down a few aspects of Zero Trust in practical terms by comparing them with “traditional” network security models while focusing on the access portions of our networks that have traditionally been defended by VPNs.
+
+If you’re not already familiar with the concept of Zero Trust, check out our recent post on the evolution of [Zero Trust](/blog/zero-to-zero-trust/).
+
+
+## Zero Trust Is Really About Reducing Trust
+
+Zero Trust is the newest hype, with lots of vendors proposing new solutions under the “Zero Trust” banner. It’s an obvious marketing buzzword, because to me, it doesn’t make any sense. All systems that do some amount of useful things will inherently include some form of trust, such as trusting the silicon to execute the instructions given.
+
+So what does Zero Trust mean then?
+
+The way I interpret Zero Trust into a useful mental model is by considering that we need to be conscious about the choices we’re making in regards to trust. This means that we need to assume adversaries have breached our network barriers and are able to operate freely within our networks. It also means that we need to move past our denials around from where our security issues stem and accept that somewhere within our security model, breaches will occur.
+
+The way I tend to simplify this in conversation is by saying that we need to begin to treat all internal systems as if they’re running directly on the internet.
+
+
+## Network Security Models
+
+Many organizations use a network-centric approach for the  security of internal resources. In my experience, this network centric approach leads to grouping similar equipment into groups and networks and placing equipment at strategic points throughout those networks to enforce the security model based on connectivity.
+
+This means partitioning internal networks into segments like VLANs and deploying equipment like firewalls to create policy on traffic that can pass through the firewall between the segments and the outside world. This can mean deploying proxies to enforce whitelisting or blacklisting of traffic to other network segments or the internet. It can mean deploying IDS equipment to try and identify known malicious patterns in the network traffic.
+
+And it often means deploying access VPNs that are capable of joining remote machines to the corporate network regardless of location.
+
+
+## On Virtual Private Networks
+
+Let’s explore VPNs specifically for a moment, as the promoters of Zero Trust have started to predict and call for the [death of VPNs](https://duckduckgo.com/?q=death+of+the+VPN&t=h_&ia=web).
+
+VPNs are fundamentally a simple technology concept. They provide a way to connect an endpoint, such as a laptop, to another network over some existing network connectivity, which I’ll refer to as an access VPN. It’s also a technology for bridging entire networks together, which network engineers use to create links and extend networks across untrusted or public infrastructure, usually known as a site-to-site VPN.
+
+VPNs generally introduce some desirable properties to the remote connections, such as confidentiality, authentication, and integrity of transmitted messages. These are the normal cornerstones to encryption: ensure an eavesdropper can’t see what’s going on, assure traffic only comes from the designated host, and ensure an adversary can’t manipulate traffic in transit.
+
+Sounds like a great tool doesn’t it?
+
+The problem comes back to identity. While VPNs provide authentication towards the outside world, as traffic enters the internal network it often loses its identity. This lack of identity makes it difficult to enforce security posture that allows or denies connectivity based on the user.
+
+
+## Perimeter Security
+
+It’s difficult to consider VPNs and Zero Trust together without talking about perimeter security. Many posts about Zero Trust seem to predicate that the security model employed by most networks is based on a hard exterior and soft interior or a castle-and-moat security model.
+
+While this is likely true within some organizations, I don’t think I’ve ever seen anyone truly advocate for this model. But when given firewalls, IDS systems, and VPNs as the tools to employ network security, there isn’t much choice but to try and build barriers between networks and employ the given tools as strategically as possible.
+
+The difficulty is we often design networks by abstractions and layers. Let’s build a network for our production databases. Let’s place a firewall in front of the database network, to control access to the databases. And when we create firewall rules, we create groups of addresses that get a common set of rules. And the tools base their rules on network addressing.
+
+And users? Well, they’ll move around the network. Office space assignments will move between buildings, floors will be shared between teams, and users will change teams or perform cross-functional duties. Each of these requirements combined with the abstractions keep opening up the access to more of the organization. And closing off access is impossible because inevitably, closing a rule will bring out the torches by blocking someone's job or impacting production service.
+
+So it comes back to identity. Networks generally provide a poor form of identity, making it nearly impossible to employ a security model restricting and isolating users to only necessary access. Access VPNs don’t help much either. While it’s possible to assign a static network address to a user, most organizations do not do this for most users, and some users may require redundant access. Accessing different production concentrators inevitably grants inconsistent access because the firewall policy and VPN assignments are difficult to keep in sync.
+
+Any user with shell access to a system or http proxy access will generally have the ability to create arbitrary outbound connections from those systems, erasing the network layer identity in the process.
+
+
+## The Problem is Identity
+
+While I’m sure various enterprise products have all kinds of features to make this model work, at the end of the day, we’re using network addresses to enforce network policy. Each machine is assigned an address relevant to the network, which the network must use to route traffic to a location. But users don’t exist solely in a location, they move around, so an IP address almost never implies identity.
+
+Abstractions make this worse. To save time and energy, network policy is written into groups. So a group of machines at a location get the same set of privileges. And decisions about changes to infrastructure aren’t made to reflect the underlying network security model. A group of accountants will be re-assigned office space and get access to your production network that someone forgot to disable during the office move.
+
+I myself used to work in an organization where you could get access to the entire production network by assigning yourself an IP address outside of the DHCP pool within a floor of the building. There was an excel sheet to track assignments, but that was more so users don't conflict with each other, and inevitably was out of date immediately.
+
+It’s not just on the access side either, as engineers utilize abstractions in deploying our systems. We group systems together into shared networks to save time, keep the network manageable, and meet deadlines. So all the database servers go together, even if they offer slightly different services.
+
+I don’t see it as organizations striking out to build walls and a soft interior, as much as the available tools and abstractions don’t allow us to do anything but build a wall.
+
+
+## A Bigger Problem is Authentication
+
+So if we accept that the network isn’t able to provide identity and the abstractions don’t allow us to enforce effective network policy, each system and user effectively is left to fend for itself within our networks.
+
+This implies that each system then needs to be able to authenticate users, which creates an interesting set of problems.
+
+
+
+*   Should we encourage our users to type usernames and passwords on all systems they access?
+*   How clear or easy is it for teams to get access to the SSO system to link in authentication?
+*   How are teams supposed to map SSO access to attributes?
+*   Can a team introduce new attribute mappings to support the use cases for their tools?
+*   Have the teams removed all default accounts?
+*   Are the teams creating shared credentials just because it’s too hard to figure out how to wire everything up?
+
+These are not simple problems. Just accepting usernames and passwords on all internal systems means the administrators of those systems can probably steal those credentials. A compromise of any system becomes a compromise of credentials, which becomes a compromise of all systems on which those credentials are valid.
+
+And we’ve just trained all of our users, when asked for a password, to provide it.
+
+Zero Trust means employing single sign-on, as portals that end systems never see a user’s credentials, and using a combination of TLS client authentication for device authentication and U2F/FIDO2 keys that do proofs of the user without revealing the underlying secrets. Because we’re being careful about trust, we remove our trust that every end system in our network is able to handle a user's credentials securely.
+
+So solving identity also means we need to solve how we authenticate users and how we prevent credential re-use.
+
+<EmailSubscribeViolet />
+
+## Are Access VPNs Dead Yet?
+
+Yes and no.
+
+VPNs are certainly dead, in the sense that we need to stop ascribing properties to VPN products that they aren’t capable of delivering. In the mess of modern organizations and networks, VPNs don’t solve relaying identity to internal systems, and networks aren’t really able to enforce security by restricting connectivity. And they certainly don’t ensure that internal systems don’t have default credentials enabled or that users only provide credentials to systems they are supposed to.
+
+But this doesn’t mean that access VPNs are necessarily dead and don’t have a purpose. When considering defense in depth, I suspect many organizations will continue to reach for VPNs as a layer in the protection of information systems. The difference will be in what they’re protecting access to, and that they’ll play a less central role in the security model as users roam.
+
+
+## Tools Are Just Tools
+
+Zero Trust itself is a disingenuous term as we’ll always have trust somewhere in the systems we deploy. But as we model our security posture, it means we want to eliminate trust from as many systems as possible for the model itself to be upheld. This means we can’t rely on the traditional network centric security tools to enforce our security models on their own.
+
+There is also an emerging set of tools under the “Zero Trust” banner, that can be incorporated into our security models. Whether it’s SSO providers and gateways, hardware security tokens that don’t leak credentials, or gateways to try and retrofit existing systems with new capabilities, these will be the tools of the next generation.
+
+But like anything else, these tools themselves don’t solve problems, they’re just tools. Organizations will only be as secure as the investment and focus they place on enterprise security.

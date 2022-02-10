@@ -1,0 +1,127 @@
+---
+author: Ev Kontsevoy
+date: "2020-07-09"
+tags:
+  - announcements
+title: Teleport 4.3 is a Modern Replacement for OpenSSH
+articleTitle: Teleport 4.3 - Modern Replacement for OpenSSH
+description: What's new in Teleport 4.3. Overview of new features -  new UI, API driven, expanded audit capabilities. A modern open source replacement for OpenSSH
+logo:
+  image: ./assets/4-point-3-announcement-header.gif
+  alt: Teleport 4.3"
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+_We’re excited to announce the release of Teleport 4.3 - new UI, API driven, expanded audit capabilities, and still open source. This version is so significant, we nearly called it 5.0! In this post, we’ll cover the major new features and you’ll see why we called it ‘Teleport’._
+
+
+Teleport 4.3 is now available for [download](https://goteleport.com/download/). For those of you who haven’t heard of Teleport, here’s a quick introduction:
+
+Teleport is an open source, modern drop-in replacement for OpenSSH, which supports Kubernetes in addition to SSH. Teleport removes the need for VPNs, comes with a beautiful new Web UI, and provides seamless access to all cloud environments and edge devices. Teleport is incredibly easy to set up and use.
+
+You can see the vision in the illustration above. The glorious portal radiating encrypted beams into all of your clouds and smart devices is connected to the serious-looking audit log apparatus next to it. That’s how smart engineers should be accessing infrastructure: from anywhere, to anywhere, like humans traveling from the future!
+
+We also provide Teleport 4.3 with enhanced RBAC and expanded SSO capabilities for larger enterprise customers under our commercial license. The differences are described [here](/features/).
+
+
+## Introducing 4.3
+
+Back when we started Teleport, we picked this name for the project because we wanted every engineer to feel as if all of their organization’s computers and servers can be magically teleported into the same room (LAN) as them.
+
+Before dumping a bunch of screenshots on you, let’s go over everything that’s new in this version:
+
+* **Brand New Web UI**. The updated user interface is finally bringing the Web UI to feature parity with the command-line (CLI) client.
+* **Cluster View** allows users to see all clouds and computing environments in one place.
+* **Audit Log View** allows administrators to see what’s going on with a detailed view of all security events, not just recorded sessions.
+* **The API**. Our users have been requesting this for a very long time! We are starting with a plugin API to allow Teleport administrators to customize how user permissions are elevated and we’re providing Slack and PagerDuty integrations out of the box.
+
+Let’s dive in!
+
+
+## New Web UI
+
+We have not touched the web UI of Teleport since the original release. But the pressure kept building up:
+
+* Windows or tablet users wanted our web UI to be as powerful as a real command-line client. They wanted to bookmark clusters, machines, and have instant access to them with a single click. And we always wanted to be able to say that you can Teleport yourself into an SSH server or a Kubernetes cluster from _anywhere_, without having to add, “as long as you have a shell.”
+* A well-designed graphical user interface facilitates learning by doing. We wanted users who are new to Teleport to be able to set everything up in 15 minutes and quickly learn about all of Teleport’s superpowers by exploring.
+
+Besides, our user experience team has grown since the early days, so existing users should benefit from the faster navigation and greater flexibility of the new UI.
+
+
+## Cluster View
+
+The original vision for Teleport was to erase physical boundaries between
+people and infrastructure. We always felt that the Zero Trust principle of not
+having privileged networks was not enough. We always wanted engineers to
+securely connect to infrastructure regardless of network and physical location,
+but also regardless of where the servers are. Azure? AWS? In a restaurant
+basement or a self-driving vehicle? There should be no difference.
+
+Teleport has always supported this capability via the [IoT mode](/how-it-works/ssh-kubernetes-access-on-the-edge/), but it has been
+hidden in the [Admin Manual](https://goteleport.com/docs/setup/admin/) and reserved for command-line experts. The new web UI with its Cluster View puts this functionality front and center. That’s why we called it Teleport!
+
+<BlogImage src="./assets/teleport-4.3-cluster.png" width="100%" alt="Teleport Cluster"/>
+
+
+## The New Audit Log
+
+_What’s happening right now?_ Very few DevOps engineers can comfortably answer this question in regards to their infrastructure. Are there any SSH sessions open? Is anyone sitting inside of a Kubernetes pod? Did anyone run `curl | bash` on a production machine? If so, what exactly did that script do?
+
+We have been building up the logging and auditing capabilities of Teleport for a while. We’ve blogged about how to transform [SSH sessions into Auditable Events](/blog/enhanced-session-recording/). But again, this functionality has been reserved for command-line warriors and you’d need to use external tools to inspect the audit information.
+
+The 4.3 release finally brings in a graphical way to explore what’s happening on your infrastructure - both right now and yesterday.
+
+<BlogImage src="./assets/teleport-4.3-audit-log.png" width="100%" alt="Teleport Audit Log"/>
+
+
+## The API
+
+Have you thought about having an API to control access to SSH servers and Kubernetes clusters for your organization? The most common use case for one is to provide safeguards against security-sensitive actions.
+
+For example, let’s assume there are a few database servers in a production environment. The access to the database itself is encrypted and protected. But every once in a while Bob, the database administrator, needs to get shell access on those machines. Obviously, this is not something that should be happening frequently, and it would be nice to have another person provide a second set of eyes for added security. In some organizations, this is called a _four-eye policy_.
+
+With this new API, you can design a privilege escalation workflow, where Bob can request his privileges to be escalated via a command line:
+
+
+```
+# Bob requests the privileged "dba" role
+$ tsh login --request-roles=dba
+Seeking request approval... (id: bc8ca931-fec9-4b15)
+```
+
+
+While Bob is waiting, the security team gets a message on Slack (or PagerDuty) to approve the request:
+
+<video autoplay loop muted playsinline style={{width: "100%"}}>
+  <source src="./assets/slack-plugin/slack.mp4" type="video/mp4"/>
+  <source src="./assets/slack-plugin/slack.webm" type="video/webm"/>
+Your browser does not support the video tag.
+</video>
+
+Now Bob can proceed with:
+
+```bash
+# business as usual:
+$ ssh postgres-master
+```
+
+And everything he’ll be doing will be recorded in the audit log: both, structured events like command executions and the video-like feed of his keystrokes, called session recording.
+
+<EmailSubscribeViolet />
+
+**Conclusion & Learn More**
+
+As you can see by the number of screenshots in this blog post, this release is all about user experience, but there is so much more.
+
+To see the full list of bug fixes, improvements, and documentation updates, you can visit the [Github milestone](https://github.com/gravitational/teleport/milestone/37).
+
+But we’ve also made learning about Teleport easier, check out the new sections on our website:
+
+* [How Teleport works](/how-it-works/)
+* [Certificate-based SSH authentication: how does it work?](https://goteleport.com/how-it-works/fedramp-ssh-kubernetes/)
+* [Connect to SSH and Kubernetes clusters for IoT devices](/how-it-works/ssh-kubernetes-access-on-the-edge/)
+
+[Download Teleport](https://goteleport.com/download/) and [watch our on-demand webinar](/resources/videos/teleport-43-demo/) for a demo of these key features.

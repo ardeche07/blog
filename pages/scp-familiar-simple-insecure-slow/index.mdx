@@ -1,0 +1,183 @@
+---
+title: "SCP Overview: Familiar, Simple, Insecure and Slow"
+description: SCP is a simple tool with a quirky implementation. It does an okay job at moving files around, but newer software like SFTP and Rsync outperforms it.
+articleTitle: SCP - Familiar, Simple, Insecure, and Slow
+author: Andrew Lytvynov
+date: "2020-06-18"
+tags:
+  - engineering
+logo:
+  image: ./assets/scp-header.png
+  alt: SCP-Familiar and Slow
+layout: blogArticle
+---
+
+import Quote from "components/Quote";
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+SCP? It’s that handy file-transfer feature of SSH, right?
+
+Well, not quite. It’s more of a hack. Or an undocumented, unstandardized mashup of two protocols. Let's look at the exciting (and scary) details.
+
+
+## What is SCP?
+
+Secure Copy Protocol (SCP) allows us to move files (and directories) between two computers. Using it is straightforward:
+
+
+```
+scp local_file.txt remote_host:/home
+```
+
+
+This will copy `local_file.txt` to another computer (usually a server) with domain name `remote_host` into the `/home` directory.
+
+The beauty of it is that it works on pretty much any Unix-like system and many popular Windows clients too! This ubiquitous availability and ease of use is what made SCP so well-known. And it’s easy to build a mental model of how it works, which helps a lot when troubleshooting.
+
+But moving files around isn’t that exciting. SCP’s real value is in authentication of both computers and encryption of data in flight (that’s what “S” represents).
+
+When using it, you may have noticed that you need to set up SSH access to the remote computer first. The SCP authentication prompts even look exactly like with SSH. This is because SCP runs on top of SSH - it uses it as a pipe for plaintext file data. In fact, SSH does all the security heavy lifting described above, SCP just tosses some plaintext files over the SSH connection.
+
+[This Wikipedia entry](https://en.wikipedia.org/wiki/Secure_copy) has a bit of SCP history. In short: there once was a tool called [RCP](https://en.wikipedia.org/wiki/Berkeley_r-commands) on old BSD systems, which moved files between computers. This was during the care-free days of trusted networks where everyone was friends with everyone else. Then people realized that _maybe_ not everyone on their network is such a good friend after all. Someone copied the RCP implementation over to a precursor of OpenSSH and simply ran it over an SSH session to protect files from not-friends. Problem solved! It remained in OpenSSH ever since and a bunch of other software mimicked it for compatibility, so here we are.
+
+
+## How does it work?
+
+The [SSH RFC](https://tools.ietf.org/html/rfc4251) is fairly straightforward and complete. But there is nothing about copying files over SSH. How is SCP implemented then?
+
+SCP is not a standardized protocol. There’s no RFC or any official description of how to implement it. OpenSSH implementation is the de-facto “specification”. There are two parts to this implementation: “connection” establishment and wire protocol after that.
+
+
+### “Connection” establishment
+
+Okay, it’s not really a connection. It’s just `STDIN/STDOUT` of a command executed with SSH, kind of like a Unix pipe. OpenSSH has two main programs involved in this: `sshd` and `scp`. `sshd` is the server daemon that’s always running, accepting new SSH connections. `scp` is a client program that pretends to be `ssh` and then sends or receives files.
+
+When the `scp` program runs, it opens a new SSH connection. On that connection, it executes _another_ scp program on the server side, with special, undocumented, flags. You can think of `scp` as running `ssh exec scp [flags]`. The main flags are `-t` (“to”) and `-f` (“from”) for receiving and sending respectively, other flags are `-d` (target is a directory) and `-r` (recursive, source is a directory).
+
+<BlogImage src="./assets/scp-1.png" width="100%" alt="How SCP works"/>
+
+It’s worth noting that SCP protocol is unidirectional: one end is sending files and another is receiving. To go the other way you need a separate `scp` execution.
+
+After `scp` is running on the remote end, the actual SCP protocol commands start flowing via `STDIN` and `STDOUT`.
+
+
+### Wire protocol
+
+Now we have a secure I/O pipe and effectively switch to the RCP protocol. This protocol is sequential (one operation at a time) and synchronous (each command must be completed before the next one starts).
+
+The format is roughly `[command type][arguments]\n[optional data]` (without the brackets or spaces):
+
+
+
+*   `[command type]` is always one ASCII letter:
+    *   ‘C’ - write a file
+    *   ‘D’ - enter a directory
+    *   ‘E’ - exit last directory
+    *   ‘T’ - set create/update timestamps of the next file or directory
+*   `[arguments]` are command-specific, like file/directory name, file size or timestamps. ‘E’ command has no arguments.
+*   `[optional data]` is sent when the last command was ‘C’ (create file). The size of data is specified as an argument for ‘C’
+
+In addition, there are also control bytes, that are sent on their own without newlines:
+
+
+
+*   `0x00` - “OK”, acknowledgement of completing the last command (like writing a local file). This is also sent by the receiver at startup to let the sender know it’s ready to receive commands.
+*   `0x01` - “warning” that’s followed by a line (terminated by newline) to be displayed to the user.
+*   `0x02` - “error” with an optional message (same as warning) but the connection is terminated afterwards.
+
+This annotated example (everything after the `#` symbol is not in the protocol) should clarify the whole process:
+
+<BlogImage src="./assets/scp-2.png" width="100%" alt="SCP Protocol"/>
+
+
+## Problems with SCP
+
+So far, SCP doesn’t sound too bad. The hacky design and lack of spec are unfortunate, but it’s a simple enough tool and seems to work for a lot of people. But now let’s look at some real-world issues.
+
+
+### Performance
+
+The sequential nature of the wire protocol, with mandatory acknowledgements for every single command add a lot of overhead. For example, if the single acknowledgement packet gets dropped along the way, the entire connection pauses until a re-transmission kicks in. On top of that, sending all the data without compression or asking the receiver whether it already has the file is less than ideal.
+
+An experienced sysadmin can tell you that `tar`-ing the files and sending a single big archive is substantially faster than using a recursive `scp` command. In fact, you can do this without SCP at all:
+
+
+```
+# Copy a local folder with 10000 files
+$ find /tmp/big_folder/ -type f | wc -l
+10000
+
+# Using scp
+$ time scp -r -q /tmp/big_folder/ server:/tmp/big_folder
+
+________________________________________________________
+Executed in  882.99 millis	fish       	external
+   usr time  114.09 millis	0.00 micros  114.09 millis
+   sys time  278.46 millis  949.00 micros  277.51 millis
+
+# Using tar over ssh
+$ time sh -c "tar cf - /tmp/big_folder | ssh server 'tar xC /tmp/ -f -'"
+tar: Removing leading '/' from member names
+
+________________________________________________________
+Executed in  215.68 millis	fish       	external
+   usr time   93.22 millis	0.00 micros   93.22 millis
+   sys time   66.51 millis  897.00 micros   65.62 millis
+```
+
+
+From 882.99ms to 215.68ms, that’s a 4x speedup in this (admittedly worst-case for `scp`) example!
+
+
+### Security
+
+SCP runs on top of SSH, so it’s totally secure, right? Oh, my sweet summer child, things are never secure.
+
+From [OpenSSH 8.0 release notes](https://lists.mindrot.org/pipermail/openssh-unix-dev/2019-March/037672.html):
+
+<Quote>
+  The scp protocol is outdated, inflexible and not readily fixed. We recommend the use of more modern protocols like sftp and rsync for file transfer instead.
+</Quote>
+
+If a shell on the remote side prints out anything for non-interactive sessions, your local scp process will happily interpret that output as SCP commands. At best, this will break the SCP protocol with obscure errors. At worst, the remote shell startup script is malicious and sends you an exploit payload instead of the file you wanted.
+
+And what about implementation bugs? Back in 2018, [Harry Sintonen](https://sintonen.fi/) discovered [a bunch of vulnerabilities](https://sintonen.fi/advisories/scp-client-multiple-vulnerabilities.txt) in popular SCP implementations (including OpenSSH). These ranged from modifying permissions on a directory to overwriting arbitrary files (effectively code execution because of  `~/.ssh/authorized_keys` or `~/.bashrc`) and injecting terminal escape sequences to hide any traces. These vulnerabilities are a good lesson for anyone building networked CLI applications.
+
+<EmailSubscribeViolet />
+
+## Alternatives to SCP
+
+Okay, so maybe SCP has some problems after all. How should we move the files around our computers without setting up a brand new system or resorting to snail-mailing USB drives?
+
+[SFTP](https://en.wikipedia.org/wiki/SSH_File_Transfer_Protocol) is widely considered the successor of SCP. It still runs on top of SSH for transport-layer security and doesn’t require setting up access separately. It can give you a custom interactive prompt for exploring the remote filesystem or you can script with a pre-written series of commands.
+
+On the downside, you will need to learn SFTP prompt commands and the protocol itself hasn’t been fully standardized (there were [many](https://en.wikipedia.org/wiki/SSH_File_Transfer_Protocol#History_and_development) RFC drafts, but the authors eventually gave up).
+
+[Rsync](https://en.wikipedia.org/wiki/Rsync) is another good alternative. The usage is exactly the same as with the scp command - it’s a drop-in replacement that also leverages SSH. Rsync is all about performance - it does a lot of complex computation locally to send as little data as possible over the network. Technically, it does data synchronization instead of pure transfer - if remote and local content are similar, only the deltas will be sent.
+
+Again, it comes with its own downsides: the sender uses a lot of CPU power to figure out what to send and the receiver uses a lot of disk IO to put things together in the right order. Rsync also does not come pre-installed on most systems, unlike OpenSSH.
+
+If you need to send a file over to someone (and email isn’t an option), [Magic Wormhole](https://github.com/warner/magic-wormhole) is an easy tool to use. You exchange short, readable codes out-of-band (like over the phone) and throw in some files. It handles your typical [NAT traversal](https://en.wikipedia.org/wiki/NAT_traversal) headaches and is much easier than exchanging SSH keys.
+
+The problem is that you need to exchange the authentication codes for each transfer, so it’s only good for one-off copies. The whole system is designed to be used by humans, if you need to transfer data between your laptop and some servers, Magic Wormhole is not the right tool.
+
+On the heavier side, there’s also software for syncing folders between personal devices (including phones and servers). Two great examples are [Syncthing](https://syncthing.net/) and [Perkeep](https://perkeep.org/). These systems are meant to always run in the background and exchange diffs between the files, similar to rsync.
+
+Both take some time to learn and configure (especially if you make use of their many, many features) and are primarily optimized for personal data (such as photos or chat logs), not for infrastructure scripting. They’re also much slower and more resource-hungry than everything I’ve mentioned above.
+
+
+## Conclusion
+
+SCP is a simple tool with a quirky implementation. It does an okay job at moving files around, but newer software outperforms it in many ways. SCP is still fine for simple personal use-cases, between computers you trust. It’s familiar and always there for you.
+
+But if you’re having performance issues or need to meet a higher security standard, any of the alternatives listed above are preferable to SCP. Pick the one that best suits your needs and migrate over.
+
+
+**Relevant links:**
+
+* [https://web.archive.org/web/20170215184048/https://blogs.oracle.com/janp/entry/how_the_scp_protocol_works](https://web.archive.org/web/20170215184048/https://blogs.oracle.com/janp/entry/how_the_scp_protocol_works)
+* [https://rsync.samba.org/how-rsync-works.html](https://rsync.samba.org/how-rsync-works.html)
+* [https://github.com/FiloSottile/age](https://github.com/FiloSottile/age)
+* [https://sintonen.fi/advisories/scp-client-multiple-vulnerabilities.txt](https://sintonen.fi/advisories/scp-client-multiple-vulnerabilities.txt)
+* [https://github.com/gravitational/teleport/pull/2509](https://github.com/gravitational/teleport/pull/2509)

@@ -1,0 +1,65 @@
+---
+author: Virag Mody
+date: "2020-05-27"
+tags:
+  - kubernetes
+title: Discussion on Why Blockchain Needs Kubernetes
+description: Why Kubernetes simplified deployments, interoperability, and upgradeability are key to the evolution of Blockchain Networks.
+logo:
+  image: ./assets/why-blockchain-needs-kubernetes-header.png
+  alt: Why Blockchain Needs Kubernetes
+articleTitle: Why Blockchain Needs Kubernetes
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+In under five years time, Kubernetes has become the default method for deploying and managing cloud applications, a remarkably fast adoption rate for any enterprise technology. Amongst other things, Kubernetes’s power lies in its ability to map compute resources to the needs of services in the current infrastructure paradigm. But how does this tool work when faced with the new infrastructure layer that is blockchain? Can the two technologies be used in conjunction? If so, will using Kubernetes to deploy blockchain networks actually speed up adoption, or just serve to excite investors and shareholders with technobabble?
+
+In time, I expect to see the intersection between these two technologies become more and more relevant. In fact, I’d argue that if blockchain networks gain adoption in the private and public sectors, it will be off the backs of Kubernetes clusters for three reasons: (1) Simplified Deployments, (2) Interoperability, and (3) Upgradeability. For this article, I will suppose the reader is somewhat familiar with both technologies, though I have provided primers and additional resources in the following section.
+
+### Blockchain
+
+Blockchain is an open-source technology that provides a shared immutable ledger recording transactions between parties. Blockchains maintain an accurate record of tamper-proof transactions without relying on a central authority such as a bank or government agency. Instead, using a combination of cryptography, distributed consensus algorithms, and peer-to-peer architecture, blockchains allow parties to agree on a record of events without needing to trust anyone. Applications can include digital money, voting, e-commerce, avoiding censorship, and more.
+
+_Additional Resources;_
+
+*   [3Brown1Blue’s But How Does Bitcoin Actually Work (Video)](https://www.youtube.com/watch?v=bBC-nXj3Ng4)
+*   [Preethi Kasireddy’s How Does Ethereum Work Anyway? (Blogpost)](https://www.preethikasireddy.com/post/how-does-ethereum-work-anyway)
+*   [Blockchain Use Cases ](https://consensys.net/blockchain-use-cases/)
+
+### Kubernetes
+
+Kubernetes, or K8s, is an open-source container orchestration platform. Originally created by Google and later donated to the CNCF, Kubernetes allows organizations to automatically scale, deploy, and manage containerized workloads and services. Orchestrating clusters of servers, Kubernetes can schedule containers to run on suitable hardware based on their available compute resources and the resources required for each container.
+
+_Additional Resources:_
+
+*   [Fahim ul Haq’s Why (And When) You Should Use Kubernetes](https://hackernoon.com/why-and-when-you-should-use-kubernetes-8b50915d97d8)
+*   [James Quigley’s Introduction to Microservices, Docker, and Kubernetes (Video)](https://www.youtube.com/watch?v=1xo-0gCVhTU)
+*   [Edge Computing at Chick-fil-A (Blogpost)](https://medium.com/@cfatechblog/edge-computing-at-chick-fil-a-7d67242675e2)
+
+## Simplified Deployments
+
+Let’s start with perhaps the simplest argument: To build blockchain applications, the process of deploying and managing the network itself must be simple and intuitive. Developer experience continues to be a driving factor for the adoption of new technologies. If you’ve ever dabbled with a private blockchain network, you’ll find it is an overwhelming and complex task. The process of building a [simple dApp](https://medium.com/@mvmurthy/full-stack-hello-world-voting-ethereum-dapp-tutorial-part-1-40d2d0d807c2) on the Ethereum network forces you to select between a dizzying array of options: Will you use Solidity or Vyper as your primary coding language? Geth or Parity for your client? Truffle suite or OpenZeppelin SDK for your dev framework? Running through the list of [developer tools](https://github.com/ConsenSys/ethereum-developer-tools-list) is enough to discourage beginners and veterans alike. And if you plan to run a blockchain network in any production environment, you best have a deep understanding of how each configuration element can affect the security of your decentralized network and its ability to be exploited. Unless you have a team of experienced sys admins and app devs, each with a thorough understanding of distributed systems and cryptography, it will be a challenge to use distributed ledger technology in any meaningful way.
+
+Kubernetes and Docker can, and have, abstracted away much of the knowledge required to get started. [IBM](https://hub.docker.com/u/ibmblockchain/) and [Corda](https://docs.corda.net/docs/corda-os/4.4/docker-image.html) have containerized their blockchain protocols and various [Ethereum](https://hub.docker.com/r/ethereum/client-go/) images exist - for added granularity, [network component images](https://hub.docker.com/search?q=ethereum&type=image) exist as well, including the Solidity compiler, network stats dashboard, testnets, miner nodes, block explorers, etc. In time, I expect to see more and more component network parts containerized and made available.
+
+Deploying blockchains will be a matter of picking a protocol image and the additional components images, building YAML manifests, and deploying with `helm install.` While modularity is necessary for designing complex networks and is available for those that need it, the choice overload can and will deter adoption for those that do not have the expertise, time, patience, or resources to explore blockchain technology. By packaging up elements of blockchain networks into image files that can be deployed and managed, the requisite knowledge required to get started will be democratized to those that are familiar with Docker and Kubernetes.
+
+## Interoperability
+
+Blockchains are ledgers of information that can be shared among multiple organizations without fear of manipulation or falsification. For operations that involve distinct parties, having a single record of truth becomes invaluable. Manufacturers, distributors, wholesalers, retailers, and customers can all access the same agreed-upon record of information without revealing their internal information systems. This is only possible if such [consortiums](https://www.datadriveninvestor.com/2018/10/10/the-emergence-of-blockchain-consortia/) can be infrastructure-agnostic. If blockchain consortiums can only run on AWS or IBM Cloud, significant chunks of the market would be eliminated from participation. Organizations need to be able to access blockchain capabilities and applications across any and all infrastructure - single cloud, hybrid/multi-cloud, on-prem, VPC, etc. Applications deployed in Kubernetes clusters work across all types of infrastructure, enabling service interoperability between organizations that are architected differently. The same application can be fragmented and hosted across different cloud providers.
+
+This is no different for blockchain applications. Already, [IBM Cloud](https://github.com/IBM/blockchain-network-on-kubernetes) and [AWS](https://azure.microsoft.com/en-us/blog/hyperledger-fabric-on-azure-kubernetes-service-marketplace-template/) have detailed templates for deploying blockchain networks through their respective Kubernetes engines. Azure and GCP will likely follow suit, or lose out on valuable market share for the growing industry. Going one step further, IBM currently supports a [blockchain SaaS offering](https://cloud.ibm.com/docs/blockchain?topic=blockchain-get-started-ibp), the first of its kind among the large cloud providers. Aspiring entrepreneurs can and will build dApps that customers can access without significant up-front capital expenses, continuing the trend of billion dollar companies being built on the backs of XaaS, just as Slack, Stripe, and Snowflake have.
+
+<EmailSubscribeViolet />
+
+## Upgradeability
+
+A more nuanced advantage of blockchains on Kubernetes comes through Helm charts. Blockchain networks are notoriously complicated to upgrade or roll back once deployed, without forking the entire network onto a new blockchain. This makes sense, as blockchains are meant to be immutable ledgers that serve as a source of truth - being able to centrally modify the network flies in the face of the blockchain ethos. While this design feature is necessary for protecting public blockchains, it can hamper internal blockchain networks for organizations that require a greater degree of control, like [Webjet](https://www.webjet.com.au/).
+
+Webjet is an online travel agency conglomerate that grew through acquisitions but has to manage disparate information systems across its various subsidiaries that all communicate with one another. Naturally, they turned to [blockchain technology](https://devblogs.microsoft.com/cse/2018/02/09/using-helm-deploy-blockchain-kubernetes/) with some help from Microsoft. Microsoft mapped various blockchain network elements to Kubernetes constructs via [Helm charts](https://github.com/helm/charts/pull/3220), enabling Webjet to update network artifacts like miner nodes, bootnodes, and network dashboards. By architecting networks using Helm charts, [organizations](https://accenture.github.io/blog/2019/06/25/hl-fabric-meets-kubernetes.html) have the freedom to quickly launch new networks with updated features, upgrade network artifacts, and backup/restore the entire state of a network.
+
+## Conclusion
+
+Though blockchain grows more relevant by the day, it is still far from reaching the public en masse. One of the roadblocks it will face on its way to adoption is its inherent complexity and integration into the existing infrastructure architecture that organizations use today. I believe these challenges can be largely abstracted by deploying blockchain networks and its component parts via Kubernetes clusters. Much of this is left to be seen; container images need to be built, Helm charts constructed, blockchain constructs tested in K8s clusters, and documentation written. But looking at large infrastructure companies and case studies, the general consensus is signalling towards blockchain on Kubernetes as the standard for adoption.
