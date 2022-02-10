@@ -2,7 +2,6 @@ import NextImage from "next/image";
 import styled from "styled-components";
 import css from "@styled-system/css";
 import { format } from "date-fns";
-import { resolve } from "path";
 import Flex from "components/Flex";
 import Box from "components/Box";
 import Tags from "components/Tags";
@@ -10,7 +9,7 @@ import Link from "components/Link";
 import { transition } from "components/system";
 import { generateCoverImagePath } from "utils/generate-cover-image-path";
 
-const ARTCLE_COVERS_FOLDER = resolve("/blog/covers/");
+const ARTCLE_COVERS_FOLDER = "/blog/covers/";
 interface ArticleCardProps {
   meta: {
     frontmatter: {
@@ -30,11 +29,10 @@ interface ArticleCardProps {
 export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
   let imagePath = "";
   if (needImg && meta.frontmatter.logo?.image && meta.uri) {
-    imagePath = generateCoverImagePath(
+    imagePath = `${ARTCLE_COVERS_FOLDER}${generateCoverImagePath(
       meta.frontmatter.logo.image,
-      meta.uri,
-      ARTCLE_COVERS_FOLDER
-    );
+      meta.uri
+    )}`;
   }
 
   return (

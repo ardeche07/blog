@@ -1,12 +1,6 @@
-import { resolve } from "path";
-
-export const generateCoverImagePath = (
-  image: string,
-  uri: string,
-  coversFolder: string
-) => {
+export const generateCoverImagePath = (image: string, uri: string) => {
   const format = image.split(".").pop();
   const clearUri = uri.replace(/\//g, "");
 
-  return resolve(coversFolder, `${clearUri}.${format}`);
+  return `${clearUri}.${format}`;
 };

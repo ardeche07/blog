@@ -17,11 +17,8 @@ if (!existsSync(ARTCLE_COVERS_FOLDER)) {
 }
 
 covers.forEach((cover) => {
-  const targetName = generateCoverImagePath(
-    cover.image,
-    cover.uri,
-    ARTCLE_COVERS_FOLDER
-  );
+  const imageName = generateCoverImagePath(cover.image, cover.uri);
+  const targetName = resolve(ARTCLE_COVERS_FOLDER, imageName);
   const sourceName = resolve(`./pages/${cover.uri}/${cover.image}`);
 
   copyFileSync(sourceName, targetName);
