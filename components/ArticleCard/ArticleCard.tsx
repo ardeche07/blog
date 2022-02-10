@@ -7,7 +7,9 @@ import Box from "components/Box";
 import Tags from "components/Tags";
 import Link from "components/Link";
 import { transition } from "components/system";
+import { generateCoverImagePath } from "utils/generate-cover-image-path";
 
+const ARTCLE_COVERS_FOLDER = "/blog/covers/";
 interface ArticleCardProps {
   meta: {
     frontmatter: {
@@ -25,19 +27,20 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({ meta, needImg }: ArticleCardProps) {
-  let image = "";
-  let articleSlug = "";
-  if (needImg) {
-    image = meta.frontmatter.logo?.image?.split("/").pop();
-    articleSlug = meta.uri?.split("/").filter(Boolean).pop();
+  let imagePath = "";
+  if (needImg && meta.frontmatter.logo?.image && meta.uri) {
+    imagePath = `${ARTCLE_COVERS_FOLDER}${generateCoverImagePath(
+      meta.frontmatter.logo.image,
+      meta.uri
+    )}`;
   }
 
   return (
     <StyledCard href={meta.uri} flexDirection={needImg ? "row" : "column"}>
-      {!!(needImg && articleSlug && image) && (
+      {!!(needImg && meta.frontmatter.logo?.image) && (
         <StyledWrapperImage>
           <NextImage
-            src={require(`/pages/${articleSlug}/assets/${image}`)}
+            src={imagePath}
             alt="article image"
             layout="fill"
             objectFit="cover"

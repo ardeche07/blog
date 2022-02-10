@@ -62,7 +62,9 @@ export const BlogArticle = ({
       <Layout lineHeight="lg" hideWave="true" pt={[6, 11]}>
         <Section py={[6, 11]} bg="flatWhite">
           <Centrator flexDirection="column" textAlign="center">
-            <StyledLink href="/rss.xml" ariaLabel="rss feed"></StyledLink>
+            <Link href="/rss.xml" aria-label="rss feed" alignSelf="center">
+              <StyledIconRSS />
+            </Link>
             <Flex justifyContent="space-between" flexWrap={["wrap", "unset"]}>
               <Box
                 width="200px"
@@ -151,23 +153,15 @@ const StyledTitle = styled(Box)(
   })
 );
 
-const StyledLink = styled(Link).attrs({ "aria-label": "rss feed" })(
+const StyledIconRSS = styled("span")(
   css({
-    width: "fit-content",
-    alignSelf: "center",
+    display: "block",
+    width: "16px",
+    height: "16px",
     p: 2,
-
-    "&::before": {
-      content: '""',
-      display: "block",
-      width: "16px",
-      height: "16px",
-      backgroundColor: "darkest",
-      maskImage: `url(${rss})`,
-    },
-
-    "&:hover::before, &:focus::before": {
-      backgroundColor: "light-purple",
-    },
+    backgroundColor: "darkest",
+    maskImage: `url(${rss})`,
+    maskRepeat: "no-repeat",
+    maskPosition: "center",
   })
 );

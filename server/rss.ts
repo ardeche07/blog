@@ -1,24 +1,11 @@
 import { Feed } from "feed";
+import { BlogMeta } from "layouts/BlogArticle/types";
 import { getPagesInfo } from "./pages-helpers";
 
 const host = process.env.NEXT_PUBLIC_HOST as string;
 
-interface BlogPostFrontmatter {
-  title: string;
-  description: string;
-  articleTitle: string;
-  date: Date;
-  author: string;
-  logo: {
-    image: string;
-    alt: string;
-  };
-  tags: string[];
-  layout: string;
-}
-
 /*
- * Generates RRS feed from the *.mdx files in the "pages/blog" folder.
+ * Generates RRS feed from the *.mdx files in the "pages" folder.
  
  * For now it uses "description" field value for the post content because
  * converting actual mdx to sanitized html was deemed to time consuming.
@@ -28,7 +15,7 @@ interface BlogPostFrontmatter {
  */
 
 export const generateRss = () => {
-  const posts = getPagesInfo<BlogPostFrontmatter>(`/**/*.mdx`, {
+  const posts = getPagesInfo<BlogMeta>(`/**/*.mdx`, {
     sort: "date",
     order: "DESC",
   });

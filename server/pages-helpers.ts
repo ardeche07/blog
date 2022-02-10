@@ -8,6 +8,7 @@ import glob from "glob";
 import { resolve, join } from "path";
 import { readSync } from "to-vfile";
 import matter from "gray-matter";
+import { BlogMeta } from "layouts/BlogArticle/types";
 import { sorter } from "../utils/sorter";
 
 export const extensions = ["md", "mdx", "ts", "tsx", "js", "jsx"];
@@ -99,4 +100,41 @@ export const getPagesInfo = <T = MDXPageFrontmatter>(
   }
 
   return pages;
+};
+
+const getArticlesList = () => {
+  let articlesPageInfo = [];
+
+  try {
+    articlesPageInfo = getPagesInfo<BlogMeta>(`**/*.mdx`, {
+      filter: (meta) => meta.layout === "blogArticle",
+      sort: "date",
+      order: "DESC",
+    }).map(({ data }) => data);
+  } catch (e) {
+    console.error(e);
+  }
+
+  return articlesPageInfo;
+};
+
+export const getArticleTags = () => {
+  const articlesList = getArticlesList();
+
+  const rawAllTags: Set<string> = new Set();
+  articlesList?.forEach((article) =>
+    article.frontmatter.tags.forEach((tag) => rawAllTags.add(tag))
+  );
+
+  return Array.from(rawAllTags);
+};
+
+export const getArticlesListAndTags = (limit?: number) => {
+  const articlesList = getArticlesList();
+  const tags = getArticleTags();
+
+  return {
+    tags,
+    list: limit ? articlesList.slice(0, limit) : articlesList,
+  };
 };

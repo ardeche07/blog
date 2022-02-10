@@ -6,9 +6,10 @@
   "scripts": {
     "cleanup-serverless": "rm -rf ./.next/server/chunks/static/media",
     "build-node": "rm -rf .build && tsc --build tsconfig.node.json && tsc-esm-fix --target='.build' --ext='.mjs'",
+    "extract-article-covers": "node ./scripts/extract-article-covers.mjs",
     "generate-rss": "node ./scripts/generate-rss.mjs",
-    "dev": "yarn build-node && next dev",
-    "build": "yarn build-node && next build && yarn cleanup-serverless && yarn generate-rss",
+    "dev": "yarn build-node && yarn extract-article-covers && next dev",
+    "build": "yarn build-node && yarn extract-article-covers && next build && yarn cleanup-serverless && yarn generate-rss",
     "start": "next start",
     "test": "loadr -- uvu",
     "base:eslint": "eslint --cache --cache-location node_modules/.cache/eslint '**/*.{js,jsx,ts,tsx}'",
