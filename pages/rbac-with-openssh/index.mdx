@@ -1,0 +1,141 @@
+---
+title: Using RBAC with OpenSSH servers
+description: Technical deep dive into an RBAC mechanism to restrict access to critical nodes within an OpenSSH cluster.
+articleTitle: How to use Teleport RBAC with OpenSSH servers
+date: "2018-04-20"
+author: Russell Jones
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Recently we got a question from a customer:
+
+<Quote>
+  I run a bunch of OpenSSH servers but use Teleport proxy/auth feature to
+  implement SSH bastion/proxy with SSO. How can I use Teleport's RBAC features
+  to restrict access to certain nodes?
+</Quote>
+
+We figured this question is common enough to publish the answer here for
+future generations of smart SSH administrators. But first:
+
+## What is Teleport?
+
+If you have not heard of Teleport before: Teleport is a [modern SSH gateway](https://goteleport.com/) for
+accessing elastic, distributed computing infrastructure. It comes with a
+built-in SSH bastion, certificate-based authentication, SSO integration,
+advanced audit capabilities and much more.
+
+You can read more about Teleport on [its website](https://goteleport.com/) or
+[online documentation](https://goteleport.com/docs/getting-started/).
+
+## RBAC for SSH
+
+Teleport introduces the concept of [Role-Based Access Control (RBAC) for SSH](https://goteleport.com/teleport/features/rbac-for-ssh/),
+allowing administrators to restrict access to certain nodes only to team
+members of certain roles, most commonly enforced policy is probably
+_"developers must never touch production data"_.
+
+This works by applying labels to production nodes and defining a "deny rule"
+stating that if a user is a member of "developers" group, she is not allowed to
+touch this node.
+
+This, however, only works if Teleport SSH daemon is deployed on all servers within
+a cluster. OpenSSH does not support labels, yet a common need in this scenario
+is to restrict user access to mission critical servers that host Teleport
+auth/proxy.
+
+Traditionally, RBAC has been tough to implement/enforce for SSH access, because
+most SSH environments are configured with key-based authentication and administrators
+would try to use various [SSH key managers](https://goteleport.com/blog/ssh-key-management/) and it's not easy
+to build an RBAC system based on keys. SSH certificates are much better, because they
+can automatically expire and need to be re-issued, which creates a convenient point in
+time to apply RBAC rules.
+
+## Restricting Access with OpenSSH
+
+Access control restrictions in pure OpenSSH can be done by restricting the list
+of allowed logins (principals in OpenSSH terminology).
+
+For example, suppose you are using in the [Recording Proxy Mode](https://goteleport.com/docs/setup/admin/#recording-proxy-mode/)
+and running Teleport Auth and Proxy servers but all other nodes within your
+infrastructure use OpenSSH. If you wish to restrict SSH access to the Teleport auth and
+proxy servers to only admins while everyone has full access to OpenSSH servers,
+you can do that with the example below.
+
+First, make sure that the auth and proxy nodes have a label that can be
+filtered on in the role. In the below snippet from teleport.yaml, the label
+"role=teleport" will be used here:
+
+```yaml
+# apply role=teleport label to both auth and proxy servers of a Teleport cluster:
+ssh_service:
+  enabled: yes
+  labels:
+    role: teleport
+```
+
+Second, make sure the "admin" role has access to all nodes, this can be done using the
+"_": "_" identifier. Also note that admins can log in as the login that comes
+from the identity provider `{{external.logins}}` as well as the "admin user", lets use
+(not recommended) `root`:
+
+```yaml
+kind: "role"
+version: "v3"
+metadata:
+  name: "admin"
+spec:
+  options:
+    max_session_ttl: "8h0m0s"
+  allow:
+    logins: ["{{external.logins}}", root]
+    node_labels:
+      "*": "*"
+    rules:
+      - resources: ["*"]
+        verbs: ["*"]
+```
+
+Next create a role that non-admins will assume, in this case we'll call it "dev".
+Note the "deny" rule, this means users with this role will be denied access to
+any node with the label `role=teleport` which earlier we marked auth and proxy
+servers with.
+
+In addition note that users will only be able to login to nodes with the login
+that came from their identity provider. If for example the user should also be
+able to log in as root as well, update logins to logins: `["{{external.logins}}, root"]`.
+
+```yaml
+kind: "role"
+version: "v3"
+metadata:
+  name: "dev"
+spec:
+  options:
+    max_session_ttl: "8h0m0s"
+  deny:
+    node_labels:
+      "role": "teleport"
+  allow:
+    logins: ["{{external.logins}}"]
+    node_labels:
+      "*": "*"
+```
+
+Lastly make sure that OpenSSH is configured to allow the user to login.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Here you have it: regular "dev" users will be able to access all OpenSSH nodes but
+they will not be able to SSH into Teleport's auth and proxy servers.
+
+But if a fully featured RBAC is required, we recommend deploying Teleport's SSH
+daemon instead of `sshd`.

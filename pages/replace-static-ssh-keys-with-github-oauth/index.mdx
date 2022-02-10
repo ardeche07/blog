@@ -1,0 +1,245 @@
+---
+title: SSH using Github team membership via OAuth2 + 2FA
+description: In this post we show you how to use Github as an identity manager to control who has access to your server infrastructure through SSH
+articleTitle: SSH using Github team membership via OAuth2 + 2FA
+date: "2018-01-24"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+Suppose you have 250 servers in your organization and 10% of them are not used
+in production; you also have 15 people on your engineering team, with 5 of them
+being contractors. How do you manage who gets SSH access to what...and how do
+you deal with people joining and leaving the team or changing roles? And how do
+you make sure a lost laptop doesn't lead to a larger compromise?
+
+With the increasing frequency and severity of data breaches at companies like
+Equifax, Yahoo, Target, and Uber, and larger amounts of data being dispersed
+across cloud services, information security is top of mind for both large
+enterprises and startups. Large companies like [Facebook](https://engineering.fb.com/2016/09/12/security/scalable-and-secure-access-with-ssh/), [Lyft](https://eng.lyft.com/blessing-your-ssh-at-lyft-a1b38f81629d) and [Netflix](https://speakerdeck.com/rlewis/how-netflix-gives-all-its-engineers-ssh-access-to-instances-running-in-production) often have the security teams and
+resources to architect DIY solutions or purchase custom solutions to address
+their concerns.
+
+##### This blog post describes how to simply and effectively manage SSH credentials for smaller teams through their Github team membership using open source tools.
+
+The management of SSH keys at a startup is often left up to the collective
+responsibility of the engineering team. When that team is small and capable, it
+may not a be an immediate problem. Yet, we are surprised how often we meet
+teams who have a shared public key called something like `ops.pem` which gets
+replaced and re-distributed every time the team changes...and usually someone
+forgets to replace it at some point.
+
+## SSH Certificates
+
+This blog post offers a better way, based on two simple principles:
+
+1. Your SSH infrastructure, instead of relying on forgotten artifacts on
+   servers (public keys), should rely on an external identity system common
+   for everyone in your organization.
+2. Instead of SSH keys, use automatically expiring SSH certificates to grant
+   someone access to a _subset of infrastructure for a limited amount of
+   time_.
+
+We are going to use [Teleport](https://github.com/gravitational/teleport), our open
+source SSH server, to simplify the implementation. Starting in
+version 2.4, Teleport supports Github authentication, which allows
+administrators to grant SSH access to engineers who are members of a specified
+Github team for an organization. With this setup, if someone leaves the organization and
+they are removed from the Github team, their SSH access is removed, as well.
+
+Another benefit of certificate-based authentication via Github is that users no
+longer have to worry about having their private SSH keys compromised. The SSH
+certificates used by Teleport automatically expire after a configurable amount
+of time and to get a new one, users will have to go through Github
+authentication, hopefully with [2FA](https://help.github.com/articles/about-two-factor-authentication/)
+turned on.
+
+## How does this work?
+
+Let's take a look how this will work. The steps in the diagram are explained below:
+
+<BlogImage src="./assets/github-auth.svg" />
+
+This somewhat simplified login workflow works as follows:
+
+1. When a user shows up for work in the morning, she needs to request a new
+   certificate from the Teleport certificate authority (CA) for the day.
+   Teleport offers a CLI command for this, `tsh login`.
+2. The Teleport responds with a Github URL for the user to log in. Usually,
+   a browser window will also open automatically.
+3. The user goes through Github authentication, including 2FA enforcement if enabled.
+4. If Github authentication succeeds, Teleport receives a secure token via
+   HTTPS which allows it to retrieve the user's team membership information.
+5. If the user is a member of the specified team, Teleport issues a certificate and
+   stores it in the user's CLI environment. By default, the certificate is
+   stored in `~/.tsh` and is valid for 8 hours but this ttl can be configured.
+
+### Setup Teleport
+
+First step is to install Teleport on your infrastructure. You can build it from
+source if you have Go installed or you can download the latest binaries from
+the [github repository](https://github.com/gravitational/teleport). You can read
+about Teleport architecture in detail [here](https://goteleport.com/teleport/docs/architecture/),
+but the basic Teleport deployment includes the following components:
+
+1. _Teleport certificate authority_ (CA) also known as the _"auth server"_. This
+   server will be issuing certificates for users.
+2. _Teleport proxy_, also sometimes known as _"the bastion host"_. Access to all
+   nodes in a Teleport cluster must be routed via a proxy. We believe it’s a
+   solid security practice and Teleport makes it mandatory.
+3. _Teleport nodes_. These are regular SSH servers, except they automatically
+   configured to only trust users who present a valid, up to date certificate
+   issued by the CA.
+
+To make this tutorial easy to follow, we'll use a single-node Teleport cluster.
+This node will run all 3 services at the same time. Github-based authentication uses
+via [OAuth2](https://developer.github.com/v3/guides/basics-of-authentication/) and
+for it to work, the Teleport proxy must be externally accessible via a valid
+HTTPS endpoint (we'll use `https://proxy.example.com:3080` here)
+
+### Creating a Github Team
+
+First, we need to create a team under your Github organization for users who
+will be allowed to receive SSH certificates from Teleport. When logged into
+Github, click on the "Teams" tab, create a team and add a few members
+to it.
+
+<BlogImage src="./assets/github-teams.png" />
+
+Let's assume the organization is called "octocats" and the team is
+called "teleport-ssh-users".
+
+### Configuring Github OAuth
+
+Next, visit the "Settings" tab on Github and select "OAuth Apps" on
+the left-side menu. Click on "New OAuth App" and fill out the form.
+
+Pay attention to "Authorization callback URL" set to
+`https://proxy.example.com:3080/v1/webapi/github/callback` - your team members
+must be able to access it via their browser.
+
+<BlogImage src="./assets/github-oauth-app.png" />
+
+Click on the "Register application" button and you will see a page which will contain
+a `Client ID` and `Client Secret` which are needed for the next step: to
+configure this integration on Teleport side.
+
+### Configuring Teleport
+
+First, update `/etc/teleport.yaml` configuration file to look like this:
+
+```yaml
+auth_service:
+  enabled: yes
+
+  # This line tells Teleport to use an authentication connector
+  # called "github"
+  authentication:
+    type: github
+
+proxy_service:
+  enabled: yes
+
+ssh_service:
+  enabled: yes
+```
+
+Now, define a Github connector in a YAML file:
+
+```yaml
+# save this as github-connector.yaml:
+kind: github
+version: v3
+metadata:
+  # name of the connector must match the authentication type
+  # in /etc/teleport.yaml
+  name: github
+spec:
+  display: Github
+  client_id: <client-id> # from Teleport OAuth app on Github
+  client_secret: <client-secret> # from Teleport OAuth app on Github
+  redirect_url: https://proxy.example.com:3080/v1/webapi/github/callback
+
+  # This section says that anyone from 'teleport-ssh-users' team in
+  # 'octocats' organization can SSH as root
+  teams_to_logins:
+    - organization: octocats
+      team: teleport-ssh-users
+      logins:
+        - root
+```
+
+Now, lets create this connector via `tctl` command. This must be executed on
+the Teleport auth server:
+
+```bash
+$ tctl create github-connector.yaml
+```
+
+## Trying it out
+
+That's it. Now, assuming a user is a member of teleport-ssh-users team, he or
+she can execute the following Teleport command to retrieve an SSH certificate:
+
+```bash
+$ tsh login --proxy=proxy.example.com
+```
+
+This will open a Github login flow through a browser. If a user is already
+authenticated with Github (i.e. there’s an active cookie) the login process
+will be instant. The SSH certificate will be stored in user’s `~/.tsh`
+directory. To login into any SSH server inside a cluster:
+
+```bash
+$ tsh ssh --port=22 root@host.example.com
+```
+
+... or just `ssh root@host.example.com` if using OpenSSH client.
+
+## Using OpenSSH?
+
+While using `tsh` on a client and `teleport` daemon on servers has its
+advantages, some users prefer to use Teleport strictly in a bastion/CA mode and
+keep OpenSSH daemons running on their existing server fleets. Teleport can be
+used with OpenSSH client as well. See [the documentation](https://goteleport.com/docs/server-access/guides/tsh/#using-openssh-client/)
+to properly configure OpenSSH for this.
+
+## What if Github is not accessible?
+
+While Github is a reputable service, it is
+not prudent to expect Github (or any web-hosted service) to be available 100%
+of the time. In rare (and hopefully brief) situations when Github cannot be
+used for authentication, you can fall back to local Teleport users by including the
+`--auth=local` flag to `tsh login`. One way to do it is to have a special
+"github-is-down" admin user which can get a certificate via:
+
+```bash
+$ tsh --proxy=proxy.example.com --auth=local --user=github-is-down
+```
+
+Local authentication should also be used for issuing certificates for
+automation/bots.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+In this post we covered how to replace static SSH keys scattered around your
+infrastructure with SSH certificates issued dynamically based on a user's team
+membership at Github. At this time, Github is the
+only external identity supported by the open source edition of Teleport but
+we offer a [self-hosted enterprise and cloud editions](https://goteleport.com/pricing/). They
+both support providers like Okta, Active Directory, Auth0, Oracle IDM and others.
+
+The commercial Teleport offering also supports robust [RBAC features for SSH](https://goteleport.com/teleport/features/rbac-for-ssh/),
+like allowing administrators to grant more granular access to partitions of the
+infrastructure to multiple teams.

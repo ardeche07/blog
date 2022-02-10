@@ -1,0 +1,132 @@
+---
+title: Teleport 2.5 release information
+description: This release of Teleport brings easier AWS deployments at scale and includes several usability enhancements.
+articleTitle: Teleport 2.5 released
+date: "2018-03-10"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+We're excited to finally roll out Teleport 2.5. Quite a few people (especially AWS users)
+have been waiting for this release to come out of beta, read on to see why!
+
+## What is Teleport?
+
+If you have not heard of Teleport before: Teleport is a modern SSH gateway for
+accessing elastic, distributed computing infrastructure. It comes with a
+built-in SSH bastion, certificate-based authentication, SSO integration,
+advanced audit capabilities and much more.
+
+You can read more about Teleport on [its website](/teleport/) or
+[online documentation](https://goteleport.com/docs/getting-started/).
+
+## AWS
+
+This release is all about AWS. A lot of Teleport users also use AWS and have
+always been asking us for best practices for deploying Teleport at scale on AWS
+accounts.
+
+When helping our enterprise clients, we have learned quite a bit about how large
+organizations deal with massive server fleets on AWS. With this release, we are
+taking what we have learned from those engagements and putting this knowledge
+into the product, making Teleport easier to set up and use in such
+environments.
+
+One common pattern has been to run Teleport proxies (bastion hosts) and
+Teleport auth servers (certificate authorities) in a highly available (HA)
+configuration on multiple nodes, inside an auto-scaling group. To make it
+easier, we’ve added the following improvements in 2.5:
+
+- Multiple auth servers in highly available (HA) configuration can now share
+  the same `/var/lib/teleport` data directory when it's hosted on NFS (or AWS
+  EFS).
+- Teleport now correctly handles SSH certificates for accessing multiple
+  proxies behind a load balancer with the same domain name. Users must use the
+  new configuration parameter `public_addr`.
+- AWS users can use AWS-provided secret management facilities, like parameter
+  store, to generate their own unique node tokens for dynamically adding new SSH
+  nodes to a cluster, as is often the case with auto-scaling groups.
+  User-generated tokens can now be explicitly passed via `--token` flag to
+  `tctl nodes add`, [see docs](https://goteleport.com/docs/setup/admin/#short-lived-tokens/).
+
+## Cluster Upgrade Procedure
+
+Teleport users have also been asking about the recommended way to upgrade their
+Teleport clusters when a new version becomes available. We’ve added a new
+section to the documentation called [upgrading Teleport](https://goteleport.com/docs/setup/admin/#upgrading-teleport)
+which addresses this.
+
+In a nutshell:
+
+1. First, the auth servers have to be upgraded. If multiple auth servers are running
+   in HA configuration, scale it down to _just one auth server_ and upgrade it
+   first. Then upgrade others all at once.
+2. Second, upgrade the proxy servers. They are stateless and can be upgraded
+   sequentially or in parallel.
+3. Finally, upgrade the individual nodes, probably in parallel, since there are
+   usually thousands of them.
+
+## Daemon Improvements
+
+Teleport now supports zero-downtime upgrades. Replace the `teleport` binary and run:
+
+```bash
+$ systemctl reload teleport
+```
+
+This works by sending a `HUP` signal to the Teleport daemon, which tells it to
+fork a new process to handle new SSH connections but keep the old process
+around until the existing SSH sessions disconnect.
+
+Make sure to use the updated systemd service unit file as shown in the
+[documentation](https://goteleport.com/docs/setup/admin/#teleport-daemon/).
+
+## Other Changes
+
+Certain components of Teleport behave differently in version 2.5. It is
+important to note that these changes are not breaking Teleport functionality.
+They improve Teleport behavior on large clusters deployed on highly dynamic
+cloud environments such as AWS. This includes:
+
+- Session list in the Web UI is now limited to 1,000 sessions.
+- The audit log and recorded session storage has been moved from `/var/lib/teleport/log`
+  to `/var/lib/teleport/log/<auth-server-id>`.
+- When connecting a trusted cluster, users can no longer pick an arbitrary name for them.
+  Their own (local) names will be used, i.e. the `cluster_name` setting now defines how
+  the cluster is seen from the outside.
+
+## Performance Improvements
+
+We've added a number of performance optimizations to the Teleport back-end which
+serves the web UI and handles session recording and audit. These improvements
+are aimed at servers fleets in the thousands but some of them can benefit
+smaller installations as well. For example, the recorded sessions are now
+gzipped by default which reduces the need for storage by a factor of 6-8.
+
+<EmailSubscribeViolet />
+
+## Reference AWS Deployment
+
+We have received requests for an "opinionated" AWS deployment of
+Teleport. We did not want to over-generalize - a dozen servers in a single
+region isn’t the same setup as a multi-account ordeal with dozens of VPCs with
+thousands of instances in them around the world!
+
+Because small deployments are usually easier, we decided to document our
+opinionated deployment advice in form of Terraform scripts and placed it in
+[/examples/aws](https://github.com/gravitational/teleport/tree/master/examples/aws)
+directory in the Teleport git repository. It demonstrates the most secure, the most
+elastic and the most scalable way to run Teleport on large AWS clusters. A
+CloudFormation version is coming soon!
+
+Finally, with this release, we plan on including a Teleport AMI in the AWS
+Marketplace in the near future. If you are interested in being a beta user,
+[get started here](https://goteleport.com/pricing/).
+
+As always, thanks everyone who’ve contributed ideas and code to this release.
+Feel free to reach out to `info@goteleport.com` if you have any questions.

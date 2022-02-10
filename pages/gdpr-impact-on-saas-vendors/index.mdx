@@ -1,0 +1,136 @@
+---
+title: GDPR - SaaS  reconsiders on-premises softwarexx
+description: We review the impact of the GDPR on SaaS vendors and their data collection practices and how it may reduce the operational cost disparity between hosted SaaS and on-prem Private SaaS
+articleTitle: GDPR - SaaS  reconsiders on-premises software
+date: "2018-03-26"
+author: Taylor Wakefield
+tags:
+  - gravity
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+<BlogImage src="./assets/gdpr.png" />
+
+Selling a SaaS subscription in the comfort of your single U.S. AWS region will soon get more complicated and expensive if you target European Union users. Of course, the situation is specific to each SaaS vendor, but in this post, we'll take a high-level look at what SaaS vendors need to be ready for in this new regulatory environment.
+
+The [EU General Data Protection Regulation](http://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32016R0679) ("GDPR") is the data privacy regulatory regime in the EU that passed the EU Parliament on 14 April 2016, after years of preparation and debate. It replaces the Data Protection Directive from 1995. Naturally, the amount and sophistication of personal data collection online has increased massively since 1995, and the GDPR is an attempt to modernize regulations, accordingly.
+
+<Quote>
+The EU General Data Protection Regulation (GDPR) replaces the Data Protection Directive 95/46/EC and is designed to harmonize data privacy laws across Europe, to protect and empower all EU citizens data privacy and to reshape the way organizations across the region approach data privacy.
+
+Source: https://www.eugdpr.org/
+
+</Quote>
+
+With the upcoming enforcement date (May 25, 2018) of the GDPR, SaaS providers that collect data on EU residents need to have much stronger controls around the collection, tracking, sharing and protection of that user data. In theory, the cost of these controls correlates with the amount of data collection that is occurring. So when comparing delivery models for an application, the cost of a hosted, multi-tenant delivery model that collects a lot of user data may have increased relative to a single-tenant, "on-premises" delivery model that limits data collection.
+
+To clarify, "going on-premises" these days does not only mean deploying into corporate server rooms. Often, single-tenant private SaaS means running an application on someone else's public cloud account, i.e., the data stays in the customer's account. In other words, the focus is more about the tenancy and account ownership in today's multi-cloud environment than the traditional definition of on-premises. This shift also lowers the barrier to going on-premises.
+
+The additional regulatory burden of multi-tenant data management and the lower barriers to entry for going on-premises means it now may be worth it for SaaS vendors to create a more highly valued and differentiated offering by developing the ability to deliver a managed service into customer cloud accounts.
+
+## Yes, there be dragons going on-prem
+
+I wrote an article a while ago about how it may be [time to reconsider going on-prem](https://goteleport.com/blog/time-to-reconsider-going-onprem/). This article focused on how the adoption of containers and container orchestration services (namely, [Kubernetes](https://kubernetes.io/)) may lower the technical burden of going on-prem. It was admittedly a bit hand-wavy, and given that we have been in the business of taking our customers applications on-prem for a few years now, we fully understand how complicated dedicated, on-premises SaaS installations can get beyond the high level talking points.
+
+That is why we recommend to our customers that they be careful to charge a high enough price for an on-prem offering. Even so, many SaaS providers that we talk to say there is no price that would make a single-tenant private "unicorn" deployment worth it. This is a view that we respect and we don't try to convince them otherwise. We focus on servicing customers that have already committed to going on-prem and need help doing so. There are many technical and organizational pitfalls in going on-prem, and they are unique to each company, so best for each one to internally evaluate them.
+
+## But is it really about the value of data?
+
+While many SaaS providers cite these various technical and organizational pitfalls as reasons for not going on-prem, the other elephant in the room (that is often not mentioned) is that they want their users' data collected and stored in an easy-to-process manner. The less nefarious of them are doing things that any smart SaaS vendor would do, like sending a helpful email when a user gets stuck somewhere in the product adoption cycle. Other, more sinister, activities may include sharing customer data with other companies for marketing purposes.
+
+As an example, retargeting services make it very easy to exchange cookie data with other complementary or competitive companies. This practice is usually covered under a clause in most Terms of Service that allows the SaaS vendor to share user data with their service providers and partners. But many end users don't understand the scope at which it is happening.
+
+## GDPR is now making it more costly to hoard data
+
+Many additional requirements in the GDPR will likely increase the costs to SaaS providers, assuming they want to comply. And if they don't comply, that could be more expensive, with fines up to 4% of global turnover (aka, revenue) or €20M, whichever is greater. Here are some of the key requirements, paraphrased from eugdpr.org:
+
+#### Increased Territorial Scope
+
+GDPR applies to all companies processing the personal data of data subjects residing in the Union, regardless of the company's location. Data locality was somewhat ambiguous before, but now it is clear that it does not matter where the data processing occurs.
+
+#### Consent
+
+Consent must be clear and distinguishable from other matters and provided in an intelligible and easily accessible form, using clear and plain language. It must be as easy to withdraw consent as it is to give it.
+
+#### Breach Notification
+
+Notification will become mandatory in all member states where a data breach is likely to "result in a risk for the rights and freedoms of individuals." Notice must be sent within 72 hours of a provider first having become aware of the breach.
+
+#### Right to be Forgotten
+
+Data subjects may ask companies to erase their personal data, cease further dissemination of the data, and potentially have third parties halt processing of the data.
+
+#### Privacy by Design
+
+Companies shall implement appropriate technical and organizational measures, "in an effective way," in order to meet the requirements of this Regulation and protect the rights of data subjects.
+
+#### Data Portability
+
+The right for a data subject to receive the personal data concerning them or which they have previously provided, in a "commonly used and machine-readable format," including the right to transmit that data to another company.
+
+#### Right to Access
+
+The right for data subjects to obtain from companies confirmation as to whether or not personal data concerning them is being processed, where and for what purpose. Further, companies shall provide a copy of the personal data, free of charge, in an electronic format.
+
+One can imagine how each of these requirements would increase the costs of multi-tenant SaaS providers. However, I'd like to focus on the last two elements, Data Portability and Right to Access. You now need effective mechanisms not only for protecting but also for finding, managing and delivering the entire history of an individual user's data. You need to know what data you have on each user and produce it upon request in an electronic format for free...managing needles in a haystack. Gone are the days of just throwing everything in a data lake and figuring out how to process it later. One could even imagine a scenario where adversaries cooperate to DDoS a provider with data subject requests.
+
+## How bad can a data request get?
+
+The potential costs of these requirements are made more tangible in the ["The Nightmare Letter: A Subject Access Request under GDPR"](https://www.linkedin.com/pulse/nightmare-letter-subject-access-request-under-gdpr-karbaliotis/) by Constantine Karbaliotis. The premises is a fictional letter to a Data Protection Officer could expect to receive and have to comply with under the GDPR (having a DPO may be another requirement, b/t/w). It highlights the full extent of the GDPR right to access requirements and leaves the additional costs one would have to incur in order to comply with the letter up to the imagination of the reader.
+
+I'll highlight some points from the letter to illustrate how GDPR may reduce the disparity in operational costs between a typical SaaS offering and delivering the application on-prem (with limited data collection).
+
+<Quote>
+Dear Sir/Madam:
+
+I am writing to you in your capacity as data protection officer for your company. I am a customer of yours, and in light of recent events, I am making this request for access to personal data pursuant to Article 15 of the General Data Protection Regulation. I am concerned that your company's information practices may be putting my personal information at undue risk of exposure or in fact has breached its obligation to safeguard my personal information pursuant to [latest nasty cybersecurity event or thing in the news].
+
+I am including a copy of documentation necessary to verify my identity. If you require further information, please contact me at my address above.
+
+I would like you to be aware at the outset, that I anticipate reply to my request within one month as required under Article 12, failing which I will be forwarding my inquiry with a letter of complaint to the [appropriate data protection authority].
+
+Please advise as to the following:
+
+Please confirm to me whether or not my personal data is being processed. If it is, please provide me with the categories of personal data you have about me in your files and databases.
+
+a. In particular, please tell me what you know about me in your information systems, whether or not contained in databases, and including e-mail, documents on your networks, or voice or other media that you may store.
+
+b. Additionally, please advise me in which countries my personal data is stored, or accessible from. In case you make use of cloud services to store or process my data, please include the countries in which the servers are located where my data are or were (in the past 12 months) stored.
+
+Please provide me with a copy of, or access to, my personal data that you have or are processing.
+
+Please provide a list of all third parties with whom you have (or may have) shared my personal data.
+
+a. If you cannot identify with certainty the specific third parties to whom you have disclosed my personal data, please provide a list of third parties to whom you may have disclosed my personal data.
+
+b. Please also identify which jurisdictions that you have identified in 1(b) above that these third parties with whom you have or may have shared my personal data, from which these third parties have stored or can access my personal data. Please also provide insight in the legal grounds for transferring my personal data to these jurisdictions. Where you have done so, or are doing so, on the basis of appropriate safeguards, please provide a copy.
+
+c. Additionally, I would like to know what safeguards have been put in place in relation to these third parties that you have identified in relation to the transfer of my personal data.
+
+Please advise how long you store my personal data, and if retention is based upon the category of personal data, please identify how long each category is retained.
+
+If you are additionally collecting personal data about me from any source other than me, please provide me with all information about their source, as referred to in Article 14 of the GDPR.
+
+If you are making automated decisions about me, including profiling, whether or not on the basis of Article 22 of the GDPR, please provide me with information concerning the basis for the logic in making such automated decisions, and the significance and consequences of such processing...
+
+</Quote>
+
+**Holy smokes** good luck with that! It goes on (and I encourage you to read the [entire letter](https://www.linkedin.com/pulse/nightmare-letter-subject-access-request-under-gdpr-karbaliotis/)), but I think this portion more than makes the point.
+
+Also, don't forget all those other SaaS services that you might be using. Fortunes have been created by making it dead simple to share user data with other SaaS services. Now, you need to know how they are using and where they are storing your users' data, too. Do you know where [Segment](https://segment.com) is pushing all your user data? How about all of those Zaps you have set up in [Zapier](https://zapier.com)?
+
+<EmailSubscribeViolet />
+
+## In conclusion
+
+The GDPR is still a relatively vague set of requirements. We will get down to brass tacks when we see the implementation of these requirements and the level of enforcement. Perhaps this is all FUD at this point but Facebook certainly has not done SaaS vendors any favors here, lately. I can hear the pitchforks being sharpened.
+
+If there is reasonable adoption and enforcement of the GDPR, it seems that the typical cost/benefit analysis just shifted a bit in favor of going on-prem.
+
+If you'd like to see how we are trying to shift the balance further, you can check out how we help vendors go on-prem with our [Gravity offering](https://goteleport.com/) or even dive into the [documentation](https://goteleport.com/gravity/docs/) and try it out.
+
+### You can find comments and add your own comment about this [post on Hacker News](https://news.ycombinator.com/item?id=16681981).
