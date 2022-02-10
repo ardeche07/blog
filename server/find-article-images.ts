@@ -28,16 +28,19 @@ export const findArticleImages = () => {
   const images = [];
 
   featuredPosts.forEach((post) => {
-    const {
-      data: {
-        frontmatter: {
-          logo: { image },
+    if (post.data.frontmatter.logo) {
+      const {
+        data: {
+          frontmatter: {
+            logo: { image },
+          },
+          uri,
         },
-        uri,
-      },
-    } = post;
-
-    images.push({ image, uri });
+      } = post;
+      images.push({ image, uri });
+    } else {
+      return;
+    }
   });
 
   return images;
