@@ -1,0 +1,111 @@
+---
+title: Teleport 2.7 Release Announcement
+description: This release of Teleport adds support for scp protocol via a Web UI, brings performance improvements for large clusters and adds more flexibility in configuring your infrastructure for PCI, SOC2, GDPR and other SSH compliance/audit use cases.
+articleTitle: Teleport 2.7 Released:\ Improved performance, compliance settings and SCP for Web UI
+date: "2018-07-27"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+We are excited to announce the release of [Teleport 2.7](https://goteleport.com/).
+
+Before we cover the new features and improvements, let's introduce Teleport to
+the new readers of this blog.
+
+## What is Teleport?
+
+Teleport gives engineers an easy [SSH access](https://goteleport.com/) for elastic compute infrastructure.
+
+Teleport delivers hardened DevOps &amp; SRE security best practices in a box to companies who have traditionally relied on static keys or complex DIY SSH bastion solutions.
+
+By adopting Teleport in your organization you will:
+
+- Secure its infrastructure and easily pass compliance requirements.
+- Reduce the operational overhead of enforcing security best-practices.
+
+Teleport allows low-level systems access to be controlled by _who the user
+is within an organization_, not based on which private key they have.
+
+<BlogImage src="./assets/id-card.svg" />
+
+Teleport is open source and compatible with OpenSSH clients and servers. With OpenSSH nodes, it can still be used as a man-in-the-middle bastion (aka jump box), issuing SSH certificates and providing session recording and audit logs for legacy clusters located behind firewalls.
+
+## What's new in Teleport 2.7?
+
+As usual, the full list of closed tickets can be found on [Github](https://github.com/gravitational/teleport/milestone/25?closed=1).
+You can also glance at the [CHANGELOG](https://github.com/gravitational/teleport/blob/9a7a801d5d9fd813a9e9846a359f30b619570d64/CHANGELOG.md) for a quick overview,
+but the two areas we have focused on for 2.7 are:
+
+- Performance improvements on large clusters (many thousands of servers).
+- Enhanced configurability for compliance purposes (PCI-DSS, SOC2, GDPR, HIPPA, etc).
+- Secure copy (SCP) file transfer support within Teleport's optional web-based terminal.
+
+As with any release, version 2.7 brings various enhancements to the user
+experience and makes it even easier to introduce modern priveledged access patterns to systems administrators and end-users alike.
+
+## New Teleport Features
+
+### Web-based SSH secure copy (SCP) using the Teleport Proxy UI
+
+The Teleport Web UI has proven to be immensely popular with its users. People use
+it as a great SSH certificate-based alternative to PuTTY or SecureCRT, others SSH on their phones / tablets via a browser.
+
+A common request for the Web UI was to support uploading and
+downloading files via `scp`. Teleport 2.7 now supports this feature:
+
+<BlogImage src="./assets/web-based-scp.gif" />
+
+### Compliance Enforcement of Idle SSH Connections
+
+To satisfy various compliance requirements, like PCI-DSS, SOC2 and HIPAA, organizations must enforce
+certain policies around handling of idle SSH connections. In the past, Teleport
+relied on sensible defaults in its source code and administrators were required to
+recompile from source if they wanted a different behavior.
+
+With this release, Teleport adds a couple of configuration settings you can
+tweak:
+
+```bash
+# snippet from /etc/teleport.yaml
+#
+auth_service:
+    # Determines if SSH sessions to cluster nodes are forcefully terminated
+    # after no activity from a client (idle client).
+    # Examples: "30m", "1h" or "1h30m"
+    client_idle_timeout: never
+
+    # Determines if the clients will be forcefully disconnected when their
+    # certificates expire in the middle of an active SSH session. (default is 'no')
+    disconnect_expired_cert: no
+```
+
+## Large Cluster SSH Performance Enhancements
+
+This version also optimizes performance for those leveraging Teleport on large
+monolithic clusters. Some readers may question:
+
+_"Why would performance of an SSH service depend on how many nodes I have?"_
+
+The answer is that while the Teleport SSH daemon does not care about other nodes
+in a cluster, certain Teleport features are implemented by _Auth Servers_,
+not nodes. One example is searching for nodes by their labels. To support tens of thousands of nodes these features needed a performance boost which is delivered in version 2.7!
+
+### Upgrading Teleport
+
+This release is meant to be a simple drop-in replacement for 2.6, but as usual, we
+recommend familiarizing yourself with the [recommended upgrade procedure](https://goteleport.com/docs/setup/admin/#upgrading-teleport/)
+before upgrading to this version.
+
+<EmailSubscribeViolet />
+
+## Talk to us!
+
+For more information about Teleport, you can take a look at our [documentation](https://goteleport.com/docs/getting-started/) or the
+[Teleport overview](https://goteleport.com/). Our source code and developer community is wide open, so feel free to dig in. Issues and/or pull requests are always welcome. Also, feel free to
+reach out via email if you'd like a demo or would like to connect directly with the team: [info@goteleport.com](mailto:info@goteleport.com).

@@ -1,0 +1,89 @@
+---
+title: The Kubernetes Kustomize KEP Kerfuffle
+description: In this post we'll explore K8s community decision making process by looking underneath the hood of the 'kerfluffe' of Google LLC being called out by Samsung SDS engineers for skipping 'graduation criteria' while merging the new 'kustomize' subcommand into upstream 'kubectl'.
+articleTitle: The Kubernetes Kustomize KEP Kerfuffle
+date: "2019-01-29"
+author: Abraham Ingersoll
+tags:
+  - kubernetes
+  - programming
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Frustration over Helm vs Kustomize and Kubernetes development maturity
+
+Unless you binge watch Kubernetes' utopian distributed systems Truman Show, you may have missed the "[kerfluffle](https://groups.google.com/d/msg/kubernetes-sig-architecture/lw8AJXGrEW8/Y3BiTYMFFQAJ)" around "[kustomize](https://github.com/kubernetes-sigs/kustomize)" being [merged into](https://github.com/kubernetes/kubernetes/pull/70875) and [back out](https://github.com/kubernetes/kubernetes/pull/72805) of our beloved "[kube cuddle](https://youtu.be/2wgAIvXpJqU?t=20)." Careful before tuning in -- if you're an OpenStack or enterprise AWS refugee who isn't yet decoding [broadcasts from Kelsey "Serverless" Hightower](https://twitter.com/kelseyhightower), the thread's allegations of Google LLC skipping "graduation criteria" could trigger nightmares of vendor-induced complexity and anti-usability subplots. Never fear, in this article we'll sift through the [saga of new features](https://youtu.be/WWJDbHo-OeY?t=7) landing within [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/) via a "Kubernetes Enhancement Proposal" (KEP) and disentangle the gripe that landing Kubernetes changes involves "back room deals."
+
+<BlogImage src="./assets/fly-on-wall.png" />
+
+### What is Kubectl Kustomize? Declarative Kubernetes Configuration?
+
+Before wading through the 8,000+ word thread on the [kubernetes-sig-architecture mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-architecture), a quick declarative vs. imperative refresher. The backstory starts with a new and narrowly-focused [template-free "declarative" configuration tool](https://kubernetes.io/blog/2018/05/29/introducing-kustomize-template-free-configuration-customization-for-kubernetes/) aimed at deficiencies in the workflow of `kubectl apply`. This `kustomize` (née `kexpand`, née `kinflate`) non-plugin plugin provides hierarchical composition and pre-processing of Kubernetes API YAMLs via a new special file and command line switch. Its [deterministic output may now even be piped straight into your apiserver](https://speakerdeck.com/spesnova/introduction-to-kustomize?slide=40) via `kubectl apply` or similar foot-gun. For the background story, cozy up to the original mid-2017 design proposal, [Declarative Application Management (DAM) in Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/declarative-application-management.md). That analysis highlights numerous opportunities to improve tools littering the bazaar of sysadmins flocking to Kubernetes' warm anti-lock-in embrace. The end goal is better user experience, easier pull-based workflows, and, ultimately, the reliable consumption of reusable software components at N+1 scale.
+
+In software form, kustomize is less than 20,000 lines of code with a tidy set of benefits. For a good overview of how it enables separation of primitives from environment-specific workflows, take a peek at this excellent [KubeCon Seattle 2018 kustomize live demo](https://kccna18.sched.com/event/GrSn/kustomize-deploy-your-app-with-template-free-yaml-ryan-cox-lyft).
+
+### Kustomize vs Helm, What's the Big Difference?
+
+Late Kubernetes adopters not yet knee deep in the YAML trenches immediately wonder why this isn't a solved problem. Hasn't that "helm chart" thing already been declared the winner of the Kubernetes packaging & management battle? Well, no, not quite. As laid bare in the DAM analysis, it's not unfair to consider helm a [mishmash of distinct concerns](https://docs.google.com/presentation/d/10dp4hKciccincnH6pAFf7t31s82iNvtt_mwhlUbeCDw/edit?usp=sharing) that when blended together often lead to a foggy, unnavigable sprawl. Ideas that were principal to the founding of Kubernetes -- immutability, reusability, declarative composability -- are further and further afield the deeper one subscribes to a helm-driven administration lifecycle. This is all tangential to [helm's loose default security posture](https://github.com/helm/helm/blob/master/docs/securing_installation.md), and [the fear its Kubernetes apiserver gatekeeping triggers](https://engineering.bitnami.com/articles/helm-security.html) in InfoSec professionals who are asked to approve usage in large "multi-tenant" Kubernetes clusters. So while helm is undeniably a useful tool, its simplifications alarm purists who grimace at Kubernetes becoming a hammer applied to nether regions of classic enterprise devops anti-patterns.
+
+### Multi-Cloud Kubernetes Cloud Wars?
+
+If you're still with us, you may be wondering what the big deal is. One of the founders driving Kubernetes forward ordained an architecture proposal. Another set of contributors -- also mostly paid by Google -- diligently implemented the key ideas, which, after a [proposal](https://github.com/kubernetes/enhancements/commits/1e74c2d323c4f3036de005f65eb0d12fcf33e28d/sig-cli/0008-kustomize.md) and SIG-level high fives, were merged into Kubernetes' main command line interface. Sure it happened on the cusp of a two week holiday break when no one was looking, but what's not to like about a Googley-flavored [open source benevolent dictatorship](https://lore.kernel.org/lkml/CA+55aFy+Hv9O5citAawS+mVZO+ywCKd9NQ2wxUmGsz9ZJzqgJQ@mail.gmail.com/)?
+
+Here is a filtered distillation of complaints for those that don't want to pick apart the entire "kerfuffle" thread:
+
+- Observations that "k8s is about adding extension points rather than new features", and the question of why kustomize isn't simply a kubectl plugin.
+- A claim that kustomize had a "low bar" for [graduation criteria](https://github.com/kubernetes/enhancements/commits/1e74c2d323c4f3036de005f65eb0d12fcf33e28d/sig-cli/0008-kustomize.md), compared to various Kubernetes contributor experiences elsewhere, particularly in the Windows spheres.
+- Mentions of cli-runtime being golang exclusive, to the chagrin of direct Kubernetes API support within other, more agnostic [declarative configuration tools such as Pulumi](https://github.com/pulumi/pulumi).
+- Unattributed expressions that people "are upset", that "someone said" this "was a back room deal." Claims that the merge "showed a fast path to landing a feature outside the direction of extensibility", and that could trigger others to ponder "the idea of how their company could do that, too." Along with whisper-screams that "people want to game the system," while upstream is getting into "a slippery slope" of anointing winners based on non-consensus "opinions."
+
+<BlogImage src="./assets/coalition-is-here.png" />
+
+### Whoa, Hold Up! What Exactly is a Kubernetes KEP?
+
+Like many [industrial megaprojects](https://en.wikipedia.org/wiki/Big_Dig) under [constant re-construction](https://twitter.com/vadimlearning/status/1085159824042704901), when you [LMGTFY "Kubernetes Enhancement Proposal Process"](http://lmgtfy.com/?q=kubernetes+enhancement+proposal+process) you may land on a 404 at `https://kubernetes.io/docs/community/keps/`.
+Digging further, you'll find [authoritative bits stashed away in git](https://github.com/kubernetes/enhancements/tree/master/keps), including an ever-evolving "beta" enhancement proposal process, itself initially christened KEP-0001. The called-for proposal steps aim to wrap up requirements, design and communication in a delicious nettes-morsel, spoon fed to users via committee-driven leaf nodes known as Special Interest Groups, aka "SIGS." The meat of this process is a valiant decree to capture and record consensus design decisions. As the kustomize thread and [other interesting encounters highlight](https://medium.com/uswitch-labs/proposing-an-enhancement-to-kubernetes-the-story-of-a-kep-f652656d0628), outsiders who stand back and squint wouldn't be too far off base to surmise that it all boils down to an engineering petri dish with an iterative nucleus driven by those with the largest engineering R&D budgets. If this is your cup of tea, keep an eye on a [fresh-baked effort to refine the KEP template](https://github.com/kubernetes/enhancements/pull/703) and provide clarity around community expectations.
+
+### Why Can't Kustomize Live As A Standalone Tool?
+
+One of the better open-ended questions from the feigned kerfuffle, a question rooted in long-running themes from the core maintainers, is why the kustomize addition doesn't follow upstream's bent on hoisting as much as possible out of the "kubernetes/kubernetes" core repo into extensions such as "Custom Resource Definitions," aka CRDs. The CLI maintainers retort that kustomize's benefits have always been intended to be part of the K8s toolchain, while noting that the opinionated nature of the decision is not only consistent with larger project goals, but that the opinions themselves are in fact a large part of the value baked in to Kubernetes APIs. At the same time, they offer views of what needs to be broken out of kubectl, while ever so slightly salting the wound by asking if the pontificator would like to help.
+
+Zooming out, this is the hardest gripe to reconcile. On one hand, saying "no" has become a rallying cry of core K8s maintainers faced with the onslaught of popular success. On the other, there is a constant race to improve kubectl's friendliness to users. For the fascinating deeper dive, see the [PR discussion](https://github.com/kubernetes/kubectl/pull/179) revolving around an earlier [rejected proposal to craft an out-of-tree `ktl` alternative to kubectl](https://github.com/pwittrock/kubectl/blob/70047e6873200dd24fe71c8e1ed97128df378cdd/docs/proposals/ktl.md).
+
+### Did Kustomize Really Skip "Graduation"?
+
+The muttering about feeble graduation criteria spelled out in kustomize's original KEPs is interesting. The grumbles ring true and seem to have triggered many unrelated Kubernetes SIGs to take a renewed interest in crossing their t's and dotting their i's. While it looks like Google got caught red-handed dumping code into the Kubernetes cookie jar, the truth, much like "consensus" itself, isn't so cut and dried. No matter where you fall on the broad spectrum of this governance concern, the reality is that cogent and clear documentation, especially around design, remains an exceptionally annoying back-seat driver to the primary concern of quickly getting features in front of end-users with real world problems. Folks that have watched numerous open source communities grow up will also point out a distinct rift between those that do and those that talk about doing. This is probably why much leeway is afforded to the rare patient unicorns who share aptitude for both writing code and participating in voluminous committee discussions. Only time will tell how [bumpy of a ride](https://kubernetes.slack.com/archives/C1L57L91V/p1548358000047700) the contributor community is in for now that there's a renewed focus on the KEP process.
+
+<BlogImage src="./assets/graduation.png" />
+
+### What Were the Kustomize Security Concerns?
+
+A few weeks after the kubectl+kustomize merge, when it seemed like Google-clause had successfully gotten away with the cookies and milk, an [interested third party](https://github.com/kubernetes/kubernetes/pull/70875#issuecomment-453369450) noted a potential security nightmare buried in a well-intended feature. In short, program callout and [local file access features](https://github.com/kubernetes-sigs/kustomize/commit/549290c4473cc782a36cb125b32cd0bc62f65b1f) built in to kustomize, now that it was merged into kubectl, could perhaps be leveraged by unscrupulous YAML slingers to trick unwitting kubectl'ers into silently sharing their secrets with the world. The suspect features were quickly improved or backed out of kustomize itself, but this seems to be the proverbial straw that lead to the [kubectl+kustomize pull request to be yanked back out](https://github.com/kubernetes/kubernetes/pull/72805). On the back of the [Kubernetes apiserver CVE](/blog/kubernetes-websocket-upgrade-security-vulnerability/), the reaction time here was quite impressive and goes to show that a focus on security will be an enduring "quality is job one" theme.
+
+### Why Does it Matter If CLI-runtime is golang exclusive?
+
+Astute tool and cluster builders who revolve around or within the Kubernetes ecosystem have additional bones to pick with kustomize being piled on to the monogamous marriage of Kubernetes APIs to kubectl. They bemoan fundamental gaps in day two functionality, such as sharp edges around applying secrets and inability to safely prune live objects. There is also intense unease around the imperative DevOps masses slapping kubectl around as their canonical K8s entry point rather than simpler abstractions of raw Kubernetes APIs. Short of backflips such as using client-go via gRPC, writing kube clients in other languages such as typescript or python is painfully out of reach. Upstream limiting the richness of Kubernetes API access to gophers might seem like not a big deal to folks entrenched in the race outflank cloud lock-in monopolies, but this is an unaddressed concern of those gazing into the cloud horizons far beyond the CNCF's ever growing big tent of inclusiveness.
+
+<EmailSubscribeViolet />
+
+### Where Is Kustomize Now, What Happens Next?
+
+A fresh, much [re-worked](https://groups.google.com/d/msg/kubernetes-sig-cli/RkaqUBw6Fgo/IJlo1awMFAAJ), [kustomize subcommand integration KEP](https://github.com/pwittrock/enhancements/blob/master/keps/sig-cli/kustomize-subcommand-integration.md), along with a [KEP FAQ](https://github.com/pwittrock/enhancements/blob/master/keps/sig-cli/kep-faq.md), has just been [merged](https://github.com/kubernetes/enhancements/pull/698). The original kerfluffle concerns have been calmly carried over to [subsequent threads](https://groups.google.com/d/msg/kubernetes-sig-cli/GIawhcyHVAI/ITobJotlEgAJ), with contributors eyeing data-driven usage measurements and surveys of end-user behavior to validate varying assumptions. A newly elected ~~Kubernetes~~ CNCF Technical Oversight Committee (TOC) is doing its "[driving neutral consensus](https://www.cncf.io/blog/2019/01/29/new-year-new-toc/)" thing and the larger foundation continues to shift into long-term community leadership gear.
+
+<blockquote class="twitter-tweet" data-lang="en">
+  <p lang="de" dir="ltr">
+    Kubernetes is not the kernel; it’s systemd.
+  </p>
+  &mdash; Kelsey Hightower (@kelseyhightower) <a href="https://twitter.com/kelseyhightower/status/1088828102480781313?ref_src=twsrc%5Etfw">January 25, 2019</a>
+</blockquote>
+<script
+  async
+  src="https://platform.twitter.com/widgets.js"
+  charset="utf-8"
+></script>
+
+Credits: Thanks to [Greg Kogan for his awesome cartoons](http://gkogan.co/)!

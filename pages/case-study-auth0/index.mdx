@@ -1,0 +1,78 @@
+---
+title: How Auth0 meets PCI and SSH Requirements
+description: Auth0 selected Teleport to provide secure access to their customers’ infrastructure, whether it’s hosted in a public or private environment.
+articleTitle: How Auth0 meets PCI and SSH Requirements
+date: "2019-04-15"
+author: Jon Silvers
+tags:
+  - teleport
+  - ssh
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Auth0 makes the internet safer
+
+[Auth0](https://auth0.com) was founded in 2013 with a mission to make the internet safer. Today, Auth0 is about 500 employees strong and
+manages over 2.5 billion logins per month. The company’s platform makes it easy for their customers to add authentication and authorization
+services for web, mobile, and legacy applications.
+
+The company offers public and private hosted editions of its flagship product. Auth0 was built around developers and makes it easy to add
+authentication with just a couple lines of code. In the multi-tenant service, data is isolated and encrypted, but many customers opt to use
+the private cloud instance on AWS, typically for compliance reasons.
+
+<BlogImage src="./assets/auth0-screenshot.png" />
+
+## PCI and SSH compliance
+
+Auth0 selected [Teleport](https://goteleport.com/) to provide secure access to their customers’ infrastructure, whether it’s hosted in a public or private
+environment.
+
+“It started because some customers wanted to have control over their infrastructure and didn’t want to allow anyone — even Auth0 — to have
+access to their systems,” explained Pablo Terradillos, an applications engineer at Auth0 who works on the private SaaS engineering team.
+
+Auth0 also had customers who had to address PCI compliance requirements. PCI requires companies
+to host all infrastructure in isolated environments, so accessing those environments securely -- everything from initializing new services
+to providing ongoing support -- was a challenge the Auth0 team needed to tackle.
+
+Teleport is a secure, [SSH gateway](https://goteleport.com/how-it-works/) that gives users the ability to grant temporary access to infrastructure. It
+has built-in role-based access control (RBAC) and automatically terminates sessions after a pre-defined period of time determined by the
+customer. For Auth0, Teleport is used for customer support both in hosted and private environments.
+
+<Quote>
+  Teleport provided a secure, transparent and easy way to access to our customer
+  environments. It helped our Managed Services Engineering Team to provide
+  support 24x7 to our customers worldwide. We went from about 20 environments to
+  over 120 in less than a year. - Pablo Terradillos, Applications Engineer,
+  Auth0
+</Quote>
+
+## Open Source SSH gateway
+
+The company initially discovered the open source community version of Teleport. Because it is open source, one of the first things they did
+was add support for Auth0 directly into Teleport. “It was really helpful to have Teleport be open source. We actually authenticate into
+Teleport using Auth0. It was easy to build that feature because Teleport already had support for OIDC.”
+
+Auth0 uses RBAC (supported in Teleport) to ensure only the right support staff from the right teams are accessing the right customer
+infrastructure as needed. Just as importantly, the only connection to the outside for customer infrastructure is provided by Teleport. It
+ensures that Auth0’s support teams can provide troubleshooting when needed and not have to manage any SSH keys.
+
+Teleport not only stores logs of every session, but records sessions for playback so users can see exactly what was done in each session.
+
+“Having an audit of everything that’s going on is really useful. Some of our customers really value that and we like it, as well, to help us
+understand what’s going on.” said Pablo. “If we see something wasn’t in the state it was supposed to be, we can look at the Teleport session
+recordings.”
+
+<EmailSubscribeViolet />
+
+## Reliable and Scalable
+
+In addition to the multi-tenant edition of Auth0, the team currently manages nearly 70 private instances for customers, each with at least 3
+environments and up to 12 servers and each node is accessed through Teleport. As for working with Teleport, Pablo noted:
+
+“We get a lot of support from your team. You’ve been very responsive. In fact, the last time I was in the Teleport support channel was to
+add my new manager and someone from Teleport asked how everything was going. I said, well, there’s not much activity here in the support
+channel, so that should tell you!”

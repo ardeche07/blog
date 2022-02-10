@@ -1,0 +1,138 @@
+---
+title: Kubeadm + Flannel + Dashboard = 💣
+description: A brief explanation of a common problem that could happen while creating new Kubernetes clusters with Kubeadm, Flannel and installing the Dashboard tool.
+articleTitle: Kubeadm + Flannel + Dashboard = 💣
+date: "2018-09-14"
+author: Emanuele Calo
+tags:
+  - kubernetes
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+I was recently setting up a _new Kubernetes cluster_ using **kubeadm** for some
+prototype purposes and I encountered a common problem with the Kubernetes
+Dashboard, caused by a simple misconfiguration during the Flannel setup.
+
+For good measure I was actually following the official Kubeadm setup instructions <a href="https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/">1</a>
+
+As explained in the instructions, during the initial phases of the setup
+process, you need to run the `kubeadm init` command, potentially
+specifying the advertised apiserver address and the pod network subnet.
+
+In my case I used the following command:
+
+```
+sudo kubeadm init --apiserver-advertise-address 192.168.12.11 --pod-network-cidr 10.10.0.0/16
+```
+
+Moving on with the installation I continued following the official instructions
+up to the point where the Network Addon is installed <a href="https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/#pod-network">2</a>
+
+In my testing cluster I just needed something easy and quick so I decided to go
+for the _”good ol'”_ battle-tested **Flannel**.
+Once again I decided to go the easy way and just followed the official
+instructions <a href="https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/#tabs-pod-install-3">3</a>
+
+Reading through the instructions I found a warning claiming that:
+
+```
+For `flannel` to work correctly, you must pass `--pod-network-cidr=10.244.0.0/16` to `kubeadm init`.
+```
+
+I glanced over the warning and went on with the process... I feel that many
+can relate to that decision and what happened soon after.
+
+There's one quick way to verify if your Network Addon is working correctly,
+which is simply checking the nodes status and waiting for them to go from
+**NotReady** to **Ready**:
+
+```
+$ kubectl get nodes -o wide
+NAME      STATUS    ROLES     AGE       VERSION   INTERNAL-IP       EXTERNAL-IP OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+kube-01   NotReady  Master    21h       v1.11.2   192.168.121.53    <none>      Ubuntu 18.04.1 LTS   4.15.0-33-generic   docker://17.12.1-ce
+kube-02   NotReady  <none>    21h       v1.11.2   192.168.121.101   <none>      Ubuntu 18.04.1 LTS   4.15.0-33-generic   docker://17.12.1-ce
+kube-03   NotReady  <none>    21h       v1.11.2   192.168.121.146   <none>      Ubuntu 18.04.1 LTS   4.15.0-33-generic   docker://17.12.1-ce
+
+$ kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.10.0/Documentation/kube-flannel.yml
+
+$ kubectl get nodes -o wide
+NAME      STATUS    ROLES     AGE       VERSION   INTERNAL-IP       EXTERNAL-IP OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+kube-01   Ready     master    21h       v1.11.2   192.168.121.53    <none>      Ubuntu 18.04.1 LTS   4.15.0-33-generic   docker://17.12.1-ce
+kube-02   Ready     <none>    21h       v1.11.2   192.168.121.101   <none>      Ubuntu 18.04.1 LTS   4.15.0-33-generic   docker://17.12.1-ce
+kube-03   Ready     <none>    21h       v1.11.2   192.168.121.146   <none>      Ubuntu 18.04.1 LTS   4.15.0-33-generic   docker://17.12.1-ce
+```
+
+**_Super!_** Everything was moving along (apparently). Next step would be
+install the Kubernetes Dashboard <a href="https://github.com/kubernetes/dashboard">4</a>
+
+The documentation says that the installation should be as easy as:
+
+```
+$ kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+```
+
+After running the designated command I started checking the Pods' status:
+
+```
+$ kubectl get po -n kube-system | grep dashboard
+kubernetes-dashboard-767dc7d4d-7ggg8   0/1       CrashLoopBackOff   4 2m
+```
+
+Looking through the logs I found the infamous error message:
+
+```
+$ kubectl logs -n kube-system kubernetes-dashboard-767dc7d4d-7ggg8
+2018/09/07 15:43:13 Starting overwatch
+2018/09/07 15:43:13 Using in-cluster config to connect to apiserver
+2018/09/07 15:43:13 Using service account token for csrf signing
+2018/09/07 15:43:13 No request provided. Skipping authorization
+2018/09/07 15:43:43 Error while initializing connection to Kubernetes apiserver.
+This most likely means that the cluster is misconfigured (e.g., it has invalid apiserver certificates
+or service account's configuration) or the --apiserver-host param points to a server that does not exist.
+Reason: Get https://10.96.0.1:443/version: dial tcp 10.96.0.1:443: i/o timeout
+Refer to our FAQ and wiki pages for more information: https://github.com/kubernetes/dashboard/wiki/FAQ
+```
+
+**_This error is caused by the non-matching PodNetwork specified in the
+flannel.yaml file downloaded during installation and the one specified (either
+by default or explicitly) by kubeadm during the init phase (remember the
+Warning skipped above, now?)._**
+
+Looking through **GitHub** issues and forums, the most common solution is to
+either switch to **Weave** <a href="https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/#tabs-pod-install-6">5</a>
+] or re-run the kubeadm init command.
+
+That means either resetting the cluster and starting from scratch or not using
+Flannel and I didn't like either of the two options.
+
+The fastest and easiest solution is to edit the Flannel ConfigMap, tweak the
+configuration to your situation and then reload it.
+
+What follows is this process shown step by step:
+
+```
+kubectl edit cm -n kube-system kube-flannel-cfg
+# edit the configuration by changing network from 10.244.0.0/16 to 10.10.0.0/16
+kubectl delete pod -n kube-system -l app=flannel
+kubectl delete po -n kube-system -l k8s-app=kubernetes-dashboard
+```
+
+<EmailSubscribeViolet />
+
+You will actually have to change the default 10.244.0.0/16 Network with your
+specific custom one, in our example 10.10.0.0/16
+
+Now you should be able to access the Dashboard by running `kubectl proxy` on
+your computer and then access the usual proxied localhost Dashboard link at:
+
+http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy
+
+Awesome!
+
+**OPTIONAL**: I also suggest you to clean all the DaemonSet for the architectures you won't be using.
+
+In my case I was running on amd64 so I manually deleted all the DaemonSet other
+than `kube-flannel-ds-amd64` which is the only one I needed.].
+

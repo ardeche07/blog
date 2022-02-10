@@ -1,0 +1,169 @@
+---
+title: Gateway for SSH and Kubernetes
+description: Today we are announcing the new release of Teleport. This version adds support for Kubernetes protocol, becoming a universal security gateway for both SSH and Kubernetes clusters.
+articleTitle: Teleport universal gateway for SSH and Kubernetes
+date: "2018-10-02"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+  - kubernetes
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Today we are bumping the major version number of [Teleport](https://goteleport.com/)
+to **3.0** and for good reason. One of our beta testing customers said it best:
+
+<Quote>
+  This is too easy, now I can now authenticate once and access both my
+  Kubernetes clusters [via kubectl] and the underlying servers [via SSH]!
+</Quote>
+
+That's right, in addition to being an SSH gateway, Teleport now has native
+support for Kubernetes. Before we cover this feature in greater detail, let's
+introduce Teleport to the new readers of this blog.
+
+## What is Teleport?
+
+Teleport is a privileged access management system
+for elastic _(and now Kubernetes)_ compute infrastructure.
+
+Teleport delivers hardened DevOps &amp; SRE security best practices in a box to
+companies who have traditionally relied on static keys or complex DIY SSH
+bastion solutions.
+
+By adopting Teleport in your organization you will:
+
+- Secure its infrastructure and easily pass compliance requirements.
+- Improve visibility into access and behavior across your infrastructure.
+- Reduce the operational overhead of enforcing security best-practices.
+
+Teleport allows low-level systems access to be controlled by _who the user is
+within an organization_, not based on which private key they have.
+
+Teleport is open source and compatible with OpenSSH clients and servers.
+
+## Kubernetes Support
+
+With the 3.0 release, Teleport can be configured as a compliance gateway for Kubernetes
+clusters. This allows users to authenticate against a Teleport proxy using the
+`tsh login` command and retrieve credentials for both SSH and the Kubernetes
+API:
+
+<BlogImage src="./assets/teleport-diagram.png" />
+
+In the scenario illustrated above a user can execute the following command to log into Teleport:
+
+```bash
+# Authentication step to retrieve the certificates. tsh login places the SSH
+# certificate into `~/.tsh` as usual and updates kubeconfig with Kubernetes
+# credentials:
+$ tsh --proxy=teleport.example.com login
+```
+
+They then receive the certificates that determine their access and permissions
+for both SSH and Kubernetes:
+
+```bash
+# Execute SSH commands to access SSH nodes:
+$ tsh ssh login@ssh-node
+
+# Execute any kubectl commands to access the Kubernetes cluster:
+$ kubectl get pods
+```
+
+In other words, a Teleport Proxy can now become a single authentication
+endpoint for both SSH and Kubernetes. This brings the following advantages to Teleport users:
+
+- Users authenticate against a Teleport proxy once and retrieve credentials for
+  both SSH and Kubernetes API.
+- Users' RBAC roles are always synchronized between SSH and Kubernetes, making
+  it easier to implement policies like developers must not access production
+  data.
+- Teleport session recording and the audit log extend to Kubernetes, as well.
+  Regular kubectl exec commands are logged into the audit log and the
+  interactive commands are recorded as regular sessions, which can be stored
+  and replayed in the future.
+
+### Better compliance
+
+The unified authentication and audit logging for both SSH and Kubernetes is not
+merely a convenience feature. It also gives organizations a simple way to
+reason about their infrastructure security and a single gateway to enforce
+compliance across traditional and newer, cloud native infrastructure management
+tools.
+
+Often "compliance enforcement" initiatives bring a fair amount of disruption
+and inconveniences to day-to-day operations, making it harder for engineers to
+do their jobs. Teleport, however, stays true to its promise of getting out of
+the way. Developers can continue to enjoy using familiar commands like `ssh`
+and `kubectl` without having to worry about bastion hosts and complicated
+authentication mechanisms. This reduces the incentives to go around compliance
+policies.
+
+### How does it work?
+
+When a user executes the `tsh login` command, they specify a Teleport proxy
+which asks the Teleport auth server to authenticate (usually via corporate SSO)
+and issue an SSH certificate which is returned to the user.
+
+The SSH certificate is later used to implement end-to-end encryption between a
+user and an SSH node.
+
+The Kubernetes integration is turned off by default but when **turned on**, the
+Teleport auth service also retrieves a Kubernetes certificate using the
+[Kubernetes CSR API](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/)
+which is kept in memory for the user's session.
+
+When a user issues the `kubectl exec` command, it is sent to a Teleport proxy, which
+updates the audit log and performs the recording of interacive sessions, and
+user requests are forwarded to the Kubernetes endpoint using the previously
+issued certificate.
+
+You can dig deeper by taking a look at the relevant sections in the
+[architecture document](https://goteleport.com/docs/architecture/overview/#kubernetes-integration)
+and the [admin manual](https://goteleport.com/docs/setup/admin/#kubernetes-integration).
+
+Here is a quick 3 minute demo of the end user's experience.
+
+<iframe
+  width="853"
+  height="480"
+  src="https://www.youtube.com/embed/zIuZHYO_cDI?rel=0"
+  frameborder="0"
+  allow="autoplay; encrypted-media"
+  allowfullscreen
+></iframe>
+
+## Other Improvements
+
+As usual, the full list of improvements and bugfixes can be found on [Github](https://github.com/gravitational/teleport/milestone/24?closed=1).
+
+You can also glance at the [CHANGELOG](https://github.com/gravitational/teleport/blob/9a7a801d5d9fd813a9e9846a359f30b619570d64/CHANGELOG.md)
+for a quick overview. A few improvements are worth mentioning here:
+
+- Teleport administrators can now fine-tune the enabled ciphersuites [#1999](https://github.com/gravitational/teleport/issues/1999)
+- We have documented the previously undocumented monitoring endpoints [#2103](https://github.com/gravitational/teleport/issues/2103)
+- The arbitrary limit of how many trusted clusters can be used behind an SSO has been removed. [#2192](https://github.com/gravitational/teleport/issues/2192)
+
+### Upgrading Teleport
+
+**Warning:** if you are using the `etcd` backend for Teleport, you must make sure
+your `etcd` version is 3.0 or newer prior to upgrading. Teleport 3.0 drops the
+legacy (v2.x) etcd API support.
+
+As usual, we recommend familiarizing yourself with the [recommended upgrade procedure](/teleport/docs/admin-guide/#upgrading-teleport)
+before upgrading to this version.
+
+<EmailSubscribeViolet />
+
+## Additional Information
+
+We are having a _live webinar this Thursday 10/04/2018_ to talk more about Teleport 3.0 and go through a live demo. You can also take a look at our friendly quickstart
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[Teleport overview](https://goteleport.com/). Our source code and developer community is wide open, so feel free to dig in. Issues and/or pull requests are always welcome. Also, feel free to
+reach out via email if you'd like a demo or would like to connect directly with the team: [info@goteleport.com](mailto:info@goteleport.com).

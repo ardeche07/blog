@@ -1,0 +1,262 @@
+---
+title: Restricted Shell | Restricted commands for SSH
+description: How to restrict SSH sessions to specific commands? How to have a restricted shell for some users? In this article we cover some common ways to answer these questions.
+articleTitle: Restricted Shells:\ Sometimes Persuasive But Usually Fallacious
+date: "2019-03-13"
+author: Russell Jones
+
+tags:
+  - ssh
+  - teleport
+  - programming
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+Any Linux user always has security restrictions, unless it's a `root`, of
+course. Usually those restrictions are defined by the file system: `bob` can
+write into this directory, but he cannot write to files in `/usr/bin`, for
+example.
+
+But sometimes we want to introduce additional, more granular restrictions, to
+what a user can do. Can `bob` execute `htop` command? What about `curl`? When
+the need to implement granular restriction arises, restricted shells are often
+recommended as a solution.
+
+## What is a Restricted Shell?
+
+A restricted shell is a regular UNIX shell, similar to `bash`, which does not
+allow user to do certain things, like launching certain commands, changing the
+current directory, and others.
+
+This sounds fantastic in principle, but there are plenty of caveats we want to
+cover in this post.
+
+## Why use a Restricted Shell?
+
+But to better understand the need for it, let us share a bit of background.
+
+We launched [Teleport](https://goteleport.com/) as an open source
+cloud-native replacement for OpenSSH almost three years ago.
+
+We [open sourced](https://github.com/gravitational/teleport) it because we
+believed that [SSH key managers](https://goteleport.com/blog/ssh-key-management) should just go away,
+because key-based authentication is a bad security practice, and this wisdom
+needs to be accessible by all engineers, and not limited to enterprises.
+
+Teleport quickly (and somewhat unexpectedly) gained popularity as an
+independent solution for auditable, certificate-based SSH (now kubectl, too)
+access to server clusters and recently crossed the 7k Github star milestone.
+
+Lately we've had discussions with potential customers asking us to add support
+to Teleport for restricted SSH shells. Usually these requests come as a way to
+address one of the three following needs:
+
+### Data exfiltration ("exfil") prevention
+
+Typically this desire is to limit users with valid credentials from stealing
+Personally Identifiable Information (PII) or other intellectual property (IP)
+they otherwise have access to.
+
+### Prevent execution of arbitrary commands
+
+Typically this "execution lock down" notion is to prevent the following:
+
+1. Prevent an attacker with stolen credentials from running a malicious program or commands.
+2. Prevent legitimate users from performing dangerous operations by accident like opening firewall rules.
+3. Prevent legitimate users from inadvertently running programs that would otherwise interfere with the legitimate services running on a host.
+
+### Compliance
+
+Being able to say that some "control" was in place even if it is not effective,
+otherwise known as checkbox security or security theater.
+
+## Our approach to security
+
+At Teleport our approach to security is that a solution should be secure
+even if the details of an implementation are known and that compliance should
+be achieved with effective security controls that don't rely on security
+theater.
+
+In fact, inadequate security measures may be harmful if such notions don't account
+for the [Weakest Link Property](https://www.us-cert.gov/bsi/articles/knowledge/principles/securing-the-weakest-link). There is a good example in the book, "[Cryptography Engineering: Design Principles and Practical Applications](https://www.amazon.com/Cryptography-Engineering-Principles-Practical-Applications/dp/0470474246)".
+
+<Quote>
+  Niels used to work in an office building where all the office doors were
+  locked every night. Sounds very safe, right? The only problem was that the
+  building had a false ceiling. You could lift up the ceiling panels and climb
+  over any door or wall. If you took out the ceiling panels, the whole floor
+  looked like a set of tall cubicles with doors on them. And these doors had
+  locks. Sure, locking the doors made it slightly harder for the burglar, but it
+  also made it harder for the security guard to check the offices during his
+  nightly rounds. It isn't clear at all whether the overall security was
+  improved or made worse by locking doors._
+</Quote>
+
+With this approach in mind we'd like to cover some common ways _"restricted
+shells"_ are implemented to show what works and what doesn't work.
+
+<BlogImage src="./assets/ssh-restricted-shells-false-fence.jpg" />
+
+## Restricted Shells - What doesn't work
+
+### SSH Shell Payload Parsing and Pattern Matching
+
+Fundamentally SSH ("secure shell") connects the byte stream between two
+terminals: the one on the remote server with the one running on the client. Due
+to the lack of structured data passed over this stream, it's difficult to apply
+access controls to the data passing over the connection in any meaningful way.
+Some vendors attempt to provide a sort of ad-hoc alerting system by pattern
+matching or attempting to parse the bytes sent over the connection into
+something meaningful. In the best case, these approaches are advertised as a
+sort of safety hatch and in the worst case, as ironclad security guarantees.
+
+Two common examples of this are attempting to pattern match the byte stream to
+find shell commands or attempting to parse SQL queries. Both have a variety of
+problems.
+
+[One issue is that the fact a pattern did not match, does not imply the action did not happen](https://simple.wikipedia.org/wiki/Argument_from_ignorance). For example, say the pattern matching system alerts on example.com ever flowing over the byte stream. To bypass the alert, first take the payload that includes example.com and base64 encode it.
+
+```
+$ echo "curl http://www.example.com" | base64
+Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg==
+```
+
+Then run the following command with the encoded payload, note the lack of example.com in it:
+
+```
+$ echo Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg== | base64 --decode | sh
+<!doctype html>
+<html>
+<head>
+[...]
+```
+
+In the above case example.com never appears in the byte stream but the action of accessing content on example.com still happened.
+
+Examining this issue further, this approach fails as a escape hatch as well. Imagine instead of alerting on example.com, the alert is on <strong><code>rm</code></strong>, but what if the data to be protected is not on disk but instead in a database? This approach fails here as well.
+
+While parsing may seem like a more secure approach, for sure it doesn't have the code smell issue that pattern matching does, it fundamentally has the same issues that pattern matching does. Differences between the alerting parser and the real database parser create interesting opportunity of vulnerability arbitrage.
+
+### Restricted Modes
+
+Some shells like Bash have [restricted modes](https://www.gnu.org/software/bash/manual/html_node/The-Restricted-Shell.html). The fundamental problem with these shells is that the access controls are at the application level, and if they allow execution of a program, which most shells do, any program you run launches with the permissions of the program without the application level restrictions. This approach effectively relies on the attacker acting in good faith which is rarely the case.
+
+To illustrate this with Restricted Bash, to work around it, simply type <strong><code>bash</code></strong> to re-launch bash and you get a un-restricted bash session.
+
+```
+$ bash --restricted
+$ cd ..
+bash: cd: restricted
+$ pwd
+/home/rjones
+$ bash
+$ cd ..
+$ pwd
+/home
+```
+
+### Disabling Secure Copy (SCP)
+
+One approach to stop data exfil, aka data extrusion -- the unauthorized transfer of data from a system -- is to attempt to limit the tools used for file transfer. For example, `scp`, [OpenSSH's secure remote file copy program](https://man.openbsd.org/scp), is frequently used to upload and download files from a server. However removing the scp binary from a host provides no security benefit. Recall from the pattern matching section that a SSH connection is a raw byte stream which means you can simply execute a command on the remote host and pipe the contents to a local file.
+
+For example, say you want a list of all users on a remote host but the scp binary has been removed from disk. You can simply run the following command to download a copy.
+
+```
+$ ssh example.com cat /etc/passwd > passwd.copy
+```
+
+For more details on SCP read the article on [SCP Simple Secure Slow](/blog/scp-familiar-simple-insecure-slow/)
+
+### ForceCommand: Forcing execution of a specific command
+
+Force command is an approach where only the command embedded either in a certificate or <code>authorized_keys</code> file is run by an OpenSSH server on connection. This approach can be secure but can [easily be misconfigured](https://www.openwall.com/lists/oss-security/2014/07/21/9) or chained with unrelated vulnerabilities to provide [no security at all.](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2008-1657) A few examples:
+
+- If the force command allows execution of other binaries, all restrictions can potentially be bypassed. This means you have to go further than just avoid obvious things like shells, even commands like <code>git</code> can be dangerous because it supports post-commit scripts which effectively allow you to run arbitrary commands.
+- If the user can somehow update files on the server they are trying to access, force command restrictions can be lifted by updating the <code>authorized_keys</code> file or the users RC file.
+
+It should be said that unlike the other approaches, force commands can be used effectively. For the force command to be secure, you have to define a small (or zero) set of supported inputs and be confident that arbitrary code execution is not a side effect of any of them. However, once you get to this point, the Admin Panel approach listed below becomes a much more scalable and user friendly option.
+
+## Alternatives to Restricted Shells - What works
+
+### System hardening
+
+Linux systems come with a variety of built-in access control techniques that can be used to limit what a user can do and access on a system.
+
+At the most basic level users, groups, and permissions can be used to restrict access to programs and files on a system. Below is an example where read/write access for a file is manipulated.
+
+```
+$ ls -l
+-rw-rw-r--. 1 rjones rjones 21 Mar  7 21:32 file.txt
+$ cat file.txt
+Hello from file.txt!
+$ chmod u-rw file.txt
+$ cat file.txt
+cat: file.txt: Permission denied
+$ chmod u+rw file.txt
+$ cat file.txt
+Hello from file.txt!
+```
+
+Note, as you can see in the above example, these controls are discretionary, this means that the owner of a file (or root) can open or close access to a file at their own discretion.
+
+If access control decisions can not be given to users and need to be enforced at a system level, Mandatory Access Controls (MAC) systems like SELinux can be used to write policy that defines exactly what can and can not be accessed on a system, regardless of who the owner of resource is.
+
+SELinux is too large of a topic to go into in this article, but [Digital Ocean has a great illustrative example](https://www.digitalocean.com/community/tutorials/an-introduction-to-selinux-on-centos-7-part-2-files-and-processes) of how it can be used to confine a public web server. In essence, you write a policy that defines the exact set of objects the server needs access, and the system will only allow access to these objects regardless of the user, group, or permissions of the user launching the process or the process itself.
+
+Another great example is a public SSH server with root access that [Russell Coker has been running](https://www.coker.com.au/selinux/play.html) for many years. It illustrates the power of Mandatory Access Control systems like SELinux where even root access is not unrestricted and can be given to the general public.
+
+Another form of system hardening you can use is containers. Containers use a combination of system level primitives, the most prominent of which are control groups (cgroups) and namespaces, to restrict the resources and view of the operating system the process has.
+
+For example, suppose you want to launch a process that is limited to 256 MB of RAM and can only access _/path/to/dir_ on the host in the container, you can do that with the following Docker command.
+
+```
+docker run -m="256m" -v="/path/to/dir:/path/to/dir" ubuntu
+```
+
+A variety of runtimes exist for containers, the default container that Docker uses is called [runc](https://github.com/opencontainers/runc), but more secure [sandboxed runtimes like gVisor](https://github.com/google/gvisor) also exist. We'll talk more about how containers can be effectively utilized in the the section on container schedulers below.
+
+### Admin Panels
+
+Admin Panels (or a purpose written tool) can that can be used to allow users to perform a specific well defined set of actions on your infrastructure.
+
+For example, most applications need to perform some kind of CRUD operations on users. An insecure way to allow CRUD operations is to allow direct SSH access to a database server and have users run queries directly on the database. Allowing this runs the risks of accidentally deleting unintended data, access to data unrelated to the stated intent, and even bringing your application to a grinding halt due to a poorly written query. The secure way to do this is to write a simple Admin Panel that can be used to search for and perform CRUD operations on a user.
+
+### Containers and Schedulers
+
+Once you have a containerized application, you can use a container scheduler like Kubernetes or Docker Swarm to run it on your production hosts. Container schedulers provide a well defined API to access the status of the container like its state and logs. This means users only have access to the running programs over a well defined API.
+
+Because containers are self-contained images with everything they need to run, developers do not need access to production hosts to debug issues. For example, a good workflow allows developers to spin up a cluster locally on dummy data they control. However within production they would only have access to logs. This way data exfiltration is prevented because direct access to data is simply not allowed.
+
+### Monitoring and Alerting
+
+Security information and event management (SIEM) systems can be setup to aggregate, correlate, and alert on events emitted by servers in your cluster. These systems are not defense mechanisms per say, because similar to pattern matching, the lack of an alert does not mean a security critical event did not occur. But SIEM can be used to improve automated control and visibility into your system. For example, if too much data has been transmitted over a session, you can have tooling in place to watch and kill those sessions.
+
+A variety of tooling exists on Linux systems to generate and emit events. For example, the Linux Audit daemon (auditd), sysdig/falco and our Teleport audit log can all be ingested into a SIEM system.
+
+Similar to the event emission side, a variety of tooling exists on the monitoring and alerting side like [Prometheus](https://prometheus.io/), [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/), [InfluxDB](https://www.influxdata.com), and [Grafana](https://grafana.com/).
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+We have learned, that the idea of a restricted shell is a good one. Users are
+looking to prevent data exfiltration, execution of arbitrary commands, and to
+implement compliance enforcement using restricted shells.
+
+While restricted shells may look tempting, we hope we have illustrated how many
+solutions do not provide real security to your system. Instead, we recommend
+adopting techniques like system hardening, admin panels, and container
+schedulers to provide more effective solutions to achieve your security and
+compliance goals.
+
+Thank you to [@lvh](https://twitter.com/lvh) from [Latacora](https://latacora.com/)
+for reviewing this post!
+
+_P.S., If working on these types of challenges interests you and you don't like security theater, [we are hiring](https://jobs.lever.co/teleport)!_

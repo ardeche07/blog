@@ -1,0 +1,104 @@
+---
+title: Authenticate against GKE without gcloud
+description: GKE requires users to have Google Cloud Tools (gcloud) installed. In this post show how to use authenticate with GKE using generic kubeconfig without having to install anything.
+articleTitle: Authenticate against GKE without gcloud
+date: "2018-10-03"
+author: Emanuele Calo
+tags:
+  - kubernetes
+  - programming
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+In this post we'll explain how to generate and use `~/.kube/config` for
+Kubernetes clusters running on GKE without having to install Google Cloud Tools
+like `gcloud`. This can be impractical on machines that use automation (run
+CI/CD). Or perhaps you wish to keep your Kubernetes tooling independent
+of a specific cloud provider.
+
+First, let's go over the regular workflow of a GKE user:
+
+## Authenticating with GKE
+
+If you are adopting Google's Kubernetes Engine (aka,
+[GKE](https://cloud.google.com/kubernetes-engine/)) you will want to connect `kubectl` to your GKE-hosted Kubernetes cluster.
+Usually, this is accomplished by pressing "connect" button on GKE portal
+which then brings up something like the following instruction:
+
+<BlogImage src="./assets/gke-connect.png" />
+
+We will copy & paste the shell command from above for better clarity:
+
+```bash
+$ gcloud container clusters get-credentials <cluster-name> --project <project-name>
+```
+
+Generates a `~/.kube/config` file with the necessary credentials for
+`kubectl` to use. However, it also means that:
+
+1. You must have `gcloud` installed on your machine.
+2. You must be authenticated with Google's cloud first.
+3. You have to have a web browser available, i.e. the authentication is
+   interactive.
+
+Below is the complete sequence of commands you'll have to use to generate `~/.kube/config`
+with the `gcloud` tool:
+
+```bash
+# This will open a web browser and you'll authenticate with your email, password
+# and the second factor (which you of course should be using)
+$ gcloud auth login
+
+# And now generate the kubeconfig:
+$ gcloud container clusters get-credentials my-cluster --zone us-central1-a --project my-project
+
+# Check if it works:
+$ kubectl get nodes
+```
+
+if you did everthing right, you should see the list of nodes in the cluster.
+Obviously this is not optimal for robots, CI/CD pipeline, etc.
+
+<EmailSubscribeViolet />
+
+## Authenticating Without Google Cloud Tools
+
+The setup above works quite well if you're using it on a laptop which has a web
+browser installed and you are only using GKE Kubernetes clusters. However,
+many of our customers have expressed interest in using Kubernetes-native
+authentication which does not depend on Google's proprietary tooling and does
+not require the user to interactively login via a web browser.
+
+Fortunately, this is quite easy to do!
+
+Here is what you need to do to non-interactively authenticate against GKE
+Kubernetes clusters without using the certificate authentication built into
+Kubernetes itself:
+
+1. First, obtain the GKE credentials using the workflow described above. You
+   have to do this just once.
+2. Connect to the Kubernetes cluster and request a new certificate using the
+   [Kubernetes CSR API](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/).
+   We have a [sample script](https://github.com/gravitational/teleport/blob/master/examples/gke-auth/get-kubeconfig.sh). You can use as a starting point (or as-is).
+
+The resulting `kubeconfig` can be placed on CI/CD machines and used in any kind
+of infrastructure automation which requires `kubectl`.
+
+The certificate returned by the CSR API does not have an expiration date and
+will keep working forever. If you wish to automatically rotate these
+certificates, you can implement your own tooling around this, or use
+[Teleport](https://goteleport.com/pam-for-kubernetes), our infrastructure gateway
+which provides unified access to both SSH and Kubernetes clusters.
+
+Update: we've been contacted via Twitter by a Google Engineer who has written a
+blog article for the very same scenario.
+
+Instead of creating a new certificate, he uses a workstation where `gcloud` is
+present and creates a static `kubeconfig` which is then copied to the target
+system that will use it. You can find his article
+[here](https://ahmet.im/blog/authenticating-to-gke-without-gcloud/).
