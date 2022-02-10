@@ -1,0 +1,105 @@
+---
+author: Kevin Nisbet
+date: "2019-05-30"
+tags:
+  - kubernetes
+  - security
+title: "Wormhole: Network Security for Kubernetes"
+description: "Discussion on Wormhole - networking plugin for Kubernetes. How do Kubernetes solutions trust the underlying network? - What about WireGuard/Wormhole?"
+articleTitle: "Through the Wormhole: Network Security for Kubernetes with Wireguard"
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Wormhole is a new networking plugin for Kubernetes built to encrypt internal cluster communications transparently using Wireguard, a new lightweight VPN technology. The plugin builds an encrypted overlay network, ensuring all internal traffic is always encrypted. See my previous post [introducing Wormhole](/blog/announcing-wormhole/) for additional background.
+
+This post aims to explore and answer two of the most interesting questions we came across after announcing [Gravitational Wormhole](https://github.com/gravitational/wormhole).
+
+- How do current Kubernetes solutions trust the underlying network?
+- What are the advantages of using WireGuard/Wormhole over other choices?
+
+<BlogImage src="./assets/wormhole-overlay-network.svg" width="100%" alt="Wormhole Overlay Network"/>
+
+## How do current Kubernetes solutions trust the underlying network?
+
+I personally find this to be a fascinating question because strictly speaking Kubernetes itself does not trust the underlying network. The core components of Kubernetes adopt modern best practices for encrypting and authenticating connections within the control plane.
+
+The control plane itself is responsible for most of what Kubernetes does, running software within the cluster, transferring configured secrets, giving remote admin access, and does so with relatively few [severe bugs](/blog/kubernetes-websocket-upgrade-security-vulnerability/).
+
+However, Kubernetes more loosely defines the network offered within the cluster, with many options available as plugins built by different organizations each of which offers different capabilities. Generally, these fall into two main categories:
+
+- Building an overlay network, that encapsulates traffic between hosts
+- Injecting routes into the network used by hosts
+
+So while Kubernetes itself may not trust the network, the chosen network plugin and deployed apps may place certain types of trust in the network, and certain environments may not consider certain types of exposure to be a security issue.
+
+Two services that come to mind are cluster DNS and Prometheus metrics endpoints. So, if someone without access to the cluster gains the ability to observe network traffic, they can learn elements of the way the cluster operates by observing DNS queries and metric polling. On their own, these don't tend to be the focal point of security engineering, but in certain environments, the preference is to protect this internal traffic to prevent information leakage that can be used to pivot or combine with other vulnerabilities.
+
+So this is why we have a number of plugins with varying capabilities, only some of which focus on security and encryption. It depends on the application, the strength of the security embedded within the application, and the environmental requirements. Some environments also benefit from a layered security approach, where multiple layers of security reinforce each other from vulnerabilities that appear in any single layer.
+
+Wormhole was developed for providing an option where internal network traffic is encrypted transparently between the applications, which provides for strong protection against attackers with access to the network, but doesn't have the features for embedding strong authentication of all components within a cluster.
+
+## What are the advantages of using WireGuard/Wormhole over other choices?
+
+This tends to be an incredibly tough question because choices like “What technology should I adopt?” are almost always incredibly dependent on context and requirements. And one blog post can't hope to cover the complex merits of the many choices available and properly balance all the trade-offs with each choice.
+
+With this in mind, I'll try and contrast some aspects of Wormhole security with other approaches I've observed.
+
+### Rotating Secrets
+
+I personally find the considerations that go into how to cancel old secrets one of the most difficult considerations in analyzing the security implications of a chosen technology.
+
+I tend to run through a number of questions when considering the implications of secrets:
+
+- What happens when an admin leaves the company?
+- What happens when an admin accidentally copies a secret to the wrong location or exposes a secret through some other mechanism?
+- How are the secrets stored and backed up?
+- Do backups have the same level of access control and scrutiny as the production environment?
+
+And when a secret is eventually compromised, through theoretical or real means:
+
+- How difficult is it to rotate all the involved secrets?
+- When using certificates, can I cancel issued certificates or do I have to wait until they expire?
+- Do I need to interrupt service to rotate the secrets?
+- When an admin leaves the company, do the relevant secrets get rotated?
+
+Secret handling is extremely difficult, so many organizations simply don't have the resources and infrastructure in place to rotate secrets as a routine.
+
+When developing Gravitational Wormhole, one area that we focussed on is how the WireGuard secrets are handled. And one of the achievements is that we don't use any static secrets within Wormhole itself. Every time the daemon is started on a node, it generates a new set of secrets, and invalidates the previous set of secrets applied to that node. If a WireGuard private key is exposed for any reason, once the process is restarted that private key no longer has value.
+
+The way this is achieved is by using the Kubernetes API as the mechanism for key exchange and distributing the keys using the API and underlying Kubernetes security model. Of course, Kubernetes has its own key rotation concerns; Wormhole doesn't introduce new key handling considerations from the underlying Kubernetes cluster.
+
+### Protocols
+
+Unfortunately, we don't live in a world where every protocol has strong authentication and encryption readily available, or every system has the infrastructure in place to provide proper key management, distribution, and revocation to these protocols. In the last several years, tremendous progress has been made, but there are some gaps that won't be filled for the foreseeable future.
+
+An example of this we hear about frequently is DNS. While there are now standard implementations in place to run DNS over TLS, the standard resolvers in most languages and systems do not yet support DNS over TLS. And while DNS over TLS has better security attributes, it may not be efficient enough or warrant the additional key management and distribution to run within a cluster.
+
+Another example is Prometheus endpoints that are traditionally unencrypted and can be snooped on with access to the network. This is often the least concern to security engineers, but outside audits can flag this as information leakage.
+
+This is why we see a benefit in network layer encryption: the applications running within the cluster gain some benefits of having an encrypted network without the engineering effort of creating a policy or introducing updates for every service and protocol within a cluster. And, it allows attention to be focussed on the protocols and endpoints that matter.
+
+### Anti-spoofing
+
+Another consideration that tends to be overlooked is whether the systems involved will route spoofed traffic, even when the internal network is encrypted. Traditionally when multi-homing a Linux server to multiple networks, an admin would disable `ip_forwarding` to prevent Linux from accidentally forwarding traffic between network layers.
+
+With Kubernetes though, each server must have `ip_forwarding` enabled to allow the pod network to route, which means the local firewall needs to be carefully constructed to prevent a host from routing traffic as if it originated within the cluster. Because most protocols require bi-directional communications, this can be difficult to exploit, but it should still be on the radar when evaluating the network security of a Kubernetes deployment.
+
+<EmailSubscribeViolet />
+
+### Remote support
+
+Another consideration for us at Teleport is relative complexity. Many of our clusters are deployed behind the firewall, with limited or no access for remote troubleshooting.
+
+While I find the sidecar and eBPF based models incredibly interesting, and the technology may be extremely reliable, if something goes wrong, our team would have a difficult time walking a remote engineer through troubleshooting the system, checking that the eBPF program is loaded in the kernel, or that an endpoint security product isn't intercepting and disabling certain syscalls.
+
+So while our implementation is new and may not have robust experience in production, we attempted to make choices that offer a similar troubleshooting experience as a system like flannel.
+
+## Summary
+
+With Wormhole, we tried to keep the security model as simple and understandable as possible and leveraging the security already in place. If you feel like we've missed something, please feel free to reach out to us. If this is the type of problem you like to work on, also check out our [careers page](/about#jobs).
+
+## Important Links
+- Wormhole Github: https://github.com/gravitational/wormhole

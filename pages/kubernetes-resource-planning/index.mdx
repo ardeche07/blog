@@ -1,0 +1,269 @@
+---
+author: HD
+date: "2019-05-16"
+tags:
+  - kubernetes
+title: "Use Kubernetes Resource Planning to Stop Downtime"
+articleTitle: "Stop Downtime with Kubernetes Resource Planning"
+description: "A single pod in a Kubernetes cluster runs well by itself... to a point. As your teams grow in size and complexity and your cluster hosts more nodes, stability issues will start to surface. By assigning defined values, you can ensure critical apps have the highest level of Quality of Service  (QoS) they deserve."
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Why you need Resource Planning
+
+Out of the box, Kubernetes does an excellent job of managing containers. Your Kubernetes cluster may just work perfectly fine right now. Things are humming along perfectly if you just started your container workflow. As your teams grow in size and your cluster hosts more nodes, stability issues will start to surface.
+
+By default, container pods run with unbounded limits. A single pod in the system is capable of consuming as much CPU and memory as available on that node. If you deploy a large application on a node with limited resources, it is possible that the lack of memory or CPU resources will degrade the application and nearby apps within that node. Kubernetes may kill pods as the node reaches out of memory. Worse, it may start throttling critical vital applications to support lesser sensitive ones. An application with an inefficient codebase can easily spiral out of control. Poorly coded or rogue microservices can jeopardize the entire ecosystem through replication. Next, different teams may be spinning up more replicas than they are entitled to. In short, a wide variety of issues will crop up if you don’t properly manage the resources of your growing container platform.
+
+<BlogImage src="./assets/k8s-resource-monitor.png" alt="kubernetes resource monitoring"/>
+
+<em>Example of a database application consuming 100% CPU utilization over a 40 minute period. Unchecked, the node suffered from severe degradation of services. Using Limits, K8 has the capabilities to keep rogue applications in line to restore stability.</em>
+
+With a little effort, these issues can be prevented with resource planning. By using Resource requests and limits, users can impose restrictions to a single pod or a group of pods in a namespace. By assigning defined values, you can ensure critical apps have the highest level of Quality of Service  (QoS) they deserve.
+
+## Understanding Kubernetes Requests vs Limits
+
+Kubernetes employs requests and limits to control resources. Requests are guaranteed resources that a container is entitled to use. Limits, on the other hand, are the maximum resources or threshold a container can use. After reaching the limits, containers will be restricted. If a container requests a resource, Kubernetes will only schedule it on an available node that can provide those resources. These resources and limit are defined in the standard YAML configuration of your containers.
+
+In Kubernetes, there are two types of resources: CPU and Memory. CPU is measured in core units, and memory is specified in bytes.
+
+### CPU
+
+CPU resources are measured in millicore.  If a node has 2 cores, the node's CPU capacity would be represented as 2000m. The unit suffix m stands for “thousandth of a core.”
+
+1000m or 1000 millicore is equal to 1 core. 4000m would represent 4 cores.
+ 250 millicore per pod means 4 pods with a similar value of 250m can run on a single core.
+ On a 4 core node, 16 pods each having 250m can run on that node.
+
+Next, unless the apps require multi-core processing such as a multi-threaded database, the best practice is to define to 1000 or below. Then, run more replicas to scale out those applications.
+It is important to note, pods will never be scheduled if they are defined more than the node’s capacity. A pod cannot have a definition of 3000m on a 2 core node.
+
+Keep in mind, CPU is a compressible resource. In simple terms, applications will start throttling once they hit the CPU limits. Throttling can adversely affect your application’s performance by making it run slower. Kubernetes will not terminate those apps. Hence, you should take this into consideration as you architect your applications.
+
+### Memory
+
+Memory is measured in bytes. However, you can express memory with various suffixes (E,P,T,G,M,K and Ei, Pi, Ti, Gi, Mi, Ki) to express mebibytes (Mi) to petabytes (Pi). Most simply use Mi.
+
+Like CPU, pods will never be scheduled if they require more resources than the capacity of a node. Unlike CPU, memory is not compressible. You can’t make memory run slower or faster like CPU or network throttling. Pods will be terminated if it reaches the memory limit.
+
+### Example configuration for defining Resources
+
+Since K8 has no defaults, we need to define the resources in YAML format. A configuration may look like this:
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wordpressapp
+spec:
+  containers:
+  - name: db
+    image: mysql
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "1000m"
+  - name: wp
+    image: wordpress
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+```
+
+Here, we have an example LAMP stack Wordpress application with MySQL DB and the Wordpress image.  Both the db and Wordpress containers are provisioned with 64Mi (megabyte) of RAM AND 250 millicore of CPU (or a 1/4th of a core).  These settings are defined in the requests block.
+
+```
+requests:
+        memory: "64Mi"
+        cpu: "250m"
+```
+
+In terms of limits, the Wordpress image is set to 256Mi with a 500m CPU limit.
+The database has double the limit at 512Mi and a full core with a 1000m setting. Since database applications tend to be more resource intensive, we can test with a higher estimate.
+
+```
+    limits:
+        memory: "512Mi"
+        cpu: "1000m"
+
+```
+
+If you feel the database requires more resources, you can increase the limits to 1GB of memory and 2 CPU cores.
+
+```
+      limits:
+        memory: "1024Mi"
+        cpu: "2000m"
+```
+
+Through testing, we can decide to dial back or increase the resources if needed. Base on your requirements, you will fine tune your settings. Some workloads such as Node.JS/React will require significantly less resources while legacy Java monolith applications may require much more memory.
+
+Here are some important things to remember. A limit can never be lower than the request. Kubernetes will error out if you attempt to do this. If a container’s request is higher than a node’s capacity, Kubernetes will never schedule that container. For example, if your application is specified to use 3.5 cores on a 2 core node, that specific application will never be deployed.
+
+## Namespace Configurations for Kubernetes
+
+Beyond the individual container resources, you may want to investigate setting limits on namespaces.  So what is a namespace? Namespaces can be used to define a cluster of applications, departments, or environments. Simply, Namespace refers to scope or grouping of objects in a Kubernetes cluster.  You can define a development namespace which enforces stricter limits compared to a production namespace. Thus, this is an example of using namespaces to refer to deployment environments. Some organizations categorize different groups or teams into different namespaces. In an ideal world, the above container resource settings may work perfectly fine in smaller deployments, but in larger, multi-silo organizations with multiple teams, certain apps may take more than their fair share of cluster resources.
+A namespace can be anything you want it to be.
+
+At the Namespace level, you can set up ResourceQuotas and LimitRanges.
+
+### ResourceQuotas
+
+ResourceQuotas are maxed limits for all pods in a namespace while LimitRanges are for individual pods in that resources. As the name suggests, ResourceQuotas is the tool to manage the quotas of resources. Optionally, it allows administrators to define and enforce the total sum of resources of a namespace. More information can be found [here](https://kubernetes.io/docs/concepts/policy/resource-quotas/).
+
+Below is an example of ResourceQuota. This namespace limits the total memory to 2Gi.
+
+```
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: lamp
+spec:
+  hard:
+    cpu: "20"
+    memory: 2Gi
+    pods: "10"
+    replicationcontrollers: "20"
+    resourcequotas: "1"
+    services: "5"
+```
+
+### LimitRanges
+
+Unlike ResourceQuotas which covers the entire namespace, [LimitRanges](https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-constraint-namespace/) affect individual pods and containers.
+
+Below is an example configuration. Limit ranges will prevent users within a namespace from over-provisioning overly broad applications or tiny app into a node.
+
+```
+limits:
+  - default:
+      memory: 1Gi
+    defaultRequest:
+      memory: 1Gi
+    max:
+      memory: 1Gi
+    min:
+      memory: 500Mi
+    type: Container
+```
+
+There are 4 parts: default, defaultRequest, max, and min.
+
+<div>
+<table>
+  <thead>
+    <tr>
+        <th>Section</th>
+        <th>Applies To</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+        <td>default</td>
+        <td>Default Limits</td>
+    </tr>
+    <tr>
+        <td>defaultRequest</td>
+        <td>Default Requests</td>
+    </tr>
+    <tr>
+        <td>max</td>
+        <td>Max Limits</td>
+    </tr>
+    <tr>
+        <td>min</td>
+        <td>Min Requests</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+Pods will result in the namespace defaults if they have no resource definitions. If a pod does not explicitly define a specific resource, they will inherit the assigned values. For example, If no default value is assigned, it will inherit the default limits.
+
+Things get tricky when you have competing or contradictory settings. Some examples:
+Namespace max values become defaults if no default setting exists or the containers do not explicitly define limits. If there is no defaultRequest assignment, it will assume the min value. Furthermore, defaultRequest setting cannot be lower than the min nor can the individual request settings in the pod be lower.
+
+Kubernetes will throw an error if you attempt to apply conflicting settings. At the same time, Kubernetes is smart enough to know when you left something out and will re-assign values based on the rules mentioned above.
+
+## Practical advantages of Defining Kubernetes limit ranges
+
+The primary reasoning for limit ranges is to minimize applications that may take up more than their fair share of resources. The benefits go beyond restricting application resource consumptions.
+
+A cluster may support multiple workloads such as production and development. A production workload may consume 16GB of RAM while development may only need 1GB of RAM. Best practices dictate strict quotas on lower tier environments such as staging an QA.  Development environments should be locked down.
+
+Another advantage is uniformity for deployment. An application may consume 80% of resources which makes the leftover resources too small to be useful for others. Hence, administrators may require a minimum of 25% of memory and CPU to provide uniform scheduling.
+
+<EmailSubscribeViolet />
+
+## K8s Scheduler
+
+Understanding how the K8s scheduler works will help you tune your containers. The Kubernetes scheduler follows a round robin approach. It will see available nodes, looking at resources availability, to assign nodes. If a node does not have any available resources, the scheduler moves on to the next node. If no nodes have resources, the pods will go into a "pending state." When a pod limit is higher than the requests, the pod is in an “over-committed” state. This introduces some complexity for Kubernetes.
+
+Kubernetes will try to make sure your container gets the CPU resources it needs. Since CPU is “compressible,” Kubernetes will try to provide enough CPU resources for that container then throttle the rest. Memory, on the other hands, is not compressible and Kubernetes will make decisions on what to terminate. Without defined requests, then by default, those containers are using more memory than they should be. Those containers become prime candidates for eviction. Also, containers that routinely go over their requests and under their limits will be prioritized as likely termination candidates.
+
+Thus, it is essential to understand how the scheduler works when planning your resources. If you want to help Kubernetes to make decisions on termination and eviction, you assign Quality of Service (QoS) classes.
+
+## QOS Classes
+
+When Kubernetes creates a pod, it assigns one of these three QoS classes:
+<ul>
+<li>Guaranteed</li>
+<li>Burstable</li>
+<li>BestEffort</li>
+</ul>
+
+<strong>Guaranteed</strong> requires a strict rule. Both CPU and memory have the same limit and requests. Simply, limits and requests are the same value. ([Source](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/#create-a-pod-that-gets-assigned-a-qos-class-of-guaranteed))
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: qos-demo
+  namespace: qos-example
+spec:
+  containers:
+  - name: qos-demo-ctr
+    image: nginx
+    resources:
+      limits:
+        memory: "200Mi"
+        cpu: "700m"
+      requests:
+        memory: "200Mi"
+        cpu: "700m"
+```
+
+Guaranteed QoS pods are considered top-priority. They will run until they exceed their limits.
+
+<strong>Burstable</strong> class have two conditions:
+<ol>
+    <li>They don’t meet the QoS guaranteed criteria.</li>
+    <li>They have at least one memory or CPU request.</li>
+</ol>
+
+<strong>BestEffort</strong> is a container with no memory or CPU limits or requests. If you’ve never defined any resources before reading this article, your pod is by default running in BestEffort.
+
+Simply, BestEffort is when you don’t set anything at all.
+
+### Quality of Service Best Practices
+
+For production workloads, BestEffort is not recommended. Keep in mind, these containers will be killed first. Burstable is suitable for most generic workloads. For sensitive applications that may have spikes or anything that runs in a stateful set like databases, it is recommended to apply a QoS guaranteed class.
+
+To understand why a pod was terminated, you can check by `kubectl describe pod PODNAME`.
+
+In the output, you check the termination state and how many times the pod was restarted to check if the container is resource-starved.
+
+## Conclusion
+
+As containers clusters grow in size and complexity, there is an incentive to master resource planning.  Limits on containers can keep checks on application resources. With a more significant number of teams working on various projects in a cluster, namespaces configurations allow different groups and classes to have different constraints. Resources created in one namespace are hidden from other namespaces. These namespaces can also be applied to different tier environments in the entire CI/CD pipeline from staging to production workflows. Besides, critical applications such as databases may require a higher level of uptime for mission-critical operations. Proper planning of resources and QoS classes ensure those applications get top priority.

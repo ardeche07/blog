@@ -1,0 +1,260 @@
+---
+author: Taylor Wakefield
+date: "2019-06-03"
+tags:
+  - kubernetes
+  - gravity
+title: "Which Business Model Is Best? SaaS vs Open Core"
+articleTitle: "SaaS vs Open Core: Which Business Model Is Best?"
+description: "In the last of this three part series comparing SaaS and Open Core software, we will evaluate the S-1 filings of a few SaaS and Open Core companies to determine if either model has any inherent advantage."
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import Image from "components/Image";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Recap of Previous Posts
+
+In the [first post of this series](/blog/open-core-vs-saas-intro/) we talked about how SaaS became the dominant model for delivering software and that there were signs that a new model may be emerging - commercial open source software (“COSS”), which is primarily monetized through an Open Core model of selling services and proprietary features around the open source software core. We also posited that for this new model to be successful, there must be some pent up demand for something other that the existing dominant delivery model (SaaS).
+
+In the [second post](/blog/open-core-vs-saas-customer-perspective/), we discussed how there is actually quite a bit of overlap between SaaS and Open Core and to draw a distinction, we would assume the Open Core software is primarily being delivered on-premises for comparison purposes.  We then examined the advantages and disadvantages of purchasing SaaS vs. Open Core Software to try to evaluate if there could be enough demand for the Open Core model.
+
+We came to the conclusion that the benefits of SaaS (from the customer's perspective) were mainly lowering the operational burden of running the software and lowering the upfront costs due to the fact that usage based billing is more prevalent with SaaS. The benefits of Open Core were mainly the ability of the customer to control its data and reduce the vendor lock-in due to the open source nature of a significant portion of the software.
+
+## The Vendor’s Perspective
+
+The perspective of the other side of the market, the vendor, is also worth considering when determining if a new delivery model has potential. Are there any obvious business model advantages, like faster time to market, lower R&D costs or more efficient sales and marketing strategies?
+
+Here are some theories:
+
+*   Open Core vendors have lower delivery costs (cost of revenue / COGS) since the software is primarily being delivered on-premises. In addition, they can leverage the community to lower their R&D costs through the community development of the software. _Advantage Open Core_
+*   SaaS vendors have a big advantage in that they have access to more data regarding the adoption and usage patterns of their solution, which enables faster iteration and more efficient sales and marketing strategies. A counterpoint is that Open Core vendors can more efficiently build a community of free users with an open source core and this creates more awareness for any open core commercial offering, leading to a more efficient sales and marketing process. I am skeptical of this second point. _Advantage SaaS_
+*   SaaS vendors have better customer retention because it is more difficult for the customer to leave a hosted solution. However, the IT investment in running on-premises software can also create some vendor lock-in for Open Core solutions.  _Close, let's call it a draw._
+*   Open Core vendors should not have to finance their businesses as much as SaaS because SaaS customers are more likely to pay a lower per usage price, initially. SaaS is a way for customers to finance the upfront purchase of software and the infrastructure to run it and pay that back over time. _Advantage Open Core_
+
+<div style={{display: "block", margin: "40px 0", overflow: "scroll", boxShadow: "0 8px 32px rgb(0 0 0 / 24%)"}}>
+<table style={{textAlign: "left", minWidth: "400px", wordBreak: "break-word", lineHeight: "24px", width: "100%", borderBottom: "1px solid #f0f2f4", marginTop: "0px", color: "rgba(55,71,79,.87)"}}>
+  <thead>
+    <tr>
+     <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>Vendor's Benefit</strong></th>
+     <th style={{textAlign: "center", fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>SaaS</strong></th>
+     <th style={{textAlign: "center", fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>Open Core</strong></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+     <td>Lower Operational Burden</td>
+     <td></td>
+     <td style={{textAlign: "center"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" display="block" margin="auto"/>
+     </td>
+    </tr>
+    <tr>
+     <td>More Data Control</td>
+     <td style={{textAlign: "center"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" display="block" margin="auto"/>
+     </td>
+     <td></td>
+    </tr>
+    <tr>
+     <td>More Vendor Lock-In</td>
+     <td style={{textAlign: "center"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" display="block" margin="auto"/>
+     </td>
+     <td style={{textAlign: "center"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" display="block" margin="auto"/>
+     </td>
+    </tr>
+    <tr>
+     <td>Higher Initial Revenue</td>
+     <td></td>
+     <td style={{textAlign: "center"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" display="block" margin="auto"/>
+     </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+## Let's look at some actual data!
+
+While these make some intuitive sense, the increased number of enterprise software companies that have recently IPO’d gives us the opportunity to further evaluate these theories by looking at actual business results.
+
+In an effort to create an apples-to-apples comparison, I looked at financial data in the S-1 filings for both SaaS and Open Core enterprise software companies. Since there are fewer Open Core companies that have gone public recently I started with those companies and tried to find similar SaaS companies based on the year of IPO (2017-2019), annual revenue, valuation at the pricing of the IPO ($1-$3 billion) and the average customer value ($20-$200k) as a proxy for [customer type](https://christophjanz.blogspot.com/2014/10/five-ways-to-build-100-million-business.html).
+
+I came up with the following list of companies:
+
+
+<div style={{display: "block", margin: "40px 0", overflow: "scroll", boxShadow: "0 8px 32px rgb(0 0 0 / 24%)"}}>
+  <table style={{textAlign: "left", minWidth: "400px", wordBreak: "keep-all", lineHeight: "24px", width: "100%", borderBottom: "1px solid #f0f2f4", marginTop: "0px", color: "rgba(55,71,79,.87)"}}>
+    <thead>
+      <tr>
+        <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>Company Name</strong></th>
+        <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>Category</strong></th>
+        <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>IPO Year</strong></th>
+        <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>IPO Value</strong></th>
+        <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>Annual Revenue</strong></th>
+        <th style={{fontSize: "12px", lineHeight: "24px", padding: "0 16px"}}><strong>Avg Deal</strong></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style={{fontSize: "15px"}}>
+        <td>Anaplan</td>
+        <td>SaaS</td>
+        <td>2018</td>
+        <td>$1.4B</td>
+        <td>$219MM</td>
+        <td>$193K</td>
+      </tr>
+      <tr>
+        <td>Okta</td>
+        <td>SaaS</td>
+        <td>2017</td>
+        <td>$1.5B</td>
+        <td>$160MM</td>
+        <td>$46K</td>
+      </tr>
+      <tr>
+        <td>Zuora</td>
+        <td>SaaS</td>
+        <td>2018</td>
+        <td>$1.4B</td>
+        <td>$168MM</td>
+        <td>$127K</td>
+      </tr>
+      <tr>
+        <td>Zscaler</td>
+        <td>SaaS</td>
+        <td>2018</td>
+        <td>$1.9B</td>
+        <td>$170MM</td>
+        <td>$61K</td>
+      </tr>
+      <tr>
+        <td>Cloudera</td>
+        <td>Open Core</td>
+        <td>2017</td>
+        <td>$1.9B</td>
+        <td>$261MM</td>
+        <td>$200K</td>
+      </tr>
+      <tr>
+        <td>Elastic</td>
+        <td>Open Core</td>
+        <td>2018</td>
+        <td>$2.5Bn</td>
+        <td>$227MM</td>
+        <td>$38K</td>
+      </tr>
+      <tr>
+        <td>MongoDB</td>
+        <td>Open Core</td>
+        <td>2017</td>
+        <td>$1.2B</td>
+        <td>$136MM</td>
+        <td>$29K</td>
+      </tr>
+      <tr>
+        <td>Mulesoft</td>
+        <td>Open Core</td>
+        <td>2017</td>
+        <td>$2.9B</td>
+        <td>$188MM</td>
+        <td>$143K</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+<BlogImage src="./assets/company-summary.png" alt="Company Summary Open Core vs SaaS"/>
+
+Not a great sample size but let’s forge ahead.
+
+I limited my evaluation to the S-1 data, since it was easy to obtain and it helps to answer the question: did either model give startups an appreciable advantage in obtaining the holy grail of going public.
+
+So let’s take a look at some basic metrics.
+
+
+## Valuation multiple of revenue
+
+First let’s see if there is any differentiation by how the market values each type of company by looking at the IPO pricing valuation over twelve month trailing revenue (TTM).
+
+<BlogImage src="./assets/valuation-revenue.png" alt="Company Valuation Open Core vs SaaS"/>
+
+While Mulesoft is a standout, it is pretty clear by the alternating colors above that the market has no a priori preference for one business model over the other.
+
+
+## Did either model help with a faster or more capital efficient path to IPO?
+
+One could measure the capital efficiency of a startup by the IPO valuation divided by the amount of money it raised to get there. This would help test our theory that Open Core vendors should not have to finance their businesses as much as SaaS.
+
+<BlogImage src="./assets/valuation-funding.png" alt="Company Summary Open Core vs SaaS"/>
+
+
+Elastic outperforms, with another Open Core company, Mulesoft in second. However the next four are all proprietary SaaS.
+
+But perhaps a company raised more money than it needed or there was some subjectivity due to market sentiment at the time. Let’s just looking at the annual revenue divided by the accumulated deficit or the amount of money spent to get to a certain level of revenue.
+
+<BlogImage src="./assets/revenue-accum-deficit.png" alt="Company Valuation Open Core vs SaaS"/>
+
+Now we see more dispersion with Mulesoft falling to the middle of the pack. There doesn’t seem to be any appreciable differentiation. Let’s dive further into the S-1 financials to see if they support our other theories.
+
+
+## Which model has lower costs of revenue / higher gross margins?
+
+One theory above was that Open Core vendors would have lower cost of revenue since the software could be delivered on-premises.
+
+
+<BlogImage src="./assets/gross-margins.png" alt="Company Valuation Open Core vs SaaS"/>
+
+This doesn’t seem to support that with overwhelming evidence. However, this could be due to the fact that Open Core companies tend to have more services revenue which tends to have lower gross margin. Let’s look at just subscription or product related gross margin.
+
+<BlogImage src="./assets/subscription-gm.png" alt="Company Valuation Open Core vs SaaS"/>
+
+As expected, overall gross margins were higher and a couple Open Core companies moved up. This could be a clue into what an optimal model might be from the vendor perspective - a self-serve delivery model (with minimal services) but running on customer infrastructure.
+
+## Do Open Core companies lower their R&D costs through open source communities?
+
+We also hypothesized that Open Core companies can leverage the community to lower their R&D costs. Let’s look at R&D costs as a percentage of revenue:
+
+<BlogImage src="./assets/R&D.png" alt="Company Valuation Open Core vs SaaS"/>
+
+While Mulesoft has very low R&D costs as a percentage of revenue, the other Open Core companies do not, relative to the proprietary SaaS companies. I think we have debunked our theory that Open Core companies get appreciable “free R&D” from their communities.
+
+<EmailSubscribeViolet />
+
+## Which model has more efficient sales and marketing?
+
+A couple of other theories above: SaaS vendors have a big advantage in that they see more data around the adoption and usage patterns of their solution, enabling more rapid iteration and more efficient sales and marketing strategies. A counterpoint is that Open Core vendors can more efficiently build a community around their open source (aka, freemium) offerings.
+
+Let’s see if there is any appreciable difference in sales and marketing efficiency. I used a metric of (Current Gross Profit - Previous Year Gross Profit) / (Current S&M Costs - Previous Year S&M Costs) to estimate sales and marketing efficiency. In other words, for each additional dollar of sales and marketing spend, how much did gross profit grow?
+
+<BlogImage src="./assets/sales-efficiency.png" alt="Company Valuation Open Core vs SaaS"/>
+
+Zuora stands out, especially given they also had the lowest gross margins. The next three are Open Core companies but we can’t really determine if either model results in more efficient go-to-market strategies.
+
+The other theory above was that SaaS companies can better optimize their sales processes due to the fact that they can more easily see customer usage. A common metric to measure this (along with customer loyalty) is customer expansion or net dollar expansion - how revenue is growing from existing customers.
+
+<BlogImage src="./assets/customer-expansion.png" alt="Company Valuation Open Core vs SaaS"/>
+
+It appears that we can debunk this theory as well, with the two top companies being open core companies and the two bottom companies being proprietary SaaS.
+
+## Conclusion
+
+The intention of this series was to explore SaaS vs Open Source from a go-to-market perspective to illustrate whether the Open Source model can succeed alongside the more dominant SaaS business model that has emerged over the last 10 years.
+
+From looking at recent S-1 filings, there is not any obvious evidence that shows either model outperforms. Given the small sample size, we should probably be careful about coming to any conclusion, regardless. One safe conclusion seems to be that you can build a great business with either model.
+
+We also saw some data that suggests if Open Core companies could limit the services component of their revenue or if SaaS companies could deliver their solution on-premises to lower their cost of revenue (i.e., hosting expenses), you could have the best of both worlds.
+
+This hybrid model may become easier to deliver due to a couple of factors:
+
+*   The wide-spread adoption of cloud-native technologies like containers and Kubernetes; and
+*   The fact that “cloud is the new on-premises” for many enterprise buyers.
+
+Software can be more easily deployed and managed on customers’ cloud / cloud-native infrastructure versus traditional on-premises data centers so they can still get a SaaS-like experience, while having more control of their data. You are starting to see more of this deployment model with recently IPO’d Open Core companies, like Elastic.
+
+You can find the data underlying these charts in this [Google Sheet](https://docs.google.com/spreadsheets/d/1BV1Kk542KHultHOB8LkzAotv1L5PvCb87_mrNMO43JI/edit?usp=sharing). You can also find the charts on [Tableau Public](https://public.tableau.com/profile/taylor.wakefield#!/). We’ll try to update this data as new Open Core companies go public. Hopefully, for us Open Core startups out there, that trend continues :)

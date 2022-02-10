@@ -1,0 +1,87 @@
+---
+author: Jon Silvers
+date: "2019-06-18"
+tags:
+  - teleport
+  - security
+title: "Teleport for IoT Security and FedRAMP Support"
+articleTitle: "IoT Security, FedRAMP Support"
+description: "Today we’re announcing a new milestone with Teleport 4.0 - IoT Security, FedRAMP Support"
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Say Hello to Four Point Oh
+
+Today we’re announcing a new milestone with [Teleport v4.0](https://goteleport.com/teleport/download/). There’s a lot of security goodness in the newest release. Before we get to what’s new, here's a brief explanation of what Teleport is for first time readers.
+
+[Teleport](/) is a modern SSH gateway for managing privileged access to cloud-native infrastructure, including Kubernetes-based applications.
+
+Neither companies, nor servers, nor people are ever static. As a result, managing SSH keys, VPNs, firewalls, jumpboxes, devices, and IP addresses for the many employees across offices and divisions, contractors, partners, etc. can quickly become a painful strategy.
+
+Teleport is an open-core bastion server that was built to address this complexity by taking a fresh approach to securing infrastructure. With Teleport, companies can generate ephemeral, short-lived certificates to provide role-based access to infrastructure. Ultimately, Teleport helps reduce operational overhead, provides visibility into user access and behavior, and enables customers to sleep better at night knowing their systems are secure.
+
+<BlogImage src="./assets/id-card.svg" alt="Teleport 4.0" />
+
+The latest release of Teleport includes three big new features requested by customers:
+
+* **Teleport for IoT**: Connect and manage thousands of Internet-of-Things devices from a single authentication endpoint. You can read about this on [SSH and Kubernetes Edge Access](/how-it-works/ssh-kubernetes-access-on-the-edge/) page.
+* **FedRAMP compliance**: SaaS selling into Federal agencies will see support for FedRAMP FIPS 140-2. You can read more about this on [FedRAMP compliance for SSH and Kubernetes](/how-it-works/fedramp-ssh-kubernetes/) page.
+* **Massive scale**: Whether your use case is IoT or not, Teleport can now effortlessly connect to thousands of nodes.
+
+Let’s look at each of these in more detail:
+
+## Teleport for IoT Security
+
+Often the problem with securing and managing hundreds or thousands of remote IoT devices is that they don’t have public IP addresses and are hard to access.
+
+With Teleport 4.0, nodes gain the ability to tunnel back to the main Teleport Proxy server and this outbound connection is used to bypass firewall restrictions and for access on the target infrastructure. With this feature, every lightweight Teleport node can dial back to the trusted Teleport cluster.
+
+Teleport’s new IoT security features have a couple very important benefits including:
+
+*  **Streamlined logging**: Instead of having to pull audit logs from each machine, Teleport centralizes operations to put them under one cluster, greatly simplifying reviewing past recordings and audit information.
+*  **Reduced operational overhead**: Configuration and administration is all managed through a single Teleport cluster rather than through each device. Teleport’s [RBAC features](https://goteleport.com/teleport/features/rbac-for-ssh/) and integration with [SAML and OIDC](https://goteleport.com/teleport/features/sso-for-ssh/) identity solutions means that admins no longer have to configure multiple cluster relationships and role mappings.
+
+Teleport for IoT is being used in production by several of our customers, including TriNetX, a global health research network that optimizes clinical research, which is using the IoT features for managing their appliances in hospital settings.
+
+Konstantine Krutiy, Director of Engineering at TriNetX, said of this release:
+
+<Quote>
+  <p>We are thrilled to leverage the new capabilities of Teleport. It greatly streamlines the process of maintaining scores of medical devices while ensuring the data on the devices is secure. Our medical appliances have no direct network access to them, so using Teleport’s reverse tunneling is the only way to access them. With Teleport, we are able to clearly and securely see what is happening within our network of devices and have centralized logging and session recording which helps us meet security and compliance.</p>
+  <em>- Konstantine Krutiy, Director of Engineering at TriNetX</em>
+</Quote>
+
+
+## FedRamp Compliance
+
+As more SaaS companies expand their markets to sell to the US government, they are running up against [FedRAMP](https://www.fedramp.gov/) requirements. With this release, we have built the foundation to meet FedRAMP requirements for the purposes of accessing infrastructure. This includes support for [FIPS 140-2](https://en.wikipedia.org/wiki/FIPS_140-2), also known as the Federal Information Processing Standard, which is the US government approved standard for cryptographic modules.
+
+Teleport can help organizations going through federal procurement to create no-brainer configurations to comply with FedRAMP out of the box.
+
+Sumo Logic is among the many companies who will be taking advantage of the new FedRAMP support. Jeff Gill, Director of Engineering at Sumo Logic, let us know that:
+
+<Quote>
+  <p>Teleport has made obtaining a FedRAMP-Moderate ATO that much more achievable via their FIPS 140-2 endpoints, ease in integration with our SSO and MFA, and the view into audit logs of remote connection sessions provide the appropriate insight for continuous monitoring.</p>
+  <em>- Jeff Gill, Director of Engineering at Sumo Logic</em>
+</Quote>
+
+## Improved Scale
+
+Teleport 4.0 offers significantly more scale. You can now connect to up to 10,000 remote connections to a single Teleport cluster for companies who need to support larger operations. While this feature was driven in part by the need to support thousands of IoT devices, it’s usable for any infrastructure security use case.
+
+There were many smaller improvements and fixes included in this latest release. You can read about them all on the [changelog](https://github.com/gravitational/teleport/blob/master/CHANGELOG.md).
+
+<EmailSubscribeViolet />
+
+## Upgrading Teleport
+
+Teleport 4.0 is backwards compatible with Teleport v3.2 and later. If you are running an earlier version of Teleport, you should review our [upgrade docs](/docs/admin-guide/#upgrading-teleport) for more details.
+
+## Try Teleport
+
+Teleport comes in three editions: [open-source, Pro, and Enterprise](/pricing/).
+If you're new to Teleport, start with the free open source Community edition which you can [download from our website](https://goteleport.com/download/). You can also [sign up for Teleport](/pricing/) or, if you have more general questions,
+you can reach us at [info@goteleport.com](mailto:info@goteleport.com).

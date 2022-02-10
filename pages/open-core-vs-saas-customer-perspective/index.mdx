@@ -1,0 +1,176 @@
+---
+author: Taylor Wakefield
+date: "2019-05-02"
+tags:
+  - kubernetes
+  - gravity
+title: "SaaS vs Open Core from the Customer Perspective"
+articleTitle: "SaaS vs Open Core Software: Advantages and Disadvantages from the Customer Perspective"
+description: "In post 2 of 3, we clarify the differences between proprietary SaaS and Open Core software and discuss the advantages and disadvantages of each from the customer's perspective."
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import BlogImage from "components/BlogImage";
+import Image from "components/Image";
+
+## What is the difference between SaaS and Open Core?
+
+
+My [previous post](/blog/open-core-vs-saas-intro/) in this series was a brief introduction of SaaS and Open Core business models in the B2B space. To summarize: I concluded that SaaS is the dominant and default model for selling software but there are signs that a new model is getting traction, Commercial Open Source Software (“COSS”), of which a common monetization strategy is Open Core (proprietary features on the crust of an open core).
+
+I also received some feedback on that post that the SaaS and COSS models are orthogonal and you could do both. This is quite true! However, when starting a company or even an idea, it is usually wise to be laser focused on what you are building.
+
+As an example, we can use [Teleport](/) (our modern replacement for OpenSSH). It is open source software that is monetized through an Open Core model. One of its most desirable features is the unified audit log with session replay. The storage of this audit log is configurable and this configurability comes with increased development costs and design trade-offs.
+
+If Teleport was a SaaS product, we could have picked a suitable storage back-end from the vast menu of options available on AWS. On the other hand, we would have had to develop a secure, multi-tenant control plane to allow thousands of customers to manage SSH and Kubernetes access to their environments.
+
+Doing all of these things initially would be expensive. So most startups or developers make the correct decision of starting with either a proprietary SaaS or an open source, installable / on-prem offering. Proprietary, installable software may also be an option but I don’t see that as a popular choice these days.
+
+<BlogImage src="./assets/saas-vs-open-core-initial-offerings.png" alt="Initial Offering Matrix of Open Core vs SaaS"/>
+
+Generally speaking, in the B2B market, the advantage of the Open Source model is that it is easier to build awareness; the advantage of the proprietary, SaaS model is that it is easier to monetize.
+
+Once an initial offering has some traction, it may be wise to attempt to take advantage of the other business model’s strengths:
+
+*   Open Source starts to offers additional proprietary features on the crust of the open source core as a monetization strategy (eg. [MapR Enterprise](https://mapr.com/products/mapr-distribution-editions/), [InfluxDB Enterprise](https://www.influxdata.com/influxenterprise/)).
+*   Perhaps to a lesser extent, but some B2B SaaS companies open source ancillary tools built to deliver the solution in order to build awareness for product marketing or recruiting (eg. [Twilio Open Source Projects](https://www.twilio.com/open-source), [Segment Open Source](https://open.segment.com/)). This practice is much more common with large B2C companies and may even become the foundation of future Open Core companies (eg. [Uber Open Source](https://uber.github.io/), [Facebook Open Source](https://opensource.facebook.com/)).
+
+<BlogImage src="./assets/saas-vs-open-core-next-step.png" alt="Sharing Business Models Between Open Core vs SaaS"/>
+
+Likewise, a different delivery method may be used to unlock a new market:
+
+*   In the case of Open Core, hosting the offering may improve ease of use and make it easier to offer usage based billing and sell to smaller buyers (eg. [Elastic Cloud](https://www.elastic.co/cloud/), [Gitlab SaaS](https://about.gitlab.com/pricing/)).
+*   In the case of SaaS, selling an on-premises version (which may mean in the customer’s cloud account) may make it easier to sell to the enterprise, public sector or other security minded customers (eg. [Github Enterprise](https://github.com/enterprise), [Mulesoft Anypoint Private Cloud](https://docs.mulesoft.com/private-cloud/2.0/)).
+
+<BlogImage src="./assets/saas-vs-open-core-final-step.png" alt="Sharing Delivery Methods Between Open Core vs SaaS"/>
+
+So we can see a simple distinction between Open Core and proprietary SaaS is difficult to make.
+
+[Joseph Jacks](https://twitter.com/asynchio) offers a straightforward way of defining commercial open source companies as those that would not exist if their underlying open source core didn’t exist.
+(By the way, I recommend reading the [OSS Capital blog](https://coss.media/) if you are looking for a broader (and more nuanced) market perspective on these topics.)
+
+Since I am focused on the operator's perspective, I’d like to keep this comparison limited to the most common initial offerings - proprietary SaaS and Open Core that runs on-premises (not through SaaS delivery). An additional point of clarification: running on-premises may just mean the customer’s cloud account and not actually on their own servers.
+
+## So why is the Open Core model emerging?
+
+As I mentioned in my previous post, new ways of packaging and selling the same general solution is usually demand driven. SaaS came about because of the buyer’s frustrations with the upfront investment and burden of managing commercial off-the-shelf (“COTS”) software. It’s very difficult to pull off a departure from the normal way of doing things if there is not a lot of pent-up demand for something else.
+
+So, we can evaluate why Open Core is emerging by comparing the advantages and disadvantages of SaaS and Open Core from the customer’s perspective. We’ll look at the following categories, which are the usual things considered when buying software:
+
+*   Operational Burden
+*   Security / Data Privacy
+*   Vendor Lock-In / Offboarding costs
+*   Integration
+*   Initial Financial Cost
+
+#### Operational Burden
+
+I would argue this is the biggest advantage of SaaS and the foundation of why it emerged as a software delivery model. The buyer doesn’t have to run the software! No longer do companies have to hire certified professionals for every type of software they want to run.
+
+Significant resources at the buyer are usually required to run Open Core (or any on-prem) software for end-users. However, the open nature of the software usually leads to a larger community and more pervasive knowledge of the technology (eg., MySQL vs Oracle). Also, most open core vendors are now focusing on how to make it easier to run their software on-premises, through a combination of automation and managed services.
+
+**_Advantage SaaS._**
+
+
+#### Security / Data Privacy
+
+At the emergence of SaaS, this was a typical objection. As the market has matured, many of these objections have been addressed through better security practices, security questionnaires and audits (SOC2, etc.). Although, there still is a high level of trust that SaaS vendors need to establish with their security sensitive customers. For the most security conscious, SaaS is a non-starter.
+
+Open core vendors tend to sell into more highly regulated or security-conscious companies because the software generally runs on-premises. Many times, the proprietary features of Open Core focus on security hardening, like RBAC, encryption of data or integrations with other security products. While there is more control by the buyer, there are also additional responsibilities and costs since securing the environment is generally the responsibility of the customer.
+
+**_Advantage Open Core._**
+
+
+#### Vendor Lock-In / Offboarding Costs
+
+Vendor lock-in is one of the major objections to using SaaS. While, many SaaS vendors have implemented APIs or data exporting in order to get data off their platforms, these are usually not the most polished feature of the products. On the plus side, the operation of the product is not in-house, so the costs of moving to an alternative solution may be easier from an ops perspective.
+
+As alluded to in the Data Privacy section, the customer has more choice as to how the data is stored when using Open Core software. This reduces the lock-in to a particular solution. The amount of lock-in is usually determined by the ratio of open source vs proprietary features being consumed but the ability of the customer to continue to use the open source portion (and perhaps replicate/substitute the proprietary features) mitigates the vendor lock-in risk.
+
+**_Advantage Open Core._**
+
+
+#### Integration
+
+The fact that SaaS solutions were data silos was historically a concern for customers. However, SaaS vendors now typically have direct integration points with complementary solutions. Also, more mature offerings will have robust APIs to build integrations. Finally, there are other SaaS solutions that help solve this problem. [Zapier](https://zapier.com/) can be used to integrate / automate workflows across SaaS solutions. [Segment](https://segment.com/) can be used to aggregate data across SaaS products.
+
+There is usually more flexibility when integrating Open Core into other systems, especially on-premises since the customer has more control over the data. However, there may also be more resources required to implement the integration. There are middleware solutions like [Mulesoft](https://www.mulesoft.com/) or [Tibco](https://www.tibco.com/) that will help with this and Open Core vendors will generally have implementation services or partners to help with integrations.
+
+**_It’s a toss up._**
+
+
+#### Initial Financial Cost
+
+I hesitated on including this category because I think it could be orthogonal to the two models. Some SaaS solutions have a high price with an upfront commitment over one or many years and Open Core solutions may be priced as subscriptions based on usage. However, because it is much easier to measure usage through SaaS, the usage based subscription is much more prevalent in that model. So most SaaS customers start a lower tier of usage (and subsequent cost) and the price increases over time (assuming increased usage). In addition, there is no need to arrange for your own servers and expertise to run the software. However, as your usage grows you may find that the financial cost is quite high.
+
+Open Core solutions generally take more of an upfront investment to get the software running and properly evaluated from an internal resource perspective. It is also more common for Open Core to be priced upfront on an annual or multi-year basis.  However, later on in the adoption cycle, it may become more cost effective relative to SaaS depending on the pricing structures.
+
+**_Advantage SaaS._**
+
+<EmailSubscribeViolet />
+
+## Summary Table
+
+<div style={{display: "block", margin: "40px 0", overflow: "scroll", boxShadow: "0 8px 32px rgb(0 0 0 / 24%)"}}>
+<table style={{textAlign: "left", minWidth: "400px", wordBreak: "break-word", fontSize: "15px", lineHeight: "24px", width: "100%", borderBottom: "1px solid #f0f2f4", marginTop: "0px"}}>
+  <thead>
+    <tr>
+     <th><strong>Category</strong></th>
+     <th style={{wordBreak: "keep-all"}}><strong>SaaS</strong></th>
+     <th><strong>Open Core</strong></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+     <td style={{padding: "16px", verticalAlign: "middle"}}>Lower Operational Burden</td>
+     <td style={{padding: "16px"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" margin="40px auto" display="block" />
+     </td>
+     <td></td>
+    </tr>
+    <tr>
+     <td style={{verticalAlign: "middle", padding: "16px"}}>Better Security / Data Privacy</td>
+     <td></td>
+     <td style={{padding: "16px"}}>
+       <Image margin="40px auto" display="block" src="./assets/icon-check-small.svg" alt="check" />
+     </td>
+    </tr>
+    <tr>
+     <td style={{verticalAlign: "middle", padding: "16px"}}>Lower Vendor Lock-In / Offboarding costs</td>
+     <td></td>
+     <td style={{padding: "16px"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" margin="40px auto" display="block"/>
+     </td>
+    </tr>
+    <tr>
+     <td style={{verticalAlign: "middle", padding: "16px"}}>Easier Integrations (workflows and data sharing)</td>
+     <td style={{padding: "16px"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" margin="40px auto" display="block"/>
+     </td>
+     <td style={{margin: "40px auto", padding: "16px"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" margin="40px auto" display="block"/>
+     </td>
+    </tr>
+    <tr>
+     <td style={{verticalAlign: "middle", padding: "16px"}}>Lower Initial Financial Cost</td>
+     <td style={{padding: "16px"}}>
+       <Image src="./assets/icon-check-small.svg" alt="check" margin="40px auto" display="block"/>
+     </td>
+     <td></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+## In conclusion
+
+These advantages and disadvantages tend to filter the types of buyers that select each offering and therefore the customers that the vendors focus on.
+
+Open core vendors tend to sell into more highly regulated or security conscious companies like banks or enterprise companies. Open Core offerings also tend to be solutions whose value is defined by being on-premises (which may mean the cloud but just the customer’s cloud account) or tightly integrated into other internal systems so the lower operational burden of SaaS is not considered. Infrastructure / middleware / systems software and security software are some examples.
+
+SaaS is often the model that other startups or SMBs are attracted to purchasing (especially those in lightly regulated industries) - because from their perspective the upfront financial and maintenance costs are generally lower. Many times, they are trying to just stay alive and don't focus on the longer term costs.
+
+In our [next post](/blog/open-core-vs-saas-business-model/), we’ll focus on the advantages and disadvantages of selling SaaS vs Open Core solutions from the vendor’s perspective and how that shapes their respective business models and go-to-market strategies. We’ll also touch on how Open Core can reduce its weaknesses (high operational burden / high upfront costs) to better compete with SaaS alternatives.

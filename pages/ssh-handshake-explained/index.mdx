@@ -1,0 +1,211 @@
+---
+author: Russell Jones
+date: "2019-05-09"
+tags:
+  - ssh
+  - teleport
+  - security
+articleTitle: "SSH Handshake Explained"
+title: "SSH Handshake Explained | What is SSH Handshake?"
+description: "Secure Shell (SSH) is a widely used Transport Layer Protocol to secure connections between clients and servers. In this post we explain how SSH handshake works."
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import BlogImage from "components/BlogImage";
+
+## Introduction
+
+Secure Shell (SSH) is a widely used Transport Layer Protocol to secure
+connections between clients and servers. SSH is the underlying protocol that
+[Teleport](/) uses to secure connections
+between clients and servers. Below is a relatively brief description of the
+handshake that occurs to establish a secure channel between a client and a
+server.
+
+We will cover:
+
+ * SSH protocol version exchange
+ * Key Exchange
+ * Elliptic Curve Diffie-Hellman Initialization
+ * Elliptic Curve Diffie-Hellman Reply
+ * New Keys
+
+## Version Exchange
+
+SSH begins by both sides sending a version string to each other. Nothing
+terribly exciting happens in this part of the handshake, but it should be noted
+that most relatively modern clients and servers only support SSH 2.0 due to
+several flaws in the design of SSH1
+most notably:
+
+
+* SSH1 is a one monolithic protocol, without the ability to customize transport, authentication and connection concerns.
+* SSH1 uses weaker CRC-32 integrity check.
+* SSH1 does not support channel encapsulation within a single session.
+
+You can read more about SSH1 limitations [here](http://www.snailbook.com/faq/ssh-1-vs-2.auto.html).
+
+
+## Key Exchange
+
+The key exchange (sometimes called KEX) is used by the client and server to exchange information in public that leads to a secret shared by the client and server that an observer can not discover or derive from public information.
+
+### Key Exchange Initialization
+
+The key exchange is kicked off by both sides sending a `SSH_MSG_KEX_INIT` message to each other with a list of cryptographic primitives they support with the order reflecting their preference.
+
+The cryptographic primitives are to establish the building blocks that will be used to perform the key exchange and then bulk data encryption. The table below lists of cryptographic primitives that Teleport supports.
+
+<div style={{display: "block", margin: "40px 0", overflow: "scroll"}}>
+  <table style={{textAlign: "left", wordBreak: "break-word", minWidth: "450px", fontSize: "15px", lineHeight: "24px", boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", width: "100%", borderBottom: "1px solid #f0f2f4"}}>
+    <thead>
+      <tr style={{backgroundColor: "rgba(240,242,244,.56)"}}>
+        <th style={{padding: "16px", color: "black", textTransform: "none"}}>Key Exchange (KEX)</th>
+        <th style={{padding: "16px", color: "black", textTransform: "none"}}>Symmetric Cipher</th>
+        <th style={{padding: "16px", color: "black", textTransform: "none"}}>Message Authentication Code (MAC)</th>
+        <th style={{padding: "16px", color: "black", textTransform: "none"}}>Server Host Key Algorithm</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style={{backgroundColor: "#f0f2f4"}}>
+        <td style={{padding: "16px"}}>curve25519-sha256@libssh.org</td>
+        <td style={{padding: "16px"}}>chacha20-poly1305@openssh.com</td>
+        <td style={{padding: "16px"}}>hmac-sha2-256-etm@openssh.com</td>
+        <td style={{padding: "16px"}}>ssh-rsa-cert-v01@openssh.com</td>
+      </tr>
+      <tr style={{backgroundColor: "white"}}>
+        <td style={{padding: "16px"}}>ecdh-sha2-nistp256</td>
+        <td style={{padding: "16px"}}>aes128-gcm@openssh.com</td>
+        <td style={{padding: "16px"}}>hmac-sha2-256</td>
+        <td style={{padding: "16px"}}>ssh-rsa</td>
+      </tr>
+      <tr style={{backgroundColor: "#f0f2f4"}}>
+        <td style={{padding: "16px"}}>ecdh-sha2-nistp384</td>
+        <td style={{padding: "16px"}}>aes256-ctr</td>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+      </tr>
+      <tr style={{backgroundColor: "white"}}>
+        <td style={{padding: "16px"}}>ecdh-sha2-nistp521</td>
+        <td style={{padding: "16px"}}>aes192-ctr</td>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+      </tr>
+      <tr style={{backgroundColor: "#f0f2f4"}}>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+        <td style={{padding: "16px"}}>aes128-ctr</td>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+        <td style={{padding: "16px"}}>&nbsp;</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+_Above: Teleport default cryptographic primitives._
+
+## Elliptic Curve Diffie-Hellman Initialization
+
+Because both sides use the same algorithm to select cryptographic primitives out of the supported list, after the key exchange initialization, the key exchange can begin immediately. Since Teleport only supports Elliptic Curve Diffie-Hellman (ECDH), the key exchange begins by the client generating an ephemeral keypair (private and associated public key) and sending the server it’s public key in a `SSH_MSG_KEX_ECDH_INIT` message.
+
+It’s worthwhile to emphasise that this keypair is ephemeral: it will only be used during the key exchange and disposed of afterwards. This makes a class of attack where an attacker passively records encrypted traffic with the hope of stealing a private key sometime in the future extremely difficult. It’s very difficult to steal something that simply no longer exists. This property is called forward secrecy.
+
+<BlogImage src="./assets/SSH-Handshake-Figure1.png" width="100%" alt="key exchange initialization"/>
+
+_Figure 1: Generation of the key exchange initialization message._
+
+## Elliptic Curve Diffie-Hellman Reply
+
+The server listens for the `SSH_MSG_KEX_ECDH_INIT` message, and upon receipt, [generates](https://goteleport.com/blog/comparing-ssh-keys/) its own ephemeral keypair. With the client’s public key and its own keypair, the server can generate the shared secret K.
+
+Next, the server generates something referred to as the exchange hash H and signs it generating HS, see Figure (3) for more details. The exchange hash and its signature serves several purposes:
+
+<ul>
+  <li>Since the exchange hash includes the shared secret, it proves the other side was able to generate the shared secret.</li>
+  <li>The signature/verification loop of the exchange hash and signature allows the client to verify the server has ownership of the host private key and therefore the client is connected to the correct server (as long as the client can trust the corresponding public key, more on this later).</li>
+  <li>By signing the exchange hash, instead of signing the input to the exchange hash, the size of the data to be signed is substantially reduced and results in a faster handshake.</li>
+</ul>
+
+
+The exchange hash is generated by taking the hash (either SHA256, SHA384, or SHA512, depending on the key exchange algorithm) of the following fields.
+
+<ul>
+  <li><a href="https://github.com/golang/crypto/blob/a49355c7e3f8fe157a85be2f77e6e269a0f89602/ssh/kex.go#L53-L58">Magics</a> `M`. The client version, server version, clients `SSH_MSG_KEXINIT` message, servers `SSH_MSG_KEXINIT` message.</li>
+  <li>Server host public key (or certificate) `HPub`. This value (and its corresponding private key HPriv) is typically generated during process initialization and not generated for every handshake.</li>
+  <li>Client public key `A`</li>
+  <li>Server public key `B`</li>
+  <li>The shared secret `K`</li>
+</ul>
+
+With this information in hand, the `SSH_MSG_KEX_ECDH_REPLY` message can be constructed by the server from the ephemeral public key of the server `B`, the host public key of the server `HPub`, and the signature on the exchange hash `HS`. See Figure (4) for more details.
+
+<BlogImage src="./assets/SSH-Handshake-Figure2.png" width="100%" alt="security KEX hash generation" />
+
+_Figure 2: Generation of the exchange hash H._
+
+Once the client receives a `SSH_MSG_KEX_ECDH_REPLY`, it has everything needed to calculate the secret `K` and the exchange hash `H`.
+
+The last part of the key exchange has the client extract the host public key (or certificate) from `SSH_MSG_KEX_ECDH_REPLY` and verifies the signature of exchange hash `HS` proving ownership of the host private key. To prevent Man-in-the-Middle (MITM) attacks, once the signature is validated the host public key (or certificate) is checked against a local database of known hosts; if this key (or certificate) is not trusted the connection is terminated.
+
+If you’ve ever seen a message like below, it means that the the key presented is not in your local database of known hosts. A good way to avoid seeing this type of message is to use [SSH certificates](https://goteleport.com/blog/ssh-certificates/) instead of keys (something that Teleport does by default), which allow you to simple store the [Certificate Authority](https://goteleport.com/blog/ssh-certificates/) in your local database of known hosts, and then all hosts signed by that Certificate Authority are validated.
+
+```
+  The authenticity of host 10.10.10.10 (10.10.10.10)' can't be established.
+  ECDSA key fingerprint is SHA256:pnPn3SxExHtVGNdzbV0cRzUrtNhqZv+Pwdq/qGQPZO3.
+  Are you sure you want to continue connecting (yes/no)?
+```
+
+_Above: An SSH client asking to add a host key to the local database of known hosts. For OpenSSH that is typically `~/.ssh/known_hosts`._
+
+<BlogImage src="./assets/SSH-Handshake-Figure3.png" width="100%" alt="KEX reply generation"/>
+
+_Figure 3: Generation of the ECDH KEX reply._
+
+## New Keys
+
+One last thing remains before bulk data encryption can begin, both sides need to generate 6 keys: two keys for encryption, two initialization vectors (IV), and two for integrity. It’s not unreasonable to ask, what is the purpose of so many additional keys? Isn’t the shared secret K enough? It’s not.
+
+First, let’s address the need for distinct keys for encryption, integrity, and IV. One of the reasons is due to how protocols like TLS and SSH have historically been constructed to allow negotiation of cryptographic primitives. Depending on the cryptographic primitives chosen, key re-use may not be an issue, but as [Henrick Hellström points out](https://crypto.stackexchange.com/questions/8081/using-the-same-secret-key-for-encryption-and-authentication-in-a-encrypt-then-ma), for the wrong choice (like AES-256-CBC and AES-256-CBC-MAC for confidentiality and authentication respectively), it can be disastrous. It should be noted that protocol designers are moving away from this type of agility to make protocols simpler and more secure.
+
+Next, let’s address the need for each type of key.
+
+Encryption keys are used to ensure data confidentiality and are used with a symmetric cipher to encrypt and decrypt data.
+
+Integrity keys are typically used with a message authentication code (MAC) to ensure an attacker does not manipulate the ciphertext. If an integrity check on the ciphertext does not exist, an attacker can manipulate the ciphertext being sent over the wire and you might decrypt something the sender did not send. This type of scheme is typically called [Encrypt-then-MAC](https://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac).
+
+It should be noted that modern [AEAD ciphers](https://en.wikipedia.org/wiki/Authenticated_encryption) like `aes128-gcm@openssh.com` and `chacha20-poly1305@openssh.com` don’t actually use the derived integrity key for the MAC, they perform authentication internal to their construction.
+
+Initialization vectors (IV) are typically random numbers used as input to a symmetric cipher. The purpose of an IV is to ensure that the same message encrypted twice does not result in the same ciphertext. The need for this property has famously been visualized by the [ECB mode Tux image](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_(ECB)). How IVs have been used (and exploited) is an interesting topic in of itself that [Filippo Valsorda has written about](https://blog.cloudflare.com/tls-nonce-nse/).
+
+Lastly, why do theys keys come in pairs? [As Thomas Pornin outlines](https://crypto.stackexchange.com/questions/1139/what-is-the-purpose-of-four-different-secrets-shared-by-client-and-server-in-ssl), if only a single integrity key is used, an attacker can replay a record the client sent back to the client and the client would consider it valid. With multiple integrity keys (one for server to client, and another client to server), when the client performs the integrity check on the ciphertext, it would fail.
+
+Now with an understanding of why we need these keys, let’s cover how they are generated, [from the RFC](https://tools.ietf.org/html/rfc4253#section-7.2):
+
+<ul>
+  <li>Initial IV client to server: `HASH(K || H || "A" || session_id)`</li>
+  <li>Initial IV server to client: `HASH(K || H || "B" || session_id)`</li>
+  <li>Encryption key client to server: `HASH(K || H || "C" || session_id)`</li>
+  <li>Encryption key server to client: `HASH(K || H || "D" || session_id)`</li>
+  <li>Integrity key client to server: `HASH(K || H || "E" || session_id)`</li>
+  <li>Integrity key server to client: `HASH(K || H || "F" || session_id)`</li>
+</ul>
+
+Here the hash algorithm is `SHA{256, 384, or 512}` depending on the key exchange algorithm with the `||` symbol implying concatenation.
+
+Once these values are computed both sides send a `SSH_MSG_NEWKEYS` to inform the other side that the key exchange is over and all future communication should occur using the new keys generated above.
+
+<BlogImage src="./assets/SSH-Handshake-Figure4.png" width="100%" alt="generating new ssh keys"/>
+
+_Figure 4: Generation of the initial IV. Generation for the other keys is similar, replacing “A” and “B” with “C”, “D”, “E”, and “F” respectively._
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+At this point both sides have agreed upon cryptographic primitives, exchanges
+secrets, and arrived upon key material for the selected primitives and a secure
+channel that can provide confidentiality and integrity can be established
+between client and server.
+
+And that is how the SSH handshake establishes a secure connection between
+clients and servers.

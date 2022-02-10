@@ -1,0 +1,78 @@
+---
+author: Jon Silvers
+date: "2019-07-23"
+tags:
+  - kubernetes
+  - gravity
+title: Deliver Anywhere for Your Kubernetes Applications
+articleTitle: Deliver Your Kubernetes Applications Anywhere
+description: "Gravity is now production ready with a shiny new web UI, simplified logging, new Prometheus-driven event monitoring and advanced privileged access management (PAM) features. In this article, we walk through many of the newest features."
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+We introduced the Gravity 6.0 release candidate back in March and now we’re excited to announce it is available for production use.
+
+Gravity is a Kubernetes packaging solution that helps customers expand their addressable market by making it possible to deploy applications into any infrastructure. Today, SaaS companies use Gravity to package their applications and all of their dependencies into a single file called “Cluster Image” that can be used to consistently deploy Kubernetes clusters pre-loaded with their applications onto [many clouds, private data centers, or on-premise server rooms](https://goteleport.com/features/). Gravity is an [open core solution](https://goteleport.com/gravity/how-it-works/) with a free, Apache 2.0 licensed open source core.
+
+Users of Gravity Enterprise also get access to Gravity Hub, which allows application vendors to securely publish applications, updates and remotely access Clusters, when necessary.
+
+The latest version of Gravity features the all-new web UI, simplified logging, new Prometheus-driven event monitoring and advanced privileged access management (PAM) features. The new interface makes it very straightforward to publish application catalogs and provides an easy workflow to manage applications on Clusters around the globe.
+
+In this article, I wanted to show off some of the new goodness in Gravity.
+
+## Updated Cluster Management UI
+
+<BlogImage src="./assets/gravity-dashboard-article.png" alt="gravity dashboard" width="100%"/>
+
+Each Gravity Cluster comes with a robust web application for Cluster management. Each home page now features a dashboard overview of the Cluster, where users can monitor infrastructure utilization, see who else is connected to this cluster, inspect the latest audit events and more.
+
+## Cluster Monitoring
+
+<BlogImage src="./assets/monitoring.png" alt="gravity cluster monitoring" width="100%"/>
+
+To reliably run or scale an application in production, you need to have an intuitive way to visualize its performance and get alerts when things go askew. Gravity features an all-new monitoring and graphing engine to help you track capacity and resource utilization, monitor the performance and availability of applications running inside your Clusters or see how your Clusters are running in different environments.
+
+To deliver this functionality we use Prometheus, which has made huge gains in the last few years to become a premier time-series project for cloud-native monitoring. It is something our customers have asked for because it is so deeply integrated into the Kubernetes ecosystem.
+
+<BlogImage src="./assets/nodes-logging.png" alt="node monitoring" />
+
+## Audit Logs with Session Recording
+
+<BlogImage src="./assets/gravity-audit-log.png" alt="gravity audit log UI" />
+
+Built into Gravity is a new Audit Log UI. Logging is performed by an all new logging engine called Logrange, which provides encryption in transit and high performance on large Clusters. Logrange's components are deployed into the Gravity cluster for aggregating the application logs and providing an interface for working with them.
+
+In addition to logging, Gravity offers a session recording feature that is ideal for companies with strict audit or compliance requirements. Gravity records every user session, including remote command execution or failed or successful login attempts, and stores the data on-site for each cluster.
+
+## Application Publishing and Remote Connections with Gravity Hub (available in Gravity Enterprise)
+
+When a Gravity Cluster comes online, it can optionally establish a secure tunnel back to Gravity Hub. This allows Cluster administrators to get remote access to any Kubernetes cluster even when it is located behind firewalls without any open ports.
+
+`$ tsh --proxy=hub.example.com login`
+
+Gravity Cluster administrators can use either SSH or the Kubernetes API to access remote Clusters. All operational activity is logged at the remote Cluster for security audits.
+
+While anyone can publish Cluster Images on S3 or other storage options. Gravity Hub also includes the ability to store Cluster Images and applications which can then be downloaded directly by remote Clusters for automated updates. These updates can be for the entire Cluster or just certain applications running in the Clusters.
+
+<BlogImage src="./assets/gravity-hub-catalog.png" alt="gravity hub" />
+
+## Integrated RBAC for SSH and Kubernetes (available in Gravity Enterprise)
+
+<BlogImage src="./assets/rbac-yaml.png" alt="editing gravity roles" />
+
+Before Kubernetes took the computing world by storm, the traditional way to remotely access Linux servers was secure shell (SSH). While robust and secure, the SSH protocol makes it difficult to implement role-based access controls (RBAC) and managing compliance (and common sense) rules like _”interns must never SSH into production machines”_ is not trivial.
+
+Kubernetes offers fantastic RBAC controls but they can be bypassed if the Linux machines it runs on are accessible via SSH. Gravity solves this problem by creating a unified authentication gateway for each Cluster, so the access to machines via SSH or Kubernetes APIs goes through the same endpoint and the same certificate authority is responsible for issuing SSH and Kubernetes certificates. This allows Cluster administrators to configure RBAC for both protocols using a single pane of glass.
+
+Additionally, Gravity allows Cluster administrators to configure connectors to use identity management systems like Okta, Active Directory, OneLogin and many others, to implement single sign-on (SSO) with multi-factor authentication for both SSH and Kubernetes access.
+
+<EmailSubscribeViolet />
+
+## Try Gravity
+
+The Gravity Community Edition is an open source project. You can [download](https://goteleport.com/download/) a free pre-built version from our web site, or check out [Github repository](https://github.com/gravitational/gravity) if you wish to build it from source. The quickest way to get started with Gravity is to go over the [technical overview](https://goteleport.com/gravity/docs/) and follow the [quick start](https://goteleport.com/gravity/docs/quickstart/) guide.
+
+We believe that running applications anywhere should be easier. That's why we also built Teleport - Teleport allows engineers and security professionals to unify access for SSH servers, Kubernetes clusters, web applications, and databases across all environments. Learn more [here](https://goteleport.com/)!

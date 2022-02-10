@@ -1,0 +1,228 @@
+---
+author: Ev Kontsevoy
+date: "2019-05-06T16:39:34-07:00"
+tags:
+  - kubernetes
+title: "Part 1 on AWS: Rolling your own servers with K8s"
+articleTitle: "AWS: Rolling your own servers with K8s, Part 1"
+description: "This is part one of a three-part series on considerations that companies will want to address if they decide to build their own cloud environment."
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+### Why leave AWS?
+
+In this three-part blog series, we'll try to address some of the fears and
+uncertainties faced by organizations who had successfully started their projects
+on public clouds, like AWS, but for one reason or another found themselves needing to replicate their cloud environment from scratch, starting with an
+empty rack in their own enterprise server room or a colocation facility.
+
+If you are reading this, perhaps you already know _why it makes sense in your
+case_. If you are just curious, as makers of open source tools for
+[Kubernetes application packaging](/) and [server access management](/), here is what we have heard from users
+of our software:
+
+* It can be dramatically cheaper, especially for predictable workloads.
+* Regulations: sometimes you have to run software modified for countries it
+  runs in (or even in certain states!)
+* Need to use specialized hardware.
+* Latency: sometimes your software **must** be deployed 5ms away from the data
+  it's processing and there isn't an AWS region nearby.
+* The data center belongs to your customer and they want your software to run
+  there.
+
+There are myriad other reasons. The colocation market is still growing, after
+all, so let's get the question "why" out of the way and focus on "how".
+
+Rolling your own servers can be a daunting proposition, especially for younger
+technologists who are used to bootstrapping formidable server fleets with an
+API key, not with their bare hands covered in a mixture of blood, sweat and a
+server rail grease. However, it can be done with sizable cost, performance and
+compliance benefits – and Kubernetes (aka, K8s) can be your secret weapon!
+
+<figure>
+  <BlogImage src="./assets/racks.jpg" alt="server racks" width="100%" />
+  <figcaption style={{textAlign: "right", paddingLeft: "50%", fontSize: "14px", fontStyle:"italic"}}>... Sometimes I feel nobody gives me no warning
+Find my head is always up in the clouds in a dream world
+It's not easy, living on my own..." - <strong>Freddie Mercury</strong></figcaption>
+</figure>
+
+### Why Kubernetes?
+
+We can all agree that our industry is prone to hype and sometimes we feel the
+pressure of adopting a new technology simply because our peers and competitors
+do. Before diving into challenges of adopting Kubernetes, let’s remind
+ourselves of why someone should (or should not) bother.
+
+The primary benefit of K8s is to increase infrastructure utilization through
+the efficient sharing of computing resources across multiple processes. As your
+organization adopts more workloads of varying performance envelopes, the art of
+bin packing hundreds of [micro-services](../microservices-containers-kubernetes/)
+across available computing resources becomes more and more critical. Kubernetes
+is the master of dynamically allocating computing resources to fill the demand.
+This allows users to define infrastructure requirements for their applications
+using code, and shortens the time to production significantly relative to
+trying to manually "bin pack" your micro-services into a static hardware cabinet.
+
+In other words, in addition to dynamic resource scheduling, **Kubernetes allows
+users to realize many of the cloud benefits while running on bare metal servers**.
+
+### Should you roll your own servers?
+
+If you are not certain, the answer is most likely “no”. The staggering
+growth of AWS happened for a reason. Software-defined and globally distributed
+infrastructure which allows users to pay only for the resources they are using
+on a per-second basis is incredible. (If you are a typical SaaS provider that
+is entertaining the idea of managing your own servers, [Gitlab’s exploration
+into going off the cloud](https://about.gitlab.com/2017/03/02/why-we-are-not-leaving-the-cloud/) is a good overview of how they came to the
+determination it was not the right choice for them.)
+
+_This post is for those who either don't have the luxury of using a cloud
+provider or who have reached the conclusion that the benefits of colo outweigh
+the costs of using a cloud provider._
+
+The number one piece of advice is to hire someone who has done this before. If
+you do that you probably (hopefully) don't need this blog post. However, this
+post may help you hire that person or may help you evaluate what’s involved.
+
+As mentioned above, a reason for expanding beyond public clouds includes wanting a better cost/performance ratio that can be realized by having complete
+control over the infrastructure tuning.
+
+One example of such tuning can be the need to run a large amount of mostly idle
+instances of a cloud application, perhaps as POCs for customers or sales demos.
+**A physical server with 20 real cores can run a hundred VMs with their own
+virtual vCPUs** (and you can over-provision RAM too!)
+
+This is a blog post, not a book, so let’s keep it focused and make a few assumptions about our mini-datacenter to limit the scope:
+
+* A single server rack with up to 42 physical servers.
+* Located in a single data center.
+* We'll use a simple network without hardware redundancy (more about this later).
+
+### Colocation and Hardware
+
+If you are rolling your own hardware, you need a place to put your machines. You generally don't want them next to you unless you have really good noise-cancelling headphones and/or you need a strong heater. Companies who rent "pieces of data centers" are called colocation facilities and the "pieces" they rent are called server cabinets (or
+racks). Cabinets usually have individual locks, but if additional physical
+security is required, you may request a "cage" i.e. a separate room with its
+own lock which will host all of your server cabinets.
+
+There are several form factors for server cabinets to be aware of. It is easier
+to get started with a standard [19-inch cabinet](https://en.wikipedia.org/wiki/19-inch_rack)
+and your local colo facility will likely have that to offer. If you are
+going to become a datacenter nerd, you will eventually discover the
+[OpenCompute project](https://www.opencompute.org/) (OCP), which have different dimensions.
+That's a sexy subject on its own and it probably deserves a separate blog post.
+
+A rack is divided into logical units of vertical space called a "U". Most data
+center racks have a height of 42Us. This means they can hold up to 42 of 1U
+servers. However, you'll probably need some Us for the network gear as well.
+
+There are many factors to consider when picking server hardware. Due to the
+recent price drops for flash memory and the resurgence of AMD as a viable
+competitor to Intel, we now have access to incredible performance concentrated
+in a small amount of space. Here’s an example of a system you can have:
+
+* 2 CPUs of up to 32 cores each.
+* Up to 2TB of error-correcting ECC RAM running at 2666Mhz.
+* 4+ NVMe SSDs and 8 or more SATA SSDs.
+* At least 2 10G network cards.
+
+Even for our limited deployment, we can easily provision over a thousand
+physical CPU cores and 40+ terabytes of RAM in a single cabinet! Efficiently
+managing this amount of processing power is impossible by hand. That is where
+private cloud software, or Kubernetes in our case, comes in handy.
+
+The hardware above is quite vanilla. But as we mentioned above, some companies
+use colocation to take advantage of specialized hardware such as FPGAs, GPUs or
+even consumer-grade CPUs because they offer much higher single thread
+performance, often at the expense of not having ECC memory support or limited
+I/O throughput.
+
+### Redundancy
+
+An important topic probably worth touching on is designing for failure. Which
+things need redundancy? Is that achieved in hardware (HW) or in software (SW)?
+The trend is generally to move away from achieving HA via HW and instead using
+SW. K8s will move containers around if a server fails, so servers don’t need HW
+redundancy (e.g.  HA power or HA network interface controllers).
+
+Although, you need to leave sufficient
+cluster capacity.  Even if each server doesn’t need HA power, you may want to
+straddle servers in the cluster and put 1/2 on circuit A and 1/2 on circuit B,
+provided those have upstream power failure isolation from the colo provider
+(this is somewhat of a poor man's availability zone).
+
+To limit the scope of this article, let's assume that we do no need separate
+availability zones in your setup, but it's worth mentioning that **the level of desired redundancy is an huge factor in the cost!**
+
+### Now, let’s talk about money.
+
+When you call a colocation company for a price quote, the most common first
+question they’ll ask will be: "how much power do you need?" The colo industry
+is basically reselling electricity at a premium. Your answer needs to be in
+amps (A), where:
+
+<pre>
+  <center><strong style={{fontSize: "18px"}}>A = power (W) / voltage (V)</strong></center>
+</pre>
+
+i.e. a single server consuming 300w will need 2.5 amps at 120 volts. The power
+is usually sold on a per-cabinet basis, i.e. if you bought a 15amp cabinet, it
+means you can only fit six servers into one. Power is all they care about and
+it is not uncommon to receive a fixed-price quote for pre-provisioned
+electricity regardless of how much bandwidth you’d consume. **A "starter pack"
+15amp cabinet with a gigabit connection can be rented for as little as $400 per
+month.**
+
+The prices will vary, but the number one question you probably have is: "is it
+cheaper than AWS?" The only answer I am comfortable saying is “it depends.”
+If you already have the skills to manage the infrastructure and your servers
+will be well-utilized most of the time, then the DIY route will be
+cheaper. But if your workloads are highly variable, you may find
+yourself massively over-provisioning and paying for resources that are idle
+most of the time. Another major expense of DIY is having to hire a team of SREs to
+keep your databases and other infrastructure software running smoothly.
+
+Before concluding that **colocation is vastly cheaper**, please bear in mind
+that AWS also offers unique billing models not available in DIY deployments,
+namely spot instances and reserved instances. Spot instances allow you to run
+workloads that can tolerate interruption (e.g. non-time sensitive batch
+processing jobs) at a significant discount (50-80%). AWS lets you bid a lower
+price for EC2 instances and when AWS demand necessitates more capacity, they
+reclaim your spot instances with a few minutes notice. Reserved instances are
+meant to mimic purchasing your own physical servers which typically have a 3
+year life / amortization. You make a commitment to run a particular EC2
+instance for 1 or 3 years in exchange for 30-70% discount. Convertible reserved
+instances are even more flexible and let you exchange your commitments over
+time as you EC2 instance needs change. Just remember that managing reserved instances can be very
+difficult and you can actually end up paying more than on-demand rates if you
+aren't careful.
+
+Before leaving AWS strictly because of cost-related concerns, we recommend
+checking out vendors who do [automated reserved instance management](https://www.prosperops.com/how-it-works/).
+
+<EmailSubscribeViolet />
+
+### Next...
+
+So far, we have covered:
+
+* Yes, people still (in 2019!) build their own environments in colocation (and
+  even leave public clouds like AWS behind). Plenty of our customers do.
+* Kubernetes is a reasonable and much more lightweight alternative to
+  virtualization in order to build "cloudy" environments on bare metal servers.
+* The costs can be much lower... or much higher!
+
+In the next chapters, we'll cover:
+
+* Part 2: [Networking for Bare Metal Kubernetes Cluster](https://goteleport.com/blog/kubernetes-networking-on-bare-metal/)
+* Part 3: [Bare Metal Kubernetes vs Virtualization](https://goteleport.com/blog/kubernetes-vs-virtualization/)
+
+Stay tuned!
+
+--------
+
+_Thanks to Aaron Sullivan and Erik Carlin for reading the draft of this post
+and providing valuable suggestions_.

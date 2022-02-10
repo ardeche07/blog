@@ -1,0 +1,322 @@
+---
+author: Ev Kontsevoy
+date: "2019-05-22"
+tags:
+  - kubernetes
+articleTitle: "AWS: Rolling your own servers with K8s, Part 3"
+title: "Part 3 on AWS: Rolling your own servers with K8s"
+description: "In the final chapter of this series, we look at why Kubernetes is a better choice than virtualization to enable a more “cloudy” mode of operations on your new cluster."
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import BlogImage from "components/BlogImage";
+
+<center>
+## Kubernetes vs Virtualization
+</center>
+
+### Introduction
+
+This is the final part of the three-part blog series on "Leaving AWS and
+rolling your own servers with Kubernetes". Previously, we have covered:
+
+* Part1: [Why leave AWS?](/blog/aws-vs-colocation/)
+* Part2: [Networking for Bare Metal Kubernetes Cluster](/blog/kubernetes-networking-on-bare-metal/)
+
+Now, let's take a look at why Kubernetes is a better choice than virtualization
+to enable a more "cloudy" mode of operations on your new cluster.
+
+<figure>
+  <BlogImage src="./assets/racks.jpg" alt="server racks" />
+  <figcaption style={{textAlign: "right", paddingLeft: "50%", fontSize: "14px", fontStyle:"italic"}}>... Sometimes I feel nobody gives me no warning
+Find my head is always up in the clouds in a dream world
+It's not easy, living on my own..." - <strong>Freddie Mercury</strong></figcaption>
+</figure>
+
+
+### Virtualization vs Kubernetes
+
+_"How should I think about virtualization vs containers?"_ comes up quite often,
+but it is hard to answer without further qualification. The original appeal of
+virtualization technology was to consolidate workloads to fewer servers, i.e.
+to increase infrastructure utilization and reduce infrastructure-related CAPEX.
+Containers do the same thing, only better. Therefore, they should replace
+virtual machines, right? Well, yes and no.
+
+The meaning of "virtualization" has been expanded in recent years. It’s not
+just servers that are virtualized, we now have software-defined (virtual)
+networks, virtual storage, virtual load balancers, etc. Your entire environment
+can be virtualized and defined via a configuration file, sometimes as part of
+your application packaging. If that’s the world you live in, congratulations,
+you are living in a cloud-native world.
+
+Simply deploying Kubernetes onto a dozen of bare metal servers is not going to
+deliver all of the typical cloud comforts. Let’s take a look at what will be
+missing:
+
+1. **Networking**. Feature-rich cloud ecosystems offer nearly unlimited
+   software-defined virtual private networks (VPCs) that can span across server
+   cabinets or even server rooms, etc. They do this by implementing
+   sophisticated network flow controllers paired with expensive, specialized
+   (often made in-house) network hardware. As I mentioned earlier, there are
+   some native integrations for leading SDN tech for Kubernetes but they are
+   not as mature. A couple of interesting companies in this space are [Cumulus Networks](https://cumulusnetworks.com/)
+   and [BigSwitch](https://www.bigswitch.com/). However, if your
+   environment is as simple as the setup we're using here, Kubernetes contains
+   everything you need to have floating IPs and load balancers.
+2. **Storage**. Fortunes have been made by selling storage solutions for
+   virtualization. Enterprise storage vendors have built impressive products
+   that not only allow users to scale storage independently from compute but
+   also offer impressive snapshotting, backup and disaster recovery
+   capabilities that make live VM migrations a breeze. The lack of maturity of
+   Kubernetes-native virtual storage offerings is one of the top obstacles
+   towards Kubernetes adoption right now. Although, the situation is rapidly
+   improving with next-generation vendors like [Portworx](https://portworx.com/)
+   filling the void and well-known, production-tested projects like [Ceph](https://ceph.com/en/)
+   enjoying first-class Kubernetes support.
+3. **Tenant isolation**. If your goal is to execute untrusted 3rd party code on
+   your infrastructure, proper tenant isolation is essential. The most secure
+   (and least flexible) tenant isolation technique is to place each one onto
+   the dedicated hardware hosts, network, etc. However, in nearly all cases,
+   virtualization solves this issue well enough. While vulnerabilities in
+   hypervisors are discovered every once in a while, a successful real-world
+   attack on a “cloud neighbor” is very rare. Containers by themselves are
+   still not recommended for sharing a physical host with untrusted 3rd parties
+   but with recent innovations like [Kata containers](https://katacontainers.io/),
+   Kubernetes is closing this gap.
+4. **Support for legacy applications**. Modern cloud ecosystems benefit from
+   the large investments that have been previously made into running legacy,
+   cloud-unaware applications on them. Features like robust virtualized storage
+   and live migrations make it relatively trivial to take an application and
+   turn it into a highly available appliance without any modifications to its
+   source code. Once again, the container ecosystem is rapidly catching up with
+   projects like [CRIU](https://criu.org/Live_migration) promising to close these
+   gaps. However, Kubernetes is still best suited for cloud-native applications
+   that don't take local storage for granted.
+
+So should you be running Kubernetes on top of OpenStack or VMWare vCloud? The
+answer is, again, it depends on your use case but, in our opinion, **you should
+at least try to eliminate virtualization**. Here's why:
+
+1. **Simplicity**. Private clouds are complex pieces of software. OpenStack,
+   despite years of polishing, remains excruciatingly complex. There are
+   various management tools but the tools are often not free and, more
+   importantly, require expertise to manage. There will always be
+   vulnerabilities to patch, newer versions to upgrade to, and so on. Reducing
+   this complexity means increased reliability. Having a single stack to
+   operate means cutting the frequency of updates in half and reducing the
+   probability of a critical misconfiguration taking all of your applications
+   down. Remember, _part of the reason AWS was heavily promoting the usage of
+   availability zones (AZ) from the start, was to make it easier for themselves
+   to manage the underlying virtualization platform. Virtualization
+   failures/maintenance can be more impactful than hardware failures!_
+2. **Performance**. Modern virtualized stacks are quite good at approaching
+   bare metal levels of performance but running Kubernetes on top of
+   virtualized servers is going to require more resources than running it on
+   bare metal because virtualization still carries some tax and private cloud
+   software itself consumes resources.
+3. **Cost**. Private cloud solutions are not always free. Some of them are free
+   open source software and others can be quite expensive - but none are free
+   to operate. Employing experts and/or paying for software licenses is
+   unavoidable if you are going to run mission-critical workloads on top of
+   private cloud software.
+
+Going back to the original question of whether you should be running Kubernetes on
+bare metal, let’s qualify the answer by saying you should try it if the
+following applies:
+
+* You do not have pre-existing investments in private cloud solutions and you
+  lack the expertise to operate them.
+* You are not running untrusted 3rd party code in your cluster.
+* Your network scale is modest and fits into the simple design as described
+  above.
+* Your applications do not depend on features only a virtualized storage can
+  provide and do not depend on hardware-assisted HA (like live migration).
+
+For most of the readers, the last bullet point will be the hardest to answer,
+so let’s dive into it a bit deeper.
+
+
+### Managing State with Containerizing Applications
+
+Despite what some people may say, Kubernetes is actually surprisingly good at
+emulating a boring Linux host for a legacy application that was written with
+legacy expectations. Modern, cloud-native features of Kubernetes like
+configuration management, secrets management, and service discovery are all
+accessible by old-school applications through widely accepted legacy APIs such
+as environment variables or files.
+
+In other words, if an application can be configured to change its behavior
+(e.g. to use a different database connection string, by updating an environment
+variable or a configuration file somewhere in /etc), Kubernetes supports this
+quite well. There is no need to update the application code and teach it to
+interface with the Kubernetes API to accomplish this.
+
+Usually, Kubernetes users struggle to migrate their applications when it comes
+to managing state, i.e. the more dependencies exist between an application and
+the local storage of its host, the more challenging the migration becomes.
+
+Kubernetes’ initial design has favored applications that can be described as
+stateless network services - processes that consume only CPU, network and
+memory and do not need any storage. Unfortunately, the world we live in is very
+much stateful and most applications deliver value by manipulating data that
+must be stored somewhere.
+
+Why has Kubernetes developed a reputation as being problematic for stateful
+applications like databases? Because in order to deliver the highest possible
+infrastructure utilization, Kubernetes needs to move the applications across
+servers. If a database is “chained” to a local storage array, it can’t be moved
+away from it.
+
+Consider several strategies to address this problem. Do not treat them all as a
+panacea, but choose what best fits your situation:
+
+1. __Do not run databases under Kubernetes__. In fact, most distributed
+   databases like Cassandra, HDFS or MongoDB, predate Kubernetes and have
+   similar clustering capabilities built-in. They are perfectly capable of
+   managing their own cluster state, replication, load-balancing, and
+   auto-scaling. Allocate some nodes in your rack to them and these databases
+   will be quite happy. That’s their native environment, after all. Kubernetes
+   has the concept of external services which should be used to make such
+   “external” databases visible to applications running inside the cluster. You
+   will not have a “100% pure” Kubernetes environment but who said you must
+   have one?...Especially if you have already invested in tooling and
+   automation for your database of choice. Sometimes not fixing what’s not
+   broken is a valid strategy.
+2. __Use network-attached storage__. Generally speaking, not relying on locally
+   attached storage is always preferable because it allows you to scale storage
+   resources independently from compute. This strategy does not work
+   universally for all access patterns but Kubernetes is now well-equipped to
+   handle cases when it does. Features like persistent volumes, stateful sets,
+   and database-aware operators make it possible to run stateful applications
+   inside Kubernetes.
+3. __Choose storage solutions aligned with microservices architecture
+   principles__ and adhere to the requirements of container-native data
+   services. This new generation of storage products is closely aligned with
+   the scaling model of Kubernetes. Such storage solutions can be [directly integrated](https://kubernetes-csi.github.io/docs/#kubernetes-container-storage-interface-csi-documentation)
+   with the application layer for portability, scaling and data
+   protection. In other words, consider adopting container-optimized storage
+   and data management systems such as [Portworx](https://portworx.com/).
+
+## Deployments and Configuration
+
+Managing configuration across large server fleets used to be a problem until
+modern configuration management tools like Ansible, Chef, and Puppet appeared
+on the market. The core capability of these tools is to keep the critical parts
+of a server’s filesystem (configuration files) in a well-known state across the
+entire fleet, usually via a declarative style of languages like YAML.
+
+Over time, users have grown to like their configuration management tools so
+much, that the demand for additional functionality has appeared. It is not
+uncommon now to meet engineers who use Ansible not only to manage configuration
+but also to provision AWS resources and deploy their applications. If you have
+a tendency of using Ansible as a Swiss army knife for everything, it will
+probably break at some point and you will want to supplement it with a
+specialized tool for other tasks. For example, Terraform or CloudFormation for
+provisioning infrastructure resources and Jenkins or CircleCI for continuous
+integration and delivery (CI/CD).
+
+How will your Kubernetes migration change your existing tooling for these tasks?
+
+**You will still need a configuration management tool**. Kubernetes needs an
+operating system to run and the OS needs to be configured, updated and kept
+secure. Whatever your weapon of choice is to manage fleets of Linux server,
+you'll probably be happiest to continue using it with Kubernetes.
+
+**Your CI/CD tool is probably inadequate**. Popular CI/CD solutions were designed
+for the pre-Kubernetes world. They will continue to work, but most are
+engineered with a world view incompatible with Kubernetes design principles,
+which forces their users to get creative and come up with “upside down”
+solutions. [This blog post](https://blog.travis-ci.com/2017-10-26-running-kubernetes-on-travis-ci-with-minikube),
+for example, teaches you to _"Run Kubernetes on Travis CI"_ which is a tutorial
+for how to spread bread on top of the butter.
+
+**Every time you read _"Run Kubernetes on top of X"_ type of article, most likely
+that would be a piece about something you should not be doing**. Kubernetes
+wasn't meant to run on top of CI/CD. Instead, a Kubernetes-native CI/CD must
+use a service account to connect to K8s API and take advantage of built-in
+primitives like labels, deployments, and jobs. We took a quick look at Gitlab’s
+Kubernetes integration and on the surface, they appear to be doing it the right
+way. There are also some [new projects emerging](https://tekton.dev/) in the space
+that are designed specifically for Kubernetes.
+
+As any successful new technology, Kubernetes is disruptive, and certain "old
+ways" become obsolete. Just as the benefits of virtualization are starting to
+fade in the face of Kubernetes proliferation, today’s CI/CD market will be
+transformed as well.
+
+To implement your CI/CD strategy, take a look at the Kubernetes [native approach](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+to deploy code into a cluster and build on top of that. For most users, it will
+come across as too low level but knowing it is essential. The next stop would
+be to take a look at [Helm](https://helm.sh/) or [Kustomize](https://github.com/kubernetes-sigs/kustomize),
+(both are higher level tools for packaging software for Kubernetes deployments)
+and also at its possible future successor, the Application API. The universe of
+application deployment solutions for Kubernetes is a fast expanding one.
+Whatever we write about here will probably become obsolete in just a few
+months.
+
+### True application portability
+
+Assuming you have Kubernetes up and running in your cabinet, let's not forget
+another benefit of K8s which we haven’t mentioned yet here - your applications
+are now much more portable.
+
+Back in the day, a piece of software could fit into a single VM and software
+distribution between two parties could be implemented simply by sharing a VM
+image or building a relatively simple installation package. Today, modern,
+cloud-native applications are too complex and fragile to be distributed this
+way. For SaaS companies, this does not present a problem because their
+software is delivered as a service and such software is often “chained” to one
+or two deployments.  But if deploying cloud-native software into someone else’s
+public or private cloud is a requirement, the challenge is enormous.
+
+Kubernetes changes that. In theory, if an application can run on a Kubernetes
+cluster, it can be moved anywhere where a standards-conforming cluster is
+present. Hopefully, with Kubernetes gaining momentum, it will become the norm
+to quickly move an application across all major cloud providers and pick the
+one with best performance or price. As cloud hosting continues to be
+consolidated by the top two or three providers, the world desperately needs a
+technology that will commoditize cloud providers.
+
+What's even more exciting is that Kubernetes allows applications to be
+downloaded, shared and installed using a simple, single-file installation
+method. Our own open source [Kubernetes packaging solution called Gravity](/)
+allows developers to build “cluster images” that are identical in principle to VM
+images but they can contain an entire Kubernetes cluster, pre-loaded with
+multiple applications. Statements like, _"I have snapshotted my AWS account and
+emailed it to you, so you can get it up in your colo,"_ will not seem so crazy.
+
+<EmailSubscribeViolet />
+
+### Conclusion
+
+While setting up a privately hosted colocation environment -- and freeing
+yourself from the cloud overlords --  may sounds feasible, there are still many
+devil-in-the-detail level considerations: costs, networking, and the physical
+environment build-out are just a few.
+
+Kubernetes can be considered as a valid (and superior) alternative to virtualization,
+as long as you do not require securely separating cluster tenants, because
+containers cannot yet securely sandbox a rogue application.
+
+It's possible to dive much deeper into a permutation of each topic, but I hope this
+provided a big picture view the areas your team should be debating.
+
+Lastly, however you choose to host your applications and infrastructure, we
+hope you consider bringing Teleport along for the ride.
+
+* [Gravity](/) allows you to package and deploy
+  your Kubernetes clusters (along with the apps inside) across multiple clouds
+  and for securely deploying your SaaS on premises of your enterprise customers.
+
+* [Teleport](/) offers a modern SSH gateway for secure
+  access to your infrastructure, and it doesn't get in the way, helping your engineers
+  to stay productive.
+
+Both projects are open source and offer tremendous flexibility to run applications
+and manage infrastructure across multiple clouds and on-premise environments.
+If you have questions on anything in this series, please ping
+me on [Twitter at @kontsevoy](https://twitter.com/kontsevoy?lang=en)
+
+<em>Thanks to Aaron Sullivan and Erik Carlin for reading the draft of this post and providing valuable suggestions.</em>
