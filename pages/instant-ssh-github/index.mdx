@@ -1,0 +1,140 @@
+---
+title: SSH into your laptop using their Github handle
+description: We talk about a new feature in Teleconsole:\ you can turn any laptop into a secure and publicly accessible SSH server which uses Github SSH keys for authentication.
+articleTitle: SSH into your laptop using their Github handle
+date: "2017-01-25"
+author: Taylor Wakefield
+tags:
+  - ssh
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Instant SSH Everywhere
+
+Wouldn't it be great to allow a fellow developer to quickly and securely SSH into
+your laptop when you're in the middle of a debugging session even if you are on two
+separate networks behind NAT?
+
+A few months ago we released a free tool, [Teleconsole](https://github.com/gravitational/teleconsole/), we built so we
+could do exactly that. We are a distributed team, with bare metal servers sitting in our San Francisco
+office, several AWS and Azure regions and a bunch of customer environments we are sometimes asked to
+jump into.
+
+[Teleconsole](https://github.com/gravitational/teleconsole/) makes it really easy to share a session: the inviting
+party simply types the following into the terminal on any UNIX machine:
+
+```bash
+$ teleconsole
+```
+
+Which produces something like:
+
+```bash
+Your Teleconsole ID: 02f8cf345e9f00c1ee498ce410e8a2d10fb8a512
+WebUI for this session: https://teleconsole.com/s/02f8cf345e9f00c1ee498ce410e8a2d10fb8a512
+```
+
+Then you can just share the Teleconsole ID to invite someone and they just have to type
+the following to jump into your session:
+
+```bash
+$ teleconsole join 02f8cf345e9f00c1ee498ce410e8a2d10fb8a512
+```
+
+This is how we invite each other to any server or laptop. It works behind most firewalls without
+messing around with VPNs.
+
+Here's a short video showing how it works:
+
+<iframe
+  width="853"
+  height="480"
+  src="https://www.youtube.com/embed/R8CnrnquS_s?rel=0"
+  frameborder="0"
+  allowfullscreen
+></iframe>
+
+## Adding SSH Keys
+
+This is great but it also means that anybody with this session ID can now join
+your session.
+
+This is not a concern for most situations: guessing the ID is pretty hard with
+2^320 combinations. But what if someone attacks the channel you've shared the
+session ID over or it otherwise falls into the wrong hands?!
+
+Well, now you can pass an SSH public key to `teleconsole` as an argument
+via `-i` flag, and only folks with a _corresponding private key_ will be able to
+join.
+
+To make it even easer (as suggested by the Teleconsole community) the public key
+can be specified not only as a file but also as a Github handle! So you can do
+both:
+
+```bash
+# use the public key stored in a file:
+$ teleconsole -i kontsevoy.pub
+
+# or you can use a public key of "kontsevoy" account on Github:
+$ teleconsole -i kontsevoy
+```
+
+Either way, Teleconsole will give you a session ID to share that only
+`kontsevoy` can use to join, because he has a private SSH key in his `~/.ssh`
+directory which matches his public key:
+
+```bash
+$ teleconsole -i kontsevoy
+
+Starting local SSH server on localhost...
+Requesting a disposable SSH proxy on teleconsole.com for kontsevoy...
+Checking status of the SSH tunnel...
+
+Your Teleconsole ID: 8cbec01f330fb52aedff90e43db1c8bea2455cb6
+WebUI is not available for key-restricted sessions
+```
+
+Teleconsole will make an API call to Github, request the public key of
+`kontsevoy` and will configure your session to only let `kontsevoy` in and
+nobody else. This way even if someone steals the session ID, they will not be
+able to join because they don’t have the private part of the key, only
+`kontsevoy` has that.
+
+Now `konstevoy` can join your terminal session using that `Teleconsole ID`, just as before:
+
+```bash
+$ teleconsole join 8cbec01f330fb52aedff90e43db1c8bea2455cb6
+
+Teleconsole: joining session...
+Matching key: /Users/ekontsevoy/.ssh/id_rsa
+taylorwakefield ~:
+```
+
+It's really that easy...
+
+<iframe
+  width="853"
+  height="480"
+  src="https://www.youtube.com/embed/Z07vse-BOG8?rel=0"
+  frameborder="0"
+  allowfullscreen
+></iframe>
+
+Thanks to Teleconsole users for this neat idea. Hope you enjoy!
+
+<EmailSubscribeViolet />
+
+## Tech behind Teleconsole
+
+The [Teleconsole code](https://github.com/gravitational/teleconsole/) is on Github. Feel free to poke
+around to understand how it works. It appears to be a tiny project, but only because it's standing on
+the shoulders of giants, namely:
+
+- Golang's excellent [SSH implementation](https://godoc.org/golang.org/x/crypto/ssh)
+- [Teleport SSH Server](https://github.com/gravitational/teleport) - our open
+  source SSH server which enables on-the-fly SSH bastions, among other cool
+  things.
+
+Subscribe to the updates to this blog to receive news related to our SSH tech!

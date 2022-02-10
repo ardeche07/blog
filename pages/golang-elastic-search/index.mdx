@@ -1,0 +1,132 @@
+---
+title: Go and structured logging with ElasticSearch
+description: We are playing with Elastic Beats, doing structured logging with Golang and Elastic Search
+articleTitle: Go and structured logging with ElasticSearch
+date: "2016-01-01"
+author: Sasha Klizhentas
+tags:
+  - engineering
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+In this blog post we are going to talk about the quick experiment we did with Go and [Elastic
+beats](https://www.elastic.co/beats). We will integrate Go logger to
+emit logs in structured format to Elastic Search for your viewing pleasure.
+
+## What is beats?
+
+Beats is a [new awesome Go library](https://github.com/elastic/beats) to build
+and ship documents to ElasticSearch. We've decided to give it a try and
+integrate Go structured logger [logrus](https://github.com/Sirupsen/logrus) to
+ship logs to ELK using new API.
+
+## Structured logs
+
+First, lets write start emitting structured logs.
+
+We will use combination of [logrus](https://github.com/Sirupsen/logrus) to emit
+logs and [trace](https://github.com/gravitational/trace) that provides a hook
+to capture debugging info such as file, line and function and emit UDP events
+(will get to the UDP part later).
+
+```go
+package main
+
+import (
+	"os"
+	"os/signal"
+	"time"
+	log "github.com/Sirupsen/logrus"
+	"github.com/gravitational/trace"
+)
+
+func main() {
+	// Log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&trace.TextFormatter{})
+
+	h, err := trace.NewUDPHook()
+	if err != nil {
+		log.Fatalf("hook: %v", err)
+	}
+	log.AddHook(h)
+
+	log.Infof("something new")
+	log.WithFields(log.Fields{trace.Component: "play"}).Infof("this time")
+}
+```
+
+Or if you are lazy, just grab it from
+[github](https://github.com/gravitational/udpbeat/blob/master/examplebeater/main.go):
+
+```bash
+$ go install github.com/gravitational/udpbeat/examplebeater
+$ examplebeater
+```
+
+This little program will periodically emit logs with file, line, function and
+other parts to UDP address.
+
+## Udpbeat
+
+[Udpbeat](https://github.com/gravitational/udpbeat) is a
+[Beats](https://github.com/elastic/beats) based agent that collects UDP
+messages and ships them to ELK
+
+Here's how it all works together:
+
+<BlogImage src="./assets/beats.png" />
+
+Agent can run on any machine and your processes will be shipping logs to this
+tiny agent without bringing beat's deps or depending on Elasticsearch API
+
+```bash
+$ go install github.com/gravitational/udpbeat
+$ udpbeat -c ${GOPATH}/src/github.com/gravitational/udpbeat/trace.yml
+```
+
+Note, that you can (and probably should) modify the configs to setup logging/output.
+
+## ELK part
+
+Ok, the last part is starting Elasticsearch and Kibana and setting document
+schema. That's easy with Docker.
+
+Start ElasticSearch and Kibana:
+
+```bash
+$ docker run -p 9200:9200 -p 9300:9300 --name elk -d elasticsearch
+$ docker run -p 5601:5601 --link elk:elasticsearch -d kibana
+```
+
+Set `trace` document schema to tell ELK how to index incoming documents emitted by `udpbeat`
+
+```bash
+$ curl -XPUT 'http://localhost:9200/_template/trace' \
+       -d@${GOPATH}/src/github.com/gravitational/udpbeat/template.json
+```
+
+This [template.json](https://raw.githubusercontent.com/gravitational/udpbeat/master/template.json)
+explaing ElasticSearch how to interpret the incoming document's fields
+
+- Open Kibana and configure mappings:
+
+<BlogImage src="./assets/trace-elk.png" />
+
+- Discover the logs emitted by our little test logging library:
+
+<BlogImage src="./assets/kibana-discover.png" />
+
+<EmailSubscribeViolet />
+
+## Summary
+
+[Beats](https://github.com/elastic/beats) is a major step forward to writing
+customized data shippers, paired with Go's runtime knowledge of lines, files we
+get very nice framework for production logging.
+
+**Notice** [Udpbeat](https://github.com/gravitational/udpbeat) is quite nice
+and simple, but we haven't tested it in production yet,however we are about to
+that very soon!
