@@ -1,7 +1,7 @@
 import { ImageProps } from "next/image";
 
 export interface BlogMeta {
-  title: string;
+  title?: string;
   description: string;
   articleTitle: string;
   date: Date;
