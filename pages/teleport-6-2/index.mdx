@@ -1,0 +1,142 @@
+---
+articleTitle: Teleport 6.2
+title: Teleport 6.2 - Redshift, Listing Databases, and K8S in the UI
+description: Teleport 6.2 brings enhancements across the board, including the ability to list Databases and Kubernetes Clusters in Teleport and Amazon Redshift support.
+date: "2021-05-27"
+author: Ben Arent
+tags:
+  - teleport
+  - announcements
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+The team recently released Teleport 6.2. This post will walk you through some of the new features and additions included in this release.
+
+Quickly jump to these sections:
+
+- [6.2 - Application Access](#application-access)
+- [6.2 - Server Access](#server-access)
+- [6.2 - Database Access](#database-access)
+- [6.2 - Kubernetes Access](#kubernetes-access)
+
+<h2 id="application-access">Application Access</h2>
+
+We’ve made iterative improvements to Application Access. This release focus is on connecting to other applications.
+
+### Pass-through header support
+
+We’ve added pass-through header support. Pass-through is a common way of accessing tools and is supported by [Splunk](https://docs.splunk.com/Documentation/Splunk/8.1.0/Security/ConfigureProxySSO), [Jenkins](https://plugins.jenkins.io/reverse-proxy-auth-plugin/), [Grafana](https://grafana.com/docs/grafana/latest/auth/auth-proxy/). This can be configured by rewriting the headers on a per-app basis.
+
+```yaml
+app_service:
+  enabled: "yes"
+  apps:
+    - name: "dumper"
+      description: "Header dumper"
+      uri: http://localhost:4321
+      public_addr: dumper-root.gravitational.io
+      rewrite:
+        headers:
+          - "X-Teleport-Cluster: root"
+          - "X-Teleport-Logins: {{internal.logins}}"
+          - "X-Custom-Trait-Env: {{external.env}}"
+```
+
+### Native JWT Support with Grafana 8.0
+
+Our team has had a [PR accepted](https://github.com/grafana/grafana/pull/29995) to provide native JWT Support to Grafana. This feature means Teleport will send JWT tokens to login into Grafana. Grafana has more instructions on how to setup JWT tokens on [their documentation site](https://grafana.com/docs/grafana/latest/auth/jwt/). This integration will only provide authentication, and it won’t create users that aren’t already created in Grafana. This feature is currently in Grafana 8.0 beta.
+
+Example changed to `grafana.ini`
+
+```ini
+[auth.jwt]
+enabled = true
+header_name = Teleport-Jwt-Assertion
+email_claim = sub
+username_claim = sub
+jwk_set_url = https://teleport.asteroid.earth/.well-known/jwks.json
+```
+
+<video autoplay loop muted playsinline>
+  <source src="./assets/aap-grafana.mp4" type="video/mp4" />
+  <source src="./assets/aap-grafana.webm" type="video/webm" />
+</video>
+
+<h2 id="kubernetes-access">Kubernetes Access</h2>
+
+You now view connected clusters in Teleport UI. This feature makes it easier to view labels and view setup instructions. You’ll still need to use `kubectl` to access the cluster.
+
+_Kubernetes Fixes:_ Fixed issue where kubectl exec sessions were not being recorded when the target pod was killed. [#6068](https://github.com/gravitational/teleport/pull/6068)
+
+<video autoplay loop muted playsinline>
+  <source src="./assets/k8s-ui.mp4" type="video/mp4" />
+  <source src="./assets/k8s-ui.webm" type="video/webm" />
+  Your browser does not support the video tag.
+</video>
+
+<h2 id="database-access">Database Access</h2>
+
+### Amazon Redshift Support
+
+Redshift is a data warehouse from Amazon. It’s used to store and query data; by using Teleport, customers can audit any query from data analysts. Teleport will provide a secure short-lived connection to the data warehouse making access easier than setting up complicated IAM roles per analyst.
+[Follow our Redshift Guide](https://goteleport.com/docs/database-access/guides/postgres-redshift/)
+
+<h2 id="server-access">Server Access</h2>
+
+### PAM with Custom Parameters
+
+Teleport supports setting arbitrary environment variables for PAM modules as of version 6.1. These variables can also be role-style SSO claims in the form `{{ external.email }}` where `email` is a claim made by the configured SSO IdP. This can be used to
+
+To set custom environment variables, update `/etc/teleport.yaml` with:
+
+```yaml
+ssh_service:
+  pam:
+    # disabled by default
+    enabled: true
+    # use /etc/pam.d/sshd configuration (the default)
+    service_name: "sshd"
+    # use the "auth" modules in the PAM config
+    # "false" by default
+    use_pam_auth: true
+    # sets custom environment variables for PAM modules
+    # no environment variables except the standard `TELEPORT_USERNAME`, `TELEPORT_LOGIN`, and `TELEPORT_ROLES`
+    environment:
+      FOO: "bar"
+      EMAIL: "{{ external.email }}"
+```
+
+### Trusted Clusters
+
+Teleport will pass on identity provider claims/attributes to leaf clusters for use in leaf role templating.
+
+This allows users to have, for example, identical roles in both clusters that grant access based on the user's traits, which is the behavior some customers expect.
+
+Example role node labels:
+
+```yaml
+node_labels:
+  env: { { external.env } }
+```
+
+### Cluster Quick Nav
+
+We’ve added a leaf cluster quick launcher, to help you quickly get to the cluster you need.
+
+### Under the hood
+
+We’ve made a range of other improvements under the hood, check out our [CHANGELOG.md](https://github.com/gravitational/teleport/blob/master/CHANGELOG.md#62) for more details.
+
+<EmailSubscribeViolet />
+
+## Breaking Changes
+
+### Agent Forwarding
+
+Teleport 6.2 brings a potentially backward incompatible change with tsh agent forwarding. Prior to Teleport 6.2, `tsh ssh -A` would create an in-memory SSH agent from your `~/.tsh` directory and forward that agent to the target host.
+
+Starting in Teleport 6.2 tsh ssh -A by default now forwards your system SSH agent (available at `$SSH_AUTH_SOCK`). Users wishing to retain the prior behavior can use `tsh ssh -o "ForwardAgent local"`.
+
+For more details see RFD 22 and implementation in #6525.

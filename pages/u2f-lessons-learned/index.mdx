@@ -1,0 +1,199 @@
+---
+title: What I Wish I Knew About U2F and Other Hardware MFA Protocols
+articleTitle: What I Wish I Knew About U2F and Other Hardware MFA Protocols
+description: We revamped the second-factor authentication in Teleport 6.0. This post provides a birds-eye view of U2F and other cryptographic hardware standards.
+date: "2021-04-15"
+author: Andrew Lytvynov
+tags:
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Teleport has supported multi-factor authentication (MFA) for a while now, via
+Authenticator Apps (TOTP) and Hardware Tokens (U2F) such as YubiKeys. But this
+support was pretty limited: you could only choose one MFA protocol and users
+could only register one device. If a user lost their device, they would be
+locked out and need an account reset by the administrator.
+
+So, for Teleport 6.0, we’ve reimplemented the MFA support to make it more
+flexible. You can now enable both TOTP and U2F, and each user can have as many
+devices registered as they please. If you lose your U2F key but still have a
+TOTP app registered, you can log back in and replace your lost U2F key. No need
+to nag the cluster admin.
+
+While working on this, I had the pleasure of learning about this exciting world
+of hardware MFA devices, like U2F keys. OK, it’s not really that exciting, but
+I’d like to share some things I learned along the way. Hopefully, this will save
+some poor soul out there some time.
+
+## What is U2F?
+
+Universal 2nd Factor (U2F) is an open standard for a 2nd authentication factor
+(duh) using small USB or NFC devices. It verifies two things during
+authentication: that the user has access to the physical device (which was
+previously registered), and that the user is actively performing the
+authentication (i.e. tapping the U2F device). Server-side, U2F is supported in
+many popular web services. Client-side, [most major
+browsers](https://caniuse.com/u2f) support it too. There’s also some non-web
+software that supports U2F, like OpenSSH.
+
+## How does U2F work?
+
+U2F involves 3 parties: the U2F device itself, a client (e.g. web browser) and
+a server (aka “relying party”). The user controls the U2F device and the
+client. The server wants to authenticate this user.
+
+<BlogImage src="./assets/u2f-authentication-flow.png" />
+
+U2F is a classic challenge-response protocol. The U2F device holds an
+asymmetric key pair and signs a “challenge” (random byte blob) sent by the
+server during authentication. Before actually signing, the U2F device blinks
+and waits for the user to tap it. This proves that the user is present and is
+actively authenticating. Yubico has [a great
+explanation](https://developers.yubico.com/U2F/Protocol_details/Overview.html)
+of this protocol, with all its additional protections.
+
+## Acronyms...Acronyms Everywhere!
+
+When you read any resources about U2F, you’ll end up swamped by other related
+acronyms. Here are some, and how they relate to U2F:
+
+**FIDO**: Fast IDentity Online (Alliance) is a group of corporations trying to
+replace passwords. They do this by designing better authentication standards.
+This design-by-committee approach shockingly ended up creating a [soup of
+standards](https://fidoalliance.org/specifications/download/) and acronyms. In
+their 8 years of existence, they managed to create the first generation of
+standards (UAF and U2F) and replace it with the second generation (FIDO 2,
+WebAuthn and CTAP 2). Snarky remarks aside, they are doing valuable
+standardization work with rapid real-world adoption.
+
+**UAF**: Universal Authentication Framework is essentially U2F with extra bells
+and whistles. I honestly don’t know why it exists or whether anyone uses it.
+Since it’s not compatible with U2F and since U2F is simpler, everyone just implements
+U2F.
+
+**FIDO 2**: FIDO folks learned some lessons from U2F and UAF and, unhappy with
+2 incompatible standards, [created a 3rd incompatible
+standard](https://xkcd.com/927/). FIDO 2 is WebAuthn plus CTAP 2.
+
+**WebAuthn**: Part of U2F was the JS API to be implemented by browsers. For
+FIDO 2, the Alliance decided to pull out the JS API into a separate standard so
+that webapp devs had fewer specs to read. They also realized that acronyms are
+not very marketable to non-tech people, and so WebAuthn was born.
+
+**CTAP**: Client to Authenticator Protocol is the other half of the FIDO 2
+standard. It describes how browsers are supposed to talk to actual FIDO 2
+devices when implementing their JS APIs. Strangely, CTAP covers both U2F and
+WebAuthn-compatible devices. CTAP1 is for U2F, CTAP2 is for WebAuthn. Why did
+they even include U2F here? Probably to nudge hardware vendors to implement
+both for transition, or because it was a different committee from WebAuthn.
+
+You’ll notice many mentions of web browsers above. Indeed, all FIDO standards
+are web-centric and aren’t designed with any other client software in mind. But
+this doesn’t stop non-browser software authors from using the standard, usually
+with some kludges.
+
+## Can U2F Store My private Keys?
+
+Since the U2F device creates and stores asymmetric key pairs, and is able to
+sign arbitrary “challenges”, can I use it as a general-purpose hardware key
+store?
+
+Mostly, no. The U2F device doesn’t just sign any data you give it. It adds more
+information to it before signing, like the app ID (e.g. a website URL to
+prevent phishing) and a monotonic counter (to prevent replay attacks). With
+this unwelcome data added to the challenge, you can’t perform a TLS handshake
+or sign an X.509 certificate. Also, browsers don’t expose the raw U2F device
+messages; they are abstracted via a JS API which limits your options.
+
+Curiously, OpenSSH added [special handling for U2F
+signatures](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.u2f)
+to the SSH protocol to allow using U2F devices for SSH private keys.
+Unfortunately, we don’t have the freedom to expand other standard protocols the
+same way.
+
+## What Else Is Out There?
+
+There are many other hardware cryptography device types and protocols out
+there:
+
+- Trusted Platform Modules (TPMs) - usually a chip soldered onto the
+  motherboard. Used for full disk encryption like Bitlocker or LUKS, and some
+  other cases to verify provenance of a computer.
+- Hardware Security Modules (HSMs) - extremely overpriced devices (hundreds to
+  tens of thousands of dollars) that store very sensitive private keys (like
+  public CA keys). Typically used due to compliance requirements. Form factors
+  vary from USB sticks to rack-mounted servers.
+- Personal Identity Verification (PIV) cards - essentially, cheap and portable
+  HSMs for human identities designed by the US government (and also widely used
+  [in Estonia](https://www.id.ee/en/rubriik/introduction/)). These are
+  typically “smartcards” (looks like a credit card with a chip).
+- Cryptocurrency wallets - usually proprietary devices with custom drivers /
+  client software that’s built for cryptocurrency transactions.
+
+TPMs and HSMs are designed for different usage scenarios than U2F. PIV is
+pretty similar to U2F, but much less constrained in how it’s used. For example,
+PIV can easily be [used for
+SSH](https://developers.yubico.com/PIV/Guides/SSH_with_PIV_and_PKCS11.html)
+without any protocol changes. Crypto wallets don’t seem portable or
+standardized (beyond sometimes implementing FIDO protocols).
+
+## What I Wish Was Out There?
+
+If you step away and squint, all of the above hardware device types are
+essentially the same — they are tamper-resistant hardware key stores. The
+unifying property is that they never let private keys leave the device and
+expose signing and encryption operations to the software.
+
+What I’d really like as a developer (and user) is a simple, cheap, universal
+hardware key store as a USB stick. It needs to store multiple key pairs and
+expose raw signing/encryption operations (ideally **not** via a PKCS#11 module)
+and that’s it.
+
+U2F is close, but doesn’t let you sign arbitrary data. It can’t be used in
+place of regular on-disk key pairs. Generally, FIDO standards push too much
+logic into hardware, when it could be handled in software instead. TPMs are
+soldered onto motherboards so they are not portable. Like U2F, they also don’t
+let you sign arbitrary data. HSMs come close, but they are too expensive
+(hundreds to tens of thousands of dollars) and focused on infrastructure use
+cases. PIV is the closest to what I want. But most PIV products are smartcards
+that require a separate reader dongle. There are some USB devices that support
+PIV (e.g. some YubiKeys and Nitrokeys), but they all require custom drivers
+(PKCS#11 modules) to be installed. There seems to be no standard protocol for
+talking to the device directly, like CTAP in the FIDO world. Also, the UX for
+PKCS#11 and client TLS certificates in browsers is pretty poor.
+
+Using this dream device, you could build the rest of U2F/CTAP/TPM/HSM/PIV
+logic in software without losing much in terms of security.
+
+Do you know of any hardware crypto standards that fit the above criteria? [Let
+me know](mailto:andrew@goteleport.com).
+
+<EmailSubscribeViolet />
+
+## Want to Learn More?
+
+An opinionated list of resources to learn more about hardware MFA devices:
+
+- [Yubico docs](https://developers.yubico.com/) are pretty good, assuming
+  you’re interested in a specific protocol.
+- All the FIDO specs can be found
+  [here](https://fidoalliance.org/specifications/download/) for deep-dives, but
+  start with the “Architectural overviews”
+- Use [caniuse.com](https://caniuse.com/) for checking browser compatibility.
+
+What to avoid:
+
+- PKCS#11 details — this API is widespread, but do yourself a favor and find a
+  wrapper library to use.
+- TPM details — the protocol is very complicated, with lots of jargon and
+  confusing features bolted on for some obscure use cases.
+- UAF — not aware of any real-world usages.
+- Anything from the cryptocurrency world — they tend to build proprietary
+  platforms that only inter-operate with cryptocurrencies.
+
+And if you’d like to try the U2F support in Teleport, read our [user
+guide](https://goteleport.com/docs/access-controls/guides/u2f/).

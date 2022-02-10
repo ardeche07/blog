@@ -1,0 +1,339 @@
+---
+title: Cross-Origin Web Sessions
+articleTitle: Secure Session Transfer Between Web Apps on Different Domains
+description: Russell examines the available mechanisms for securely transferring user sessions across different web applications running at different domains.
+date: "2021-05-04"
+author: Russell Jones
+logo:
+  image: ./assets/csrf.png
+  alt: XSS Attacks Introduction
+tags:
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## The need for cross-origin web sessions
+
+Writing a web application that supports securely logging into a website and
+managing your credentials is a surprisingly difficult task. You have to develop
+a way to manage sessions, understand how browsers store state (cookies), learn
+a cryptographically safe password storing technique (like bcrypt), all the
+while making sure you mitigate common web security vulnerabilities like
+[XSS](https://goteleport.com/blog/xss-attacks/) and
+[CSRF](https://goteleport.com/blog/csrf-attacks/).
+
+Even after you've implemented all of the above, you'll still only be logged
+into a single application at a single domain, like `example.org`.
+
+What if you are running multiple applications under different domains and you
+want to transfer your session state to another domain, like `example.com` or
+`acme.com`, how do you implement it in a simple and secure way?
+
+You need to implement a secure way to implement cross-origin session sharing.
+
+## Background
+
+Before getting into too many details, some background on how the web works.
+
+When you log into a website, say `example.org`, you typically send a HTTP POST
+request with your username and password to the website. The website will take
+your password and pass it through a [Key Derivation Function (KDF)](https://en.wikipedia.org/wiki/Bcrypt) like bcrypt and (constant time)
+compares it against the one you used during registration. The server will
+generate a large opaque token, store it in a database, then transfer it to the
+browser to store as state for `example.org` in the form of a cookie.
+
+This opaque bearer token is sent to the browser in a `Set-Cookie` header. The
+`Set-Cookie` header is limited however. You can't simply send it as a response
+to any request. For example, you can't have `example.org` reply with a 302
+redirect to `acme.com` with a `Set-Cookie` header to pass your logged in state
+from `example.org` to `acme.com`.
+
+You could set a cookie on `.example.org` (note the extra dot) that would allow
+subdomains to access it, but this has its own issues: you could inadvertently
+leak your session cookies to unintended subdomain and it still does not solve
+the problem of transferring sessions between entirely different domains.
+
+## Query Parameters
+
+Using the query parameters approach is a simple and effective way to transfer
+credentials from one domain to another. The server generates a large random
+token and uses query parameters to pass this token from one domain to another.
+Because this token is large enough to be unguessable, the receiving server will
+consider any request with a valid token as valid. For example, you might start
+at `example.org` and be redirected to `example.com/?token=CCFB3DFB`. Since
+both are part of the same parent application, example.com can check that
+`CCFB3DFB` is a valid token and exchange it for a valid session.
+
+<BlogImage
+  src="/assets/token-passing-1.png"
+  width="100%"
+  alt="Example of query-parameter-based approach."
+/>
+
+_Figure 1: Example of query-parameter-based approach._
+
+This approach is technically sound but has a major downside: [cross-domain HTTP Referer leakage](https://developer.mozilla.org/en-US/docs/Web/Security/Referer_header:_privacy_and_security_concerns).
+More generally, even if all involved domains were fully trusted, the problem
+may still arise in the form of a log leak.
+
+When `example.org` issues the 302 redirect, the browser will issue a HTTP GET
+request to example.com with the token in the request line. Putting sensitive
+data in the request line, be it in the path or a query parameter, has a high
+chance of ending up being logged somewhere before it hits the target server.
+
+While the example given below in Figure (2) looks like process logs on disk,
+logs are also frequently ingested into systems like Elasticsearch that allow
+that data to be viewed by a much larger number of users.
+
+This substantially increases the chances of a security breach. For example, you
+may have given users that don't ordinarily have access to sensitive data access
+to session cookies or maybe even an attacker of the internal application is not
+sufficiently locked down because it's not part of the core product and "just
+logs."
+
+```
+10.10.10.1 - 200 GET /index.html
+10.10.10.1 - 200 GET /image.png
+10.10.10.1 - 200 GET /login?token=CCFB3DFB
+```
+
+_Figure 2: Example proxy logs._
+
+## Fragments
+
+To mitigate this issue, we would have to find a technique that doesn't send
+data to servers and lets us pass data from one origin to another. The first
+requirement rules out the query parameter approach we outlined above and the
+second requirement rules out
+[cookies](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/cookies)
+and
+[localStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage).
+
+When we reached out about this problem to security researchers at
+[Doyensec](https://www.doyensec.com/), they recommended using
+[fragments](https://developer.mozilla.org/en-US/docs/Web/API/URL/hash). While
+fragments were designed to link to a specific location within a document, the
+key for us was that they were not sent by browsers to servers and can be passed
+(and read by clients) from one origin to another.
+
+For example, consider this flow:
+
+1. Suppose you start at `example.org/login/example.com` where the application
+   has already obtained a token `123` to be used to create a session at
+   `example.com`.
+2. Your browser will then be redirected to example.com, e.g. by a JavaScript
+   instruction `window.location = example.com/auth#token=123`.
+3. At `example.com/auth` your browser will receive a small JavaScript
+   application as in Figure (3) which reads in the token fragment. 4. Finally
+   the application performs a HTTP POST to `example.com`. Since you are now
+   within the same domain, `Set-Cookie` will be able to set cookies. A session
+   has been successfully transferred from `example.org` to `example.com`.
+
+```
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Redirection Service</title>
+    <script nonce="958D36AE3590EEFE399238493A5D39A5">
+      (function() {
+        var hashParts = window.location.hash.split('=');
+        if (hashParts.length !== 2 || hashParts[0] !== '#token') {
+          return;
+        }
+        const data = {
+          token: hashParts[1],
+        };
+        fetch('/auth', {
+          method: 'POST',
+          mode: 'same-origin',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify(data),
+        }).then(response => {
+          if (response.ok) {
+            // Redirect to the root and remove current URL from
+            // history (back button).
+            window.location.replace('/');
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
+```
+
+_Figure 3: JavaScript application used to pass auth._
+
+This appears to solve all of our problems, we were able to pass data
+cross-origin without sending anything server-side. However, one problem still
+remained: login CSRF.
+
+### Mitigating Login CSRF
+
+Those that have read our previous post on
+[CSRF](https://goteleport.com/blog/csrf-attacks/) might already see the
+problem. Imagine a situation where the attacker is a malicious insider. The
+attacker can login to an application they legitimately have access to and
+extract a valid session cookie (it's stored client-side after all). If the
+attacker can convince the victim to click on a malicious link, they can log you
+into their own account. This class of attack is known as “login CSRF” or
+“forced login”.
+
+In fact, all the attacker has to do is redirect the user to the redirector
+application in Figure (3) by having the victim click on a link to
+`example.com/auth#token=123`, where `123` is the value associated with the
+attacker's session, and our application would do the rest for them. The victim
+would get silently logged in to the attacker's account, enabling the attacker
+to monitor the victim's activity, steal any confidential information entered
+and otherwise interfere with the victim's actions.
+
+The crux of the problem is that as long as `example.com` is limited to sitting
+passively on the receiving end, it will never be able to distinguish between a
+fragment that is submitted as part of a full exchange between `example.org`
+and `example.com`, and a fragment that has been injected by directly triggering
+a later step of the authentication exchange.
+
+We will therefore introduce another parameter — let's call it `state`. It is a
+short-lived and non-predictable value generated by `example.com` for each
+exchange with `example.org`. The fragment sent to `example.com` during the
+exchange will have to be accompanied by the expected `state` in order for the
+fragment to be accepted and transformed into a session. Indeed, the parameter's
+name is a reference to [OAuth state parameters](https://auth0.com/docs/protocols/state-parameters)
+which involve a rather similar technique.
+
+Our example flow from the previous section then gets a little more complicated:
+
+1. Once again, you would start at `example.org/login/example.com` where the
+   application has already obtained a token `123` to be used to create a
+   session at `example.com`.
+2. Because you don't know the state value yet, the fragment itself isn't sent
+   either, so your browser will be redirected to a special URL
+   `example.com/auth-init`, intended to give example.com a little nudge
+   initiating an authentication exchange.
+3. At example.com the server-side handler of the `/auth-init` endpoint will
+   generate new state value (e.g., xyz), store it in your browser as a
+   `example.com`-specific cookie (with a short time-to-live, e.g. one minute;
+   it also has to be set with `SameSite=None`).
+4. Afterwards the state value can be passed back to `example.org` by
+   redirecting to `example.org/login/example.com?state=xyz`
+5. You're now basically back at Step #1 but with a valid state value in hand!
+   Hence unlike before, it is now possible to provide `example.com/auth` with
+   all the necessary information and redirect to
+   `example.com/auth?state=xyz#token=123`.
+6. Now `example.com` detects both of the needed parameters and sends a
+   JavaScript application to your browser (see Figure 5). The handler of the
+   HTTP POST endpoint compares the supplied `state` with the one stored in the
+   short-lived cookie. If the two values match, the `token` fragment can be
+   finally accepted and transformed into a session at `example.com`. A session
+   has been successfully transferred from `example.org` to `example.com`.
+
+<BlogImage
+  src="/assets/token-passing-2.png"
+  width="100%"
+  alt="Diagrammatic depiction of the login CSRF resistant flow"
+/>
+
+_Figure 4: Diagrammatic depiction of the login CSRF resistant flow._
+
+The reason that this flow prevents login CSRF attempts is that it helps the
+target application `example.com` make sure the session comes from the user
+logged in at `example.org` right then and there. Without the knowledge of the
+short-lived `state` value saved in the victim's browser, the attacker can do
+nothing but make the victim go through all the motions of the authentication
+exchange, which is in itself harmless.
+
+A more attentive reader might ask: Why is it suddenly OK to pass `state` as a
+regular `GET` query parameter whereas above, while discussing the query
+implementation, we argued it could serve as a possible attack surface? The most
+important factor is that, unlike the tokens used before, the `state` values are
+valid just for a brief amount of time. That said, the design can be easily
+adapted to embed the `state` value in the fragment as well.
+
+Note that the above solution is effective only as long as the attacker has no
+other means of setting a cookie at `example.com`. If, for example, there was
+another cookie injection vulnerability or a malicious subdomain owner was able
+to manipulate cookies of the main domain, the possibility of login CSRF
+wouldn't be entirely eliminated.
+
+### Cross-Origin Resource Sharing (CORS)
+
+A more direct solution to the problem of transferring sessions across different
+domains could be built using the client-side mechanism of [Cross-Origin
+Resource Sharing](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing).
+Its purpose is to guide browsers when accessing or modifying cross-origin
+resources. By default, such actions are blocked, but appropriate HTTP headers
+sent by (often cooperating) web servers can convince the browser to perform
+them in a safe and standardized fashion. Even though this technology is
+supported by all mainstream browsers, our use case of setting [third party
+cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#Third-party_cookies)
+can still be rejected by regular policies which is why we opted in for the more
+reliable (albeit less elegant) solution described above.
+
+The core idea is to combine the two steps of redirecting to `example.com/auth`
+with the tokens followed by the execution of the self-POST request (recall
+Figure 4) into a single fetch call made directly from
+`example.org/login/example.com` (see Figure 5).
+
+```
+        fetch('https://example.com.com/auth', {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'include',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+          },
+          body: JSON.stringify({token: 123}),
+        }).then(response => {
+          if (response.ok) {
+            // Redirect to the root and remove current URL from
+            // history (back button).
+            window.location.replace('/');
+          }
+        })
+```
+
+Figure 5: Fetch call from `example.org/login/example.com`.
+
+This would send a cross-origin request capable of sending and setting cookies
+associated with `example.com`. To indicate to the browser that requests of this
+form are allowed, `example.com/auth` has to respond with the following HTTP
+headers, not only for POST but also for OPTIONS because of implicit pre-flights
+sent by the browser:
+
+```
+Access-Control-Allow-Origin: https://example.org
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Content-Type
+Access-Control-Allow-Methods: POST
+```
+
+With this approach, much of the auxiliary machinery we had to use above (the
+/auth-init endpoint, the state value itself, ...) is not needed anymore. Login
+CSRF is prevented because only requests originating from `example.org` are
+permitted to set cookies at `example.com`.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+If you've read this far, you'll recognize this is the exact same problem we ran
+into with [Teleport Application Access](https://goteleport.com/application-access/)
+and was one reason why we had to issue the Teleport 5.2.1 security release.
+
+Teleport, for those who've never heard of it, is an [open source](https://github.com/gravitational/teleport)
+project which allows users to securely access several web apps running behind
+NAT with a single login, without having to expose them to public network, thus
+eliminating the headache of managing DNS records, public IPs and x509
+certificates.
+
+Managing credentials on the web is difficult; managing credentials cross-origin
+is even more difficult. Hopefully, this post has shed some light on how you can
+safely add this same functionality to your own application.

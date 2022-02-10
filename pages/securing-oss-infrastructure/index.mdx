@@ -1,0 +1,66 @@
+---
+title: Securing Open Source Infrastructure
+articleTitle: Securing Open Source Infrastructure
+description: Teleport is offering a free Teleport Pro account for Open Source Projects. Helping teams and projects secure and collaborate at scale.
+date: "2021-05-25"
+author: Ben Arent
+logo:
+  image: ./assets/securing_open_source_infrastructure.png
+  alt: open source
+tags:
+  - announcements
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+import Video from "components/Video";
+
+Open Source software provides the community source code that anyone can inspect, modify, and enhance. OSS is so ubiquitous that it’s even on [other planets](https://github.blog/changelog/2021-04-19-new-badge-for-developers-who-contributed-to-the-mars-2020-helicopter-mission/). This post is for the people who run these projects.
+
+When you think of OSS projects, you might think the requirements are simple. All you need are contributors and a git repository. OSS Projects are seeing increased attacks, from supply chain attacks to account takeovers. Teleport can be used to secure hosted CI/CD systems, protect monitoring dashboards and secure databases, servers and Kubernetes clusters. As contributors come and go, you no longer have to worry about cleaning up access. Teleport integrates with GitHub and GitLab teams to quickly provide access. Once new contributors are added, you can rest assured that all actions are being audited and can be played back later to learn, improve or maybe automate that task.
+
+Another advantage of using Teleport is its ability to share sessions for learning and debugging. David McKay uses Teleport weekly to fix "broken" Kubernetes clusters:
+
+<Video src="./assets/oss-rawcode.mp4" />
+(https://youtu.be/K72fOdbxXu8?t=235)
+
+As an open-core company, we understand the importance of the open source community. To support the community, we are offering Teleport Pro for free.
+
+### Free Teleport Pro Account
+
+Teleport Pro is our cloud-hosted version of Teleport. This means you don’t need to worry about configuring and updating Teleport. Our team will do all this for you. Teams can focus on writing their projects and spend less time worrying about infrastructure access.
+
+### Free Security Audit
+
+When we first reached out to projects, the concept of providing a secure way to access infrastructure was new to maintainers. After having a few calls, we quickly discovered a collection of resources that could be protected by Teleport. As part of setup, we’ll provide a free security office hours to review your current setup.
+
+### Security Badge
+
+We’ve created a badge that you can embed in your repository to let people know that your account is secured.
+
+<BlogImage
+  src="https://img.shields.io/badge/Protected%20by-Teleport%20Pro-blueviolet"
+  alt="From Zero to Zero Trust"
+/>
+
+### Featured OSS Project
+
+We’ve worked closely with the Tinkerbell project, a CNCF project to provision and manage bare-metal servers.
+
+<Quote>
+  We’re at the intersection of Bare Metal and Kubernetes. Teleport lets us
+  quickly provide access to build, demo and testing infrastructure. Onboarding
+  and inviting new collaborators is a breeze and using Teleport Pro means we’ve
+  one less thing to run ourselves. [From David
+  McKay](https://twitter.com/rawkode/)
+</Quote>
+
+<EmailSubscribeViolet />
+
+## How Do I Sign Up?
+
+Please submit via [this form](https://www.surveymonkey.com/r/PD95THY) to be considered for a free Teleport Pro account. To be considered Open Source, please provide which Open Source licenses your project is released under.
+
+If you have any questions, please email [ben@goteleport.com](mailto:ben@goteleport.com).

@@ -1,0 +1,703 @@
+---
+title: Four key areas to visit while protecting your database.
+articleTitle: Securing Access to Production MySQL Databases.
+description: MySQL brands itself as the world's most popular open source database. It has a corpus of tools and tutorials to automate MySQL, SQL injection and a notorious list of past vulnerabilities; as popular as MySQL database is among developers and SQL enthusiasts, it is equally popular among hackers.
+date: "2021-06-30"
+author: Sakshyam Shah
+tags:
+  - programming
+  - cybersecurity
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+MySQL brands itself as the world's most popular open source database. As popular as MySQL database is among developers and SQL enthusiasts,
+it is equally popular amongst hackers. Misconfigured server access, overprivileged roles, and weak authentication schemes are the most
+common security issues in MySQL database. While access control features provided by MySQL are adequate enough at the SQL level, it is
+error-prone to manage access at the operational level. This post aims to give you a brief overview of securing access to production MySQL
+databases.
+
+We have categorized this post under topics as similar to how a malicious user can compromise the production database:
+
+- Exploiting server security weakness (vulnerability in OS, vulnerable server components, insecure installation, weak connection protocol).
+  We have covered this topic under [Securing MySQL installation and runtime.](#secure-mysql) - Exploiting weak authentication and network
+  connection schemes. We have covered this topic under [Securing local and remote database access.](#secure-remote-db) - Misusing and
+  escalating poorly managed database privileges (over-privileged roles and permissions). We have covered this topic under [Securing privileged
+  access.](#privileged-access) - SQL injection. We have covered this topic under [Securing against SQL injection.](#sql-injection)
+
+<h2 id="secure-mysql">1. Securing MySQL Installation and Runtime</h2>
+
+Securing MySQL databases at the operating system and network level is an elemental control to secure access to the production database. If
+you self-host your database, ensuring that fundamental server security checklists are followed and applied should be your first security
+action.
+
+## 1.1 Applying Controls to the Database Server Host
+
+### OS Security
+
+It’s always good to run the database server on an independent server host (without any other co-hosted application or service). It prevents
+threats to pivot from other compromised applications or services. Periodic security scanning and timely security update patching are also
+equally important. Operating system hardening is a whole topic that mandates discussion of its own. The following links are a good place to
+start and learn more about server hardening:
+
+- [NIST Guide to General Server Hardening](https://csrc.nist.gov/publications/detail/sp/800-123/final)
+- [CIS Security Configuration Guides/Benchmarks](https://www.cisecurity.org/cis-benchmarks/)
+
+### Network Security
+
+**Restrict direct access to port 3306**
+MySQL uses port 3306 by default, and depending on Bind Address configuration, MySQL might listen to this port on the local loopback
+interface or public-facing external interface. Unless it is specifically required, there is no need to open port 3306 to the external
+interface. Since ssh service will be already opened for administrative purposes, allowing database access with ssh reverse tunnel is a
+secure way to connect remote clients.
+
+```bash
+ssh -N -L 3306:127.0.0.1:3306 user@<server-ip-or-hostname>
+```
+
+### Restrict Specific Host/IP for Database Access
+
+**Using firewalls**
+If you wish to allow remote access to port 3306, make sure to restrict source IP (IP or host from which clients connect) as much as
+possible. Below is an example of allowing TCP network access to port 3306 only if the connection originates from source CLIENT_IP.
+
+```bash
+# using iptables
+$ iptables -A INPUT -i eth0 -s CLIENT_IP -p tcp --destination-port 3306 -j ACCEPT
+
+# using ufw
+$ ufw allow from CLIENT_IP to any port 3306
+```
+
+**Using host control feature in database**
+You can also restrict remote connection sources by supplying specific hosts while creating database users.
+
+```sql
+CREATE USER 'developer'@'192.168.0.100/255.255.255.0';
+```
+
+As of MySQL 8.0.23, a host value specified as an IPv4 address can be written using CIDR notation, such as `198.51.100.44/24`.
+
+### 1.2 Quick Post-Installation Security Win
+
+Once you’ve prepared and installed your server for running the production MySQL database, ensuring the security of the MySQL instance should
+be your next priority. Running through a quick command below will set a root password\*, remove anonymous users, disallow root login
+remotely, remove test database and access to it, and reload privilege tables:
+
+```
+$ sudo mysql_secure_installatiion
+```
+
+`*`If the root database account was previously configured to authenticate with auth_socket plugin, you will also need to change the authentication method for the root user as:
+
+```sql
+mysql > ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password;
+```
+
+### 1.3 Running MySQL as a Non-Root User
+
+Depending on your installation method, a secure installation method should create a new user (MySQL) and start a MySQL server with that
+user. As a reference, the following snippet is taken directly from the mysql-server installation package from the apt repository:
+
+```bash
+# creating mysql group if he isn'\t already there
+
+if ! getent group mysql >/dev/null; then
+ # Adding system group: mysql.
+ addgroup --system mysql >/dev/null
+fi
+
+# creating mysql user if he isn'\t already there
+if ! getent passwd mysql >/dev/null; then
+ # Adding system user: mysql.
+ adduser \
+   --system \
+         --disabled-login \
+   --ingroup mysql \
+   --no-create-home \
+   --home /nonexistent \
+   --gecos "MySQL Server" \
+   --shell /bin/false \
+   mysql  >/dev/null
+fi
+
+# Start the server with networking disabled and socket in a temporary location
+ mysqld --user=mysql --daemonize --socket="$tmpdir/mysqld.sock"    --pid-file="$tmpdir/mysqld.pid" --skip-networking
+```
+
+You can also specify the user while starting the server as `--user=mysql` or in my.cnf file as:
+
+```
+[mysqld]
+user=mysql
+```
+
+**Tip:** `'root'@'localhost` Used for administrative purposes.
+
+This account has all privileges, is a system account, and can perform any
+operation. This name should be changed to avoid exposing a highly privileged account with a well-known name.
+
+### 1.4 Encrypt Binary Log Files and Relay Log Files
+
+Log files can contain potentially sensitive data, such as audit log files produced by the audit log plugin, SQL statements, etc., and MySQL
+offers `--binlog-encryption[={OFF|ON}]` configuration to encrypt the log files, including binary log files and relay log files.
+
+Also, though MySQL does an excellent job of avoiding logging of passwords supplied in SQL statements by default, make sure you are not
+running the server by supplying `--log-raw` option as it will suppress the password redacting feature and may expose passwords in the log.
+
+### 1.5 Do Not Permit the Use of Symlinks to Tables
+
+Symbolic links (symlink) link MySQL data directory or MyISAM index file with server host directory. It allows anyone with write access to
+the server's data directory to delete any file in the system. Although it is being deprecated in the current version and disabled by
+default, you should check if it has been manually enabled and disable it as
+
+```
+--symbolic-links[={OFF|ON}]
+```
+
+### 1.6 Limit Simultaneous Connection for Database Accounts
+
+Limiting how many simultaneous connections an individual account can ensure security in case such that, let's assume, if the attacker gains
+access to credentials related to an already established active connection by a client application, MySQL will prevent the attacker from
+requesting a new connection. Unless exclusively required, limit max connection to 1 as `--max-user-connections=1`.
+
+<h2 id="secure-remote-db">2. Securing Local and Remote Database Access.</h2>
+
+Foremost, in your terminal connected to MySQL server host, if you enter command `$ mysql -u root` and can connect to the server without any
+password, you failed at MySQL security 101. It means the root database account does not require a password and you should Immediately
+
+<ins>ALTER</ins> root account to require a password.
+
+```sql
+ mysql> ALTER USER 'root'@'localhost' IDENTIFIED BY 'root-password';
+```
+
+Both local and remote connections must be authenticated and encrypted. MySQL supports numerous authentication methods and the latest TLS
+protocols to secure local and remote database connections. But due to many possible configuration combinations and backward compatibility
+requirements, there's a high chance of enabling insecure authentication and encryption methods. So, it's the responsibility of
+administrators to configure and only allow the safest methods possible. Below we present a brief overview of authentication and encryption
+methods supported by MySQL.
+
+## 2.1 Authentication
+
+MySQL supports pluggable authentication architecture. Authentication methods such as <ins>caching_sha2_password</ins>, <ins>mysql_native_password</ins> are available by default, and methods such as <ins>auth_socket</ins>, <ins>authentication_ldap_simple</ins> must be manually enabled by the administrator.
+
+### 2.1.1 Choosing and Enforcing a Secure Authentication Method
+
+As of MySQL server version 8.0, the default authentication method is password authentication based on <ins>caching_sha2_password</ins>
+plugin. As per MySQL docs, "<ins>caching_sha2_password</ins> implements SHA-256 authentication (like <ins>sha256_password</ins>), but uses
+caching on the server-side for better performance and has additional features for wider applicability.", which is both the most secure and
+faster authentication method offered by MySQL. You can assign this authentication method as:
+
+```sql
+mysql> CREATE USER ‘developer’@'localhost' IDENTIFIED WITH caching_sha2_password BY ‘securepassword’;
+```
+
+Few other things you should consider are:
+
+- Use No-Login Pluggable Authentication for accounts that execute stored programs and views with elevated privileges.
+  You should always try and implement a centralized IAM server to handle authentication. You can use plugins that allow for external
+  authentication such as <ins>authentication_ldap_simple</ins> (based on LDAP), authentication_pam ( based on Linux/Unix PAM module), or <ins>authentication_windows</ins> (based on Windows Kerberos/NTLM exchanged login
+  ID) to centralize authentication in your network.
+
+- Decide if you need to allow auth_socket. With Socket Peer-Credential Pluggable Authentication(<ins>auth_socket</ins>) enabled, users(as a
+  Linux root user or sudo user) directly access the database without a database password. User accounts configured to be authenticated by the <ins>auth_socket</ins> plugin are restricted from connecting remotely; they can
+  only connect from the local host through the Unix socket file. Given specific requirements,
+  you can also implement your [own authentication plugin](https://dev.mysql.com/doc/refman/8.0/en/pluggable-authentication.html#pluggable-authentication-connector-writing)
+
+- In some situations, developers or executives in your organization might ask to allow access from their favorite “MySQL client,” which
+  might not support a secure authentication scheme. Make sure to check if the SQL client supports the latest and secure authentication
+  schemes, including the latest TLS version and cipher suites, before granting access.
+
+### 2.1.2 Password Management
+
+MySQL supports many password management features by default, and you should leverage them to enable a more secure authentication process.
+Below are few tips on when and how to use password management features:
+
+1. Setting global password expiry policy.
+
+```bash
+[mysqld]
+default_password_lifetime=180
+```
+
+2. Expire password manually.
+
+Expiring a password manually is a handy feature if you need to lock an account immediately or force a user password change in the next login:
+
+```sql
+mysql> ALTER USER 'developer'@'localhost' PASSWORD EXPIRE;
+```
+
+3. Adhoc password expiry enforcement.
+
+If you have a global password expiry policy of 180 days but only want to allow temporary access to, let's assume to a 3rd party vendor, you
+can specify exclusive password expiry for this specific account while creating or altering user account as:
+
+```sql
+mysql> CREATE USER 'developer'@'localhost' PASSWORD EXPIRE INTERVAL 5 DAY;
+mysql> ALTER USER 'developer'@'localhost' PASSWORD EXPIRE INTERVAL 5 DAY;
+```
+
+4. Prohibit password reuse.
+   Example: To prohibit reusing any of the last six passwords or passwords newer than 365 days, insert these lines in the server `my.cnf` file:
+
+```bash
+[mysqld]
+password_history=6
+password_reuse_interval=365
+```
+
+5. Require current password for a new password update.
+   To establish a global policy so that the password updates process must supply the current password(this is important to prevent a
+   malicious user from updating password from the currently active session), start the server with these lines in a server my.cnf file:
+
+```bash
+[mysqld]
+password_require_current=ON
+```
+
+6. Locking account after failed login attempts.
+   You can lock failed login attempts due to an incorrect password as:
+
+```sql
+# Lock account for 3 days on 3 failed attempts.
+mysql> CREATE USER 'developer'@'localhost' IDENTIFIED BY 'password'
+  FAILED_LOGIN_ATTEMPTS 3 PASSWORD_LOCK_TIME 3;
+
+# Lock account (UNBOUNDED time, until unlocked by another medium) after 3 failed attempts.
+mysql> ALTER USER 'developer'@'localhost'
+  FAILED_LOGIN_ATTEMPTS 3 PASSWORD_LOCK_TIME UNBOUNDED;
+```
+
+Note: Server restart, execution of `FLUSH PRIVILEGE` command, or `ALTER` command that updates password policy may automatically unlock the
+locked account.
+
+## 2.2 Only Accept Encrypted Connections
+
+MySQL supports client-server communication encryption using the TLS (Transport Layer Security) protocol and client-server identity
+verification using the X.509 standard.
+
+### 2.2.1 Configuring Encrypted Connections in MySQL Server
+
+MySQL performs encryption on a per-connection basis, and the use of encryption for a given user can be optional or mandatory. By default,
+MySQL programs attempt to connect using encryption if the server supports encrypted connections, falling back to an unencrypted connection
+if an encrypted connection cannot be established. Thus, setting mandatory TLS ensures that no misconfigurations would allow unwanted
+rollback to establish unencrypted connections. Enabling mandatory encryption can be done with configuration value in `my.cnf` file as:
+
+```
+[mysqld]
+require_secure_transport=ON
+```
+
+Encrypted connections are validated with X.509 certificates. As such, you will need certificate files and keys on the server:
+
+- `ssl_ca`: Primary certificate representing Certificate Authority(CA). MySQL server will use this certificate to verify client certificates.
+- `ssl_cert`: Server public certificate signed by CA.
+- `ssl_key`: Server private key signed by CA.
+
+Example mysqld:
+
+```
+[mysqld]
+ssl_ca=ca.pem
+ssl_cert=server-cert.pem
+ssl_key=server-key.pem
+
+# mandatory encryption requirement for client connection
+require_secure_transport=ON
+```
+
+A good thing about TLS in MySQL is that MySQL servers compiled using OpenSSL can generate the missing certificates and key files
+automatically at startup. So MySQL can auto-generate self-signed certificates and run encrypted connections for you.
+
+TLS configurations can also be configured during server runtime by executing `ALTER INSTANCE LOAD` TLS command. You will need to supply the
+required TLS variables before executing the command.
+
+You can also enable encryption for the X protocol plugin. By default, the X protocol plugin will use configuration values supplied for the
+server TLS connection. You may optionally configure it to use separate encryption by supplying variables as:
+
+```
+# variables for server TLS
+[mysqld]
+ssl_ca=ca1.pem
+ssl_cert=server-cert1.pem
+ssl_key=server-key1.pem
+
+# variables for X protocol plugin connection (optional)
+mysqlx_ssl_ca=ca2.pem
+mysqlx_ssl_cert=server-cert2.pem
+mysqlx_ssl_key=server-key2.pem
+```
+
+Optionally, you can also configure the user account to require an encrypted connection by supplying `REQUIRE` clause in the `CREATE USER`
+statement such as, for example, to require an encrypted connection and the use of a valid X.509 certificate, use REQUIRE X509:
+
+```sql
+CREATE USER 'username'@'localhost' REQUIRE X509;
+```
+
+#### Conditions that Must Be Satisfied for Establishing Encrypted Connection
+
+To use an encrypted connection,
+
+- MYSQL server must support the TLS version and cipher suite
+- MySQL server host must support the TLS version and cipher suite
+- MySQL client must support the TLS version and cipher suite
+
+A quick way to check the TLS protocol version and cipher suite used in an active session is to invoke the following command:
+
+```sql
+mysql> SELECT * FROM performance_schema.session_status
+       WHERE VARIABLE_NAME IN ('Ssl_version','Ssl_cipher');
++---------------+---------------------------+
+| VARIABLE_NAME | VARIABLE_VALUE            |
++---------------+---------------------------+
+| Ssl_cipher    | TLS_AES_128_GCM_SHA256    |
+| Ssl_version   | TLSv1.3                   |
++---------------+---------------------------+
+```
+
+You can check which TLS version your MySQL server supports by using the following command:
+
+```sql
+mysql> SHOW GLOBAL VARIABLES LIKE 'tls_version';
++---------------+-------------------------------+
+| Variable_name | Value                         |
++---------------+-------------------------------+
+| tls_version   | TLSv1,TLSv1.1,TLSv1.2,TLSv1.3 |
++---------------+-------------------------------+
+1 row in set (0.01 sec)
+```
+
+Connections using TLSv1.3 protocols support the following cipher suites:
+
+```
+TLS_AES_128_GCM_SHA256
+TLS_AES_256_GCM_SHA384
+TLS_CHACHA20_POLY1305_SHA256
+TLS_AES_128_CCM_SHA256
+TLS_AES_128_CCM_8_SHA256
+```
+
+And if you explicitly want to allow only TLSv1.3 protocol with TLS_AES_256_GCM_SHA384 ciphersuite in MySQL server, you can configure as:
+
+```
+[mysqld]
+tls_version=TLSv1.3
+tls_ciphersuites=TLS_AES_256_GCM_SHA384
+```
+
+You can also set setting system-wide minimum tls in your MySQL server host by configuring `/etc/ssl/openssl.cnf` as:
+
+```
+[system_default_sect]
+MinProtocol = TLSv1.3
+```
+
+Of course, the connecting client, as well as server host, should also support TLSv1.3. However, due to incompatibilities in many MySQL
+client versions, server hosts, and MySQL server versions, you may need to support specific or multiple TLS versions. In addition, different
+connections may use different TLS versions and cipher suites.
+
+### 2.2.2 Configuring Encrypted Connections in MySQL Client
+
+MySQL client encrypted connection configuration is similar to server configuration. It requires a CA cert (Certificate authority used to
+issue server certificate and client certificate) and client certificate-private key pair. You can use `--ssl-mode={option}` with `option` being
+
+- `VERIFY_CA`: Verify Certificate Authority.
+- `VERIFY_IDENTITY`: Verify server hostname.
+
+to enable mandatory encrypted connection with additional verification of certificate authority or hostname.
+
+<h2 id="privileged-access">3. Securing Privileged Access.</h2>
+
+Access control in MySQL is a two-stage process. First, MySQL authenticates user identity (based on the account configured authentication
+method). Second, if the authentication is successful, MySQL then checks if further SQL statements are authorized based on privileges
+(privilege) or roles (collection of privilege) the account is granted.  
+For reference, expressed in boolean terms, the following is the precedence order of privilege verification:
+
+```
+global privileges
+OR database privileges
+OR table privileges
+OR column privileges
+OR routine privileges
+```
+
+Privilege management is a complex topic and is one of the key factors that define the blast radius of a security exploit. Once a malicious
+user is able to exploit a weakness in MySQL server, server configuration, or via SQL injection, the impact depends on how far the attacker
+can move forward with the given privilege. Many times, users are granted full privilege as `mysql> GRANT ALL ON %.* TO 'developer'@'%';`
+which is a very bad practice. Privilege requirements should be calculated pre-hand, and users should be only allowed privileges that are
+conditionally required (least privilege).
+
+Altogether, there are [34 static privileges and 32 dynamic privileges](https://dev.mysql.com/doc/refman/8.0/en/privileges-provided.html)
+that you can GRANT or REVOKE and are available by default in a MySQL database. With a total of 66 privileges, it becomes very tricky and
+error-prone to apply the least privilege in the best possible way.
+
+Below, we explain the concept of account, privilege, and roles as offered in MySQL database along with best practices to consider while
+creating user accounts and granting privileges.
+
+## 3.1 Accounts
+
+An account (user) in MySQL is a defined entity with a username, properties such as authentication methods, privileges, and the client host
+or hosts from which the user can connect to the server. By default, a root account is created for you during the installation process.
+
+### 3.1.1 System and Regular Users
+
+There are two types of accounts, System and Regular accounts. System users have `SYSTEM_USER` privilege and can modify both system and
+regular accounts, while the regular users can only modify their own or other regular accounts (given required privilege is available). Make
+sure you do not grant `SYSTEM_USER` privilege to non-administrative users.
+
+### 3.1.2 Proxy Users
+
+MySQL allows proxy users(external users) to impersonate privileges of the proxied users (actual users on MySQL database). Proxy users are
+similar in concept to AssumeRole in AWS. The primary use case for proxy users is to allow users to authenticate and allow database access
+without creating an account in the database. This may be useful to allow temporary access to external users or in enterprise network
+scenarios where authentication is required to be performed only by the primary central server.
+
+Indeed, proxy users complicate access control trees and increase the attack surface as unprivileged users may unintentionally gain access as
+privileged users. Therefore, unless you are sure of proxy user requirements and its consequences, disable it.
+
+Proxy user setting can be disabled as:
+
+```
+[mysqld]
+check_proxy_users=OFF
+mysql_native_password_proxy_users=OFF
+sha256_password_proxy_users=OFF
+```
+
+### 3.1.3 Account locking.
+
+You can lock and unlock user account as:
+
+```sql
+# Lock account
+mysql> ALTER USER 'developer'@'localhost' ACCOUNT LOCK;
+
+# Unlock account
+mysql> ALTER USER 'developer'@'localhost' ACCOUNT UNLOCK;
+```
+
+### 3.1.4 Account Resource Limits
+
+We showed earlier that `max_user_connections` could globally limit the number of simultaneous connections to the MySQL server. MySQL also
+supports resource limiting at the user (account) level, including how many queries a user can execute, how many times a user can connect to
+MySQL server in an hour, etc. Refer below as an example:
+
+```sql
+mysql> CREATE USER 'developer'@'localhost' IDENTIFIED BY 'dev'
+    ->     WITH MAX_QUERIES_PER_HOUR 20
+    ->          MAX_UPDATES_PER_HOUR 10
+    ->          MAX_CONNECTIONS_PER_HOUR 5
+    ->          MAX_USER_CONNECTIONS 2;
+```
+
+## 3.2 Privileges
+
+The privileges granted to a MySQL account determine which SQL commands and operations an authenticated account can perform. In MySQL,
+privileges can be categorized at two different levels of operation:
+
+- Administrative privileges: Global MySQL privilege that enables users to manage the operation of the MySQL server. - Database privileges:
+  Database privileges grant access to database or database objects such as tables, indexes, views, and stored routines. These privileges can
+  be granted to objects of a given type within a database (for example, all tables in a database) or globally for all objects of a given type
+  in all databases.
+
+Also, privileges in MySQL are static or dynamic in nature. Static privileges (e.g., `SELECT, ALTER, CREATE, SHOW`) are built into the
+server. They are always available to be granted to user accounts and cannot be unregistered. In comparison, dynamic privileges (e.g.,
+`AUDIT_ADMIN, FIREWALL_USER, FLUSH_TABLES`) can be registered and unregistered at runtime. This affects the availability of dynamic
+privilege since unregistered privilege cannot be granted.
+
+Altogether, there are 34 static privileges and 32 dynamic privileges that you can `GRANT` or `REVOKE` and are available by default in a
+MySQL database. With a total of 66 privileges, it becomes tricky to keep track of privileges, so below are some of the riskiest privileges
+that you must be aware of!
+
+You can check user privileges as:
+
+```sql
+mysql> SHOW GRANTS FOR 'root'@'localhost' \G
+*************************** 1. row ***************************
+Grants for root@localhost: GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE, DROP ROLE ON *.* TO `root`@`localhost` WITH GRANT OPTION
+*************************** 2. row ***************************
+Grants for root@localhost: GRANT APPLICATION_PASSWORD_ADMIN,AUDIT_ADMIN,BACKUP_ADMIN,BINLOG_ADMIN,BINLOG_ENCRYPTION_ADMIN,CLONE_ADMIN,CONNECTION_ADMIN,ENCRYPTION_KEY_ADMIN,FLUSH_OPTIMIZER_COSTS,FLUSH_STATUS,FLUSH_TABLES,FLUSH_USER_RESOURCES,GROUP_REPLICATION_ADMIN,INNODB_REDO_LOG_ARCHIVE,INNODB_REDO_LOG_ENABLE,PERSIST_RO_VARIABLES_ADMIN,REPLICATION_APPLIER,REPLICATION_SLAVE_ADMIN,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,ROLE_ADMIN,SERVICE_CONNECTION_ADMIN,SESSION_VARIABLES_ADMIN,SET_USER_ID,SHOW_ROUTINE,SYSTEM_USER,SYSTEM_VARIABLES_ADMIN,TABLE_ENCRYPTION_ADMIN,XA_RECOVER_ADMIN ON *.* TO `root`@`localhost` WITH GRANT OPTION
+*************************** 3. row ***************************
+Grants for root@localhost: GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION
+3 rows in set (0.00 sec)
+```
+
+### 3.2.1 Security-Sensitive Privileges
+
+Among all available privileges, below is a list of the most security-sensitive privileges that MySQL administrators should be aware of.
+
+- FILE
+  File Privilege allows users to load, read, and write any file (accessible by the MySQL server) on the server using `LOAD DATA` and `SELECT ... INTO OUTFILE` statements and the LOAD_FILE() function. This means users can access any world-readable file or sensitive files,
+  including /etc/passwd (if MySQL server is run with root user privilege). If you understand the risk and still want to allow FILE
+  privilege, make sure to use the `--secure-file-priv=dir_name` flag, limiting which directories MySQL server can read from.
+
+- PROCESS
+  PROCESS privilege grants access to information about threads, basically any commands, statements, and operations that another user in the
+  database is currently executing. These data may also include passwords that are currently being set or changed. For reference, below is an
+  output from the processlist command that a user with PROCESS privilege can execute:
+
+```sql
+mysql> SELECT * FROM performance_schema.processlist \G
+*************************** 1. row ***************************
+     ID: 5
+   USER: event_scheduler
+   HOST: localhost
+     DB: NULL
+COMMAND: Daemon
+   TIME: 55
+  STATE: Waiting on empty queue
+   INFO: NULL
+*************************** 2. row ***************************
+     ID: 8
+   USER: root
+   HOST: localhost
+     DB: NULL
+COMMAND: Query
+   TIME: 0
+  STATE: executing
+   INFO: SELECT * FROM performance_schema.processlist
+2 rows in set (0.01 sec)
+```
+
+- SUPER
+  SUPER Privilege is far-reaching, risky, and allows to change server's global configuration runtime by changing values of system variables
+  (`SET GLOBAL, SET PERSIST`). It can be used to terminate client connections, change server operation by changing the value of system
+  variables, and control replication servers. The good news is that SUPER is being deprecated and you should consider migrating users to
+  Dynamic Privileges if you are already using this privilege.
+
+- GRANT_OPTION With `GRANT_OPTION`, a user can grant their own privilege to another user. This can even escalate to two different users
+  combining their privilege to execute more powerful statements and bypass the least privilege assigned by the administrator.
+
+- ALTER
+  With `ALTER`, malicious users can subvert the privilege system itself by renaming tables. How sweet is that?
+
+Along with the above privileges, it is also important to note that privileges granted for MySQL system database are generally
+security-sensitive enough and can perform sensitive actions such as:
+
+- Change user password and access account (including other administrators) by updating mysql.user system table's authentication_string
+  column with the desired hash of the password, and then connect to the MySQL server using that account. - Update privilege by using `INSERT`
+  or `UPDATE` on the MySQL system database
+- Drop the whole database using `DROP` privilege.
+
+### 3.2.2 Privilege Restriction Using Partial Revokes
+
+In certain situations, you may want to allow users with global privilege yet also want to restrict access to a specific schema. For example,
+in situations where you have allowed the administrative privilege to database administrator, but you need to prevent the administrator from
+modifying MySQL system schema or a newly added schema. With `partial_revokes`, you can revoke access to a specific schema even if the user
+has global privileges.
+
+Partial_revokes can be enabled at runtime by executing `SET PERSIST partial_revokes = ON;` in MySQL client terminal. Once enabled,
+partial_revokes cannot be disabled if any account has privilege restrictions (active partial_revokes).
+
+Below, we show an example of granting and revoking schema access when partial_revokes is enabled.
+
+```sql
+mysql> GRANT DELETE ON dev.* TO developer@localhost;
+mysql> REVOKE INSERT ON prod.* FROM developer@localhost;
+```
+
+### 3.3.3 When Do Privilege Changes Take Effect?
+
+When MySQL server is started, it loads the grant table contents into memory, which is then used to verify privileged access during
+subsequent client requests. If you update or modify privileges using account-management statements (e.g., `GRANT`, `REVOKE`), the server
+notices these changes and reloads the grant table immediately. If you update privilege by modifying grant tables manually by using `INSERT`,
+`UPDATE`, or `DELETE` statements (not recommended), MySQL will not notice the update, and privilege changes will not take effect immediately
+until the server is restarted. In such a case, you will need to use `FLUSH PRIVILEGES` command, which will reload grant table contents again
+into runtime memory, and changes will be in effect. Additionally:
+
+- Table and column privileges update will take effect only after the next command request by the user. - Database privileges take effect
+  only the next time the client executes a `mysql> USE {db_name}` statement. - Static global privileges and password changes take effect only
+  in sessions for subsequent client connections. - Changes to dynamic global privileges are applied immediately.
+
+Also, make sure your server is not running with the `--skip-grant-tables` option in the production as it will allow anyone to connect
+without a password and with all privileges.
+
+## 3.3 Roles
+
+Roles in MySQL are a named collection of privileges (group of privileges). Roles make privilege assignments manageable as similar privileges
+can be grouped and created once and assigned to different users. For example, an application's privileges can be grouped under one role,
+which can also be assigned to a developer who wants direct database access for troubleshooting.
+
+You can check what privileges a role is grouped with by invoking SHOW GRANT:
+
+```sql
+mysql> SHOW GRANTS FOR 'developer'@'localhost';
++-------------------------------------------------+
+| Grants for developer@localhost                  |
++-------------------------------------------------+
+| GRANT USAGE ON *.* TO `developer`@`localhost`   |
+| GRANT `dev`@`%` TO `developer`@`localhost`      |
++-------------------------------------------------+
+```
+
+As a reference, the following demonstrates creating a role named “dev” and assigning `SELECT, INSERT, UPDATE, DELETE` privileges database named “testdb” to this role, and assigning role dev to user “developer”:
+
+```sql
+mysql> CREATE ROLE 'dev';
+mysql> GRANT SELECT, INSERT, UPDATE, DELETE ON testdb.* TO 'dev';
+mysql> GRANT 'dev' TO 'developer'@'localhost';
+
+# Roles can also be assigned while creating user
+mysql> CREATE USER 'developer'@'localhost' IDENTIFIED BY 'dev';
+
+# Revoking role from user
+mysql> REVOKE 'dev' FROM 'developer'@'localhost';
+
+# Dropping a role
+mysql> DROP ROLE 'dev';
+```
+
+<h2 id="sql-injection">4. Securing Against SQL Injection.</h2>
+
+SQL injection occurs when application users can artificially insert custom SQL queries which are then concatenated to actual SQL queries,
+which when executed by the database, returns unwanted sensitive data or executes system commands. SQL injection is not specific to the MySQL
+database and is one of the most common application security vulnerabilities. As such, it should be researched in-depth (and outside the
+scope of this post). However, a few ironclad rules include:
+
+- Use of prepared statements (with parameterized queries) - String escaping user supplied input - Handling database error data properly
+
+Additionally, following the least privilege principle to both MySQL daemon runtime and MySQL SQL account privileges are key to minimize the
+blast radius of SQL injection vulnerabilities. Refer to SQLi cheat sheet collection on below URLs to learn more about SQL injection
+techniques:
+
+- https://www.netsparker.com/blog/web-security/sql-injection-cheat-sheet/
+- https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html#mysql-escaping
+
+## 5. Using Teleport to Manage Secure Database Access
+
+In summary, locking down default connection ports, only accepting encrypted connections, using robust authentication methods, granting the
+least privilege, and monitoring database activities are essential to ensure database access security. With Teleport Database Access:
+
+- Users can access the databases through the single sign-on flow and use short-lived X.509 certificates for authentication instead of
+  regular credentials. - Databases do not need to be exposed on the public Internet and can safely operate in air-gapped environments using
+  Teleport’s built-in reverse tunnel subsystem. - Administrators and auditors can see the database activity such as sessions and SQL
+  statements tied to a particular user’s identity in the audit log, and optionally ship it to an external system.
+
+These features simplify managing secure database access to a great extent.
+
+If you’re interested, you can get started with Teleport Database Access by watching the [demo](https://www.youtube.com/watch?v=wNCpYIDG1qM),
+reading the [docs](https://goteleport.com/docs/database-access/), downloading the [open-source
+version](https://goteleport.com/teleport/download), and exploring the code on [GitHub](https://github.com/gravitational/teleport).
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+As observed in this post, securing access to the production database is not a single-step solution but a multi-level process. It requires
+proper database lockdown, from server to connecting client, and from database server runtime to database account and privilege.
+
+Though MySQL supports the latest and secure encryption and authentication methods, requirements to support specific SQL clients or support
+backward compatible protocols may induce insecure server configurations which might be exploited by malicious users. Moreover, with a total
+of 66 privileges available, it is very error-prone not to allow excessive privilege to users.
+
+We hope topics covered in this post will help you implement best possible configurations to secure access to the production MySQL database.
+
+Further reading - [security options available in MySQL](https://dev.mysql.com/doc/refman/8.0/en/security-options.html) and [FIPS support in
+MySQL](https://dev.mysql.com/doc/refman/8.0/en/fips-mode.html).
+
+Also, check our [Teleport Access](https://goteleport.com/docs/) product and know how Teleport helps you secure remote access to production
+services.

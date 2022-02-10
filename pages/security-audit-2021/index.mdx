@@ -1,0 +1,103 @@
+---
+title: Security Audit Results for Teleport for 2021
+articleTitle: Teleport in 2021:\ Security Audit Results
+description: Results and independent analysis from a third party on the Teleport project. April 2021.
+date: "2021-04-08"
+author: Russell Jones
+logo:
+  image: ../teleport-cloud-security-audit/assets/audit-report-2021.png
+  alt: audit results
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import Quote from "components/Quote";
+
+We now live in an era where the security of all layers of the software stack is
+immensely important, and simply open-sourcing a code base is not enough to
+ensure that security vulnerabilities surface and are addressed. At Teleport, we
+see it as a necessity to engage a third party that specializes in acting as an
+adversary, and provide an independent analysis of our sources.
+
+In 2021, we have continued to engage with [Doyensec](https://www.doyensec.com),
+an independent security research and development company, to provide a thorough
+independent analysis of Teleport. Here is the full report for
+[Teleport](https://goteleport.com/resources/audits/teleport-cloud-security-audit-2021/).
+You can find all of our security audits [here](https://goteleport.com/resources/audits/).
+
+## Teleport Security Audit Results
+
+As we mentioned in the [Teleport 5.2.1 release notes](https://github.com/gravitational/teleport/releases/tag/v5.2.1), the most
+serious issues found related to Teleport Application Access and Trusted
+Clusters.
+
+For Application Access, if an attacker could convince a user to click on a
+malicious link, the attacker could steal the victim’s session cookie or force
+them to log into an attacker-controlled Application Access account.
+
+For Trusted Clusters, under certain circumstances, an already privileged user
+within a root cluster could potentially elevate their privileges further by
+gaining the exact same roles in the leaf as they have in the root cluster
+(instead of the mapped roles).
+
+After the re-assessment, all issues with any direct security impact were
+addressed. From the report:
+
+<Quote>
+  In March 2021, Doyensec performed a retesting of the Teleport platform and
+  confirmed the effectiveness of the applied mitigations. All issues with direct
+  security impact have been addressed by Teleport.
+</Quote>
+
+### Accepted Risks
+
+While all issues with direct security impact have been addressed, we do want to
+draw attention to four issues that we did not address and accepted the risk.
+
+We decided to forgo mitigating these issues because their impact in this
+specific circumstance was minimal and a more comprehensive mitigation (which
+would be outside the scope of a patch release) was planned.
+
+#### Decompression Bomb in Decompress Functions
+
+`TEL-Q420-1` is an informational finding with no direct security risk. A legacy
+API endpoint which is slated to be removed is included in Teleport 5.2.1 to
+maintain our backward compatibility promises with Teleport 4.4.
+
+#### Cluster IP Leakage Through Round-Robin DNS Abusing Direct Session URLs
+
+`TEL-Q420-3` is a low-severity vulnerability where an attacker can leak the
+existence (but not access) of internal resources by convincing the user to
+click on a malicious link.
+
+We have a much more comprehensive fix for this issue planned in Teleport 6.1:
+U2F for Kubernetes and SSH sessions as outlined in [RFD
+14](https://github.com/gravitational/teleport/blob/master/rfd/0014-session-2FA.md)
+and [RFD
+15](https://github.com/gravitational/teleport/blob/master/rfd/0015-2fa-management.md).
+However, in the interest of not delaying the security release, we felt it was
+appropriate to accept the risk on this issue until Teleport 6.1 is released.
+
+#### Missing Applications Session Invalidation on Parent Session Invalidations
+
+`TEL-Q420-9` is a low-severity vulnerability that prevents a user from logging
+out all Application Access sessions with one click. This is due to a design
+decision where each Application Access session is independent and requires
+independent logout.
+
+We have a much more comprehensive mitigation for this planned in Teleport 7:
+User locking as outlined in
+[#3360](https://github.com/gravitational/teleport/issues/3360). However, in the
+interest of not delaying the security release, we felt it was appropriate to
+accept the risk on this issue until Teleport 7 is released.
+
+#### Systemic Server-Side Request Forgery in Single Sign-On
+
+`TEL-Q420-10` is a medium-severity vulnerability where a Teleport administrator
+could create a SSO connector that is vulnerable to SSRF, allowing that Teleport
+administrator access to internal resources.
+
+While SSRF is a serious vulnerability, in the single tenant Teleport Enterprise
+deployment model, the risk is minimal as Teleport administrators already have
+direct network access to internal resources.

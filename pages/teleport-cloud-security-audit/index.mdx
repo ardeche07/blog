@@ -1,0 +1,109 @@
+---
+title: Security Audit Results for Teleport Cloud for 2021
+articleTitle: Teleport Cloud in 2021:\ Security Audit Results
+description: Results and independent analysis from a third party on the Teleport Cloud service. May 2021.
+date: "2021-05-11"
+author: Kevin Nisbet
+logo:
+  image: ./assets/audit-report-2021.png
+  alt: audit results
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+This year we launched [Teleport Cloud](https://goteleport.com/pricing/), a new service for providing a hosted version of [Teleport Access
+Plane](https://goteleport.com/). One of the first problems the team had to tackle was how to secure the new infrastructure properly, and the
+team wanted to ensure the best possible results by engaging in an independent audit.
+
+As with the Teleport core product, we engaged with [Doyensec](https://www.doyensec.com/) to provide an independent security audit of our
+production environment. At Teleport, we believe independent auditors offer the best insight into where we are weak. In addition, Doyensec
+has demonstrated that their teams' skill and attention to detail in attacking our infrastructure are unmatched.
+
+The audit occurred between January 11th and January 29th before we officially launched to customers in March. Therefore, some of the
+findings do reflect temporary solutions and unimplemented functionality that was in use before the production launch.
+
+# Get the Report
+
+To get the report: https://goteleport.com/resources/audits/teleport-cloud-security-audit-2021/
+
+Also, see our post about what we found in the Teleport product: https://goteleport.com/blog/security-audit-2021/
+
+# Why Audit?
+
+Many companies use independent audits as a sales and compliance tool; the report is simply a blocker to selling to certain types of
+customers. Solutions to reported issues are direct workarounds to the findings of the audit.
+
+But this sort of misses the point — the most important thing the independent auditors tell us is what we don't know and where we need to
+invest. Taking an independent and fresh look at the software and production environment helps illuminate our blind spots.
+
+It's also not just about fixing the vulnerabilities found as presented but also taking a holistic view on what led to those vulnerabilities
+occurring, ensuring any workaround also receives a permanent solution and leads to an overall increase in security posture.
+
+The rest of this article outlines what we learned from the first audit performed against Teleport Cloud and how we're addressing the
+findings.
+
+# Important Lessons
+
+## Network Policy
+
+When we started designing the security posture for Teleport Cloud, our philosophy was based on securing all internal interfaces the same way
+we secure public-facing interfaces. In our experience, it's better to assume adversaries have infiltrated the security boundaries, and the
+most robust security we can deploy is an internet-facing strategy, such as using mTLS for internal connectivity.
+
+This strategy takes a lot of time and effort to deploy, and as such, we still have gaps in implementing this setup.
+
+While we assume an adversary can connect to internal services, our security roadmap still included a strategy to deploy Kubernetes network
+policies to configure firewalls to block arbitrary connections. This strategy is to create a defense-in-depth architecture.
+
+What we missed was that we were not in a position to secure all internal interfaces before launch. Doyensec was also able to prove the
+ability to create arbitrary connections within our infrastructure by leveraging SSRF vulnerabilities within Teleport.
+
+Deploying the network policy configuration allowed us to address the highest severity findings reported by Doyensec as workarounds. We're
+continuing to work on our strategy of ensuring the ability to create arbitrary connections within our production network does not breach our
+security posture, as we continue to use network policies to make exploiting any single vulnerability harder.
+
+## Cookie Isolation
+
+Another fascinating find by Doyensec was the ability for a customer to corrupt the HTTP cookies used by our internal sales application. The
+cookies used by the internal sales application did not have sufficient isolation from subdomains that are customer-controlled, which
+potentially allowed an adversary to corrupt a user's session.
+
+We were missing the \_\_Host prefix on cookies on the root domain to prevent subdomains from overriding the cookies on the root domain.
+
+We further mitigated this by moving our internal sales application to [Teleport Application
+Access](https://goteleport.com/teleport/application/). Teleport AAP fully isolates the domain of our internal applications from our
+customer-facing website, and we can avoid this class of problems. Teleport Application Access is under active development as a fully
+featured gateway to securing internal applications.
+
+## What the Auditors Will Find: the Testing Shortcuts and Unimplemented Code!
+
+An audit can only reflect the current state of the software; an auditor has no insight into the future state of a system and reflects
+unimplemented functionality.
+
+A great example is the re-usability of customer invite links. When testing how invite links work, it's convenient to reuse a link more than
+once and shorten the test cycle by not continually generating new invites. So naturally, the audit uncovered the insecure design that
+inviting a new customer would allow them to create an unlimited number of accounts.
+
+Another example is that on logout, we didn't cancel the session. Again, this was lacking an implementation at the time of the audit.
+
+# Roadmap and Recommendations
+
+Above all else, hiring a top-tier audit firm helps provide the confidence that we've set the correct roadmap, prioritized the reasonable
+short-term goals, and made suitable strategic investments into our cloud security posture.
+
+There is more to do.
+
+We're updating our security roadmap and building our resources to focus directly on the security of our products and cloud services. We're
+solving the complicated technical problems with software supply chains, release engineering, how to recover accounts and password resets,
+hardening all internal interfaces, detecting anomalies, audit, and so much more.
+
+<EmailSubscribeViolet />
+
+# We're Hiring!
+
+If you are interested in the technical aspects of security and want to be a key member in solving the types of problems described in this
+post, please reach out. You can check out our [careers page](https://jobs.lever.co/teleport) or if you would like to discuss the team and
+culture, feel free to reach out to me directly at kevin@goteleport.com.

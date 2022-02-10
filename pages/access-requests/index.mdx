@@ -1,0 +1,170 @@
+---
+title: Access Requests for Infrastructure
+articleTitle: Access Requests for Cloud Infrastructure
+description: Access requests is a new modern technique to implement the principle of least privilege for accessing cloud-native infrastructure. In this blog post, we’ll cover how to get started with access requests using Teleport
+date: "2021-05-14"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/access-request.png
+  alt: access request
+tags:
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+Making frequent changes to cloud applications running in production is the
+de-facto standard. To minimize errors, engineers use CI/CD automation,
+techniques like code reviews, green-blue deployments and others.
+
+_Git pull requests_ often serve as a foundational component for triggering code
+reviews, Slack notifications, and subsequent automation such as testing and
+deployments. This automated process enforces peer reviews and creates enough
+visibility to minimize human error. Pull requests work quite well.
+
+But what happens when a production PostgreSQL database, some SSH nodes, or a
+certain Kubernetes cluster needs troubleshooting? Unfortunately, quite often an
+engineer will just access those resources using a shared credential, without a
+formalized approval process, increasing possibility for human error or
+compromising security. Larger companies tend to take a more conservative
+approach and employ excessive bureaucracy, slowing everyone and everything
+down.
+
+But what if an engineer could create a "git pull request" requesting temporary
+access to critical production infrastructure? Then her peers would review and
+approve such requests, granting her temporary access, with solid security and
+compliance guarantees.
+
+In this blog post, we’ll explain how this can be done.
+
+## What is an Access Request?
+
+First, let's introduce the [access request](https://goteleport.com/features/access-requests/) concept. An access request allows for
+temporary elevation of privileges for accessing cloud infrastructure; i.e.,
+resources like SSH servers, Kubernetes clusters, databases or internal web
+applications such as Grafana dashboards.
+
+Access requests are important because they allow us to implement the principle
+of least privilege without slowing down the engineering team.
+
+In practice, **this means that root-type accounts are no longer needed**. Think of
+access requests as a one-time `sudo` which needs to be approved by the rest of
+the team.
+
+Obviously, for access requests to work well, the process of requesting and
+approving access must be quick and painless. We will show how to quickly
+implement Access Requests using [Teleport](https://goteleport.com/), an identity-aware access proxy with
+support for various access protocols, including SSH, Kubernetes, PostgreSQL,
+MySQL, HTTPs, etc. Teleport is a [simple UNIX daemon](https://goteleport.com/how-it-works/)
+available as an open source download, hosted cloud offering, or enterprise solution.
+
+## How to Use Access Requests?
+
+Here's how Access Requests work:
+
+- The engineer Alice tries to access a resource but gets an "Access denied"
+  message.
+- She types another CLI command requesting access. She is required to provide a
+  reason for access and the required time interval.
+- Her peers (or a dedicated security team) receive a notification via Slack or
+  a similar tool.
+- They review the request, hence the similarity with git pull requests, and can
+  approve or deny it.
+- For mission-critical resources, the approval must be granted by several team
+  members.
+
+Here's how it looks in practice when accessing an important box via SSH, for
+example:
+
+```bash
+# Alice tries to access a database box, but she does not have
+# enough privileges:
+$ ssh db-box
+Access denied
+
+# She requests to be temporarily added to the “DBA” group,
+# and she must specify a reason. In this case, it’s a
+# support ticket #1234
+$ tsh request new --roles=dba --reason=”ticket #1234”
+Seeking request approval...
+```
+
+Now Alice is waiting for her request to be approved. Meanwhile, her team
+receives a notification in Slack:
+
+<BlogImage src="./assets/slack-alice-ar.png" />
+
+It is possible to configure access requests to be approved by more than one
+team member. In the example above, the security team members can approve or
+deny Alice's request using Slack as shown above, but Mattermost, Jira and
+PagerDuty are also supported.
+
+Moreover, it is possible to customize the approval process via code. You can
+build integrations into your own ChatOps tool or even implement a fully
+automatic approval based on arbitrary business logic.
+
+## Auditing Access Requests
+
+Access request approvals and denials are logged for future audit into
+Teleport's audit log. Teleport also records all user actions during the
+session, which could be replayed later in a YouTube-like UI.
+
+At any given time, it is possible to see all outstanding access requests:
+
+```bash
+# tctl is the Teleport’s administration tool. Let’s list all
+# outstanding requests:
+$ tctl request ls
+
+Token              Requestor Metadata   Created At (UTC)  Status
+------------------ --------- ---------  ----------------- -------
+bc8ca931-fec9-4b15 alice     roles=dba  07 Nov 19 19:38   PENDING
+f3234632-d32a-a33f bob       roles=dba  07 Nov 19 19:22   PENDING
+```
+
+## When to Use Access Requests
+
+Access Requests in Teleport can be used when engineers need to access
+mission-critical computing resources such as:
+
+- SSH servers
+- Kubernetes clusters
+- PostgreSQL or MySQL databases
+- Internal web applications, such as monitoring dashboards, ticketing systems, etc.
+
+Access requests can be used in the command line as shown above, or via a web
+UI. Access requests elegantly address the contradiction between developer
+productivity, security and compliance. In everyday use, they indeed feel very
+similar to git pull requests — but for infrastructure access.
+
+## Access Requests Demo
+
+To see access requests in action, check out the 3-minute demo video:
+
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/b_iqJm_o15I"
+  title="YouTube video player"
+  frameborder="0"
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+></iframe>
+
+<EmailSubscribeViolet />
+
+## Getting Started with Access Requests
+
+Access requests are available to users on an Enterprise plan. The
+quickest way to try them out is to:
+
+- Visit [Access Requests documentation](https://goteleport.com/docs/enterprise/workflow/) to get a
+  feel for how to configure them.
+- Learn more about [Access Requests](https://goteleport.com/features/access-requests/) on our website
+- Join the [Slack channel](https://goteleport.com/slack/) where other Teleport users hang out.
+- [Sign up for a 14-day free trial](https://goteleport.com/pricing/). Test out Teleport's cloud-hosted solution for free for 14 days.

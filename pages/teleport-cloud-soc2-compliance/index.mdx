@@ -1,0 +1,141 @@
+---
+articleTitle: Achieving SOC2 Compliance for Teleport Cloud with Teleport On-Prem
+title: How to Achieve SOC2 Compliance for Teleport Cloud with Teleport On-Prem
+description: In this blog post we illustrate how we use Teleport to achieve SOC2 compliance at Teleport
+date: "2021-08-10"
+author: Travis Gary
+logo:
+  image: ./assets/soc2-header.png
+  alt: Teleport SOC2
+tags:
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+Teleport has been instrumental in helping our clients achieve difficult security and compliance requirements, and today we are proud to
+announce that our Cloud offering is now SOC2 Type II compliant.
+
+Last year our on-premises product was SOC2 Type II certified, and we [published an overview on our
+blog](https://goteleport.com/blog/soc2-certification-table-stakes-for-b2b-saas/) helping explain what SOC2 is and why it has become table
+stakes for B2B SaaS companies.
+
+In this blog post, we would like to share how Teleport helped us get SOC2 compliant (we use it internally of course) and how you can achieve
+the same at your organization to make both developers and corporate security professionals happy.
+
+Teleport not only helps make securing access to your servers, Kubernetes clusters, web applications, and databases easier but also makes
+audits go much smoother too, thanks to strong integrations with Single Sign-On (SSO) and identity providers, robust audit capabilities,
+[access approval workflows](https://goteleport.com/docs/enterprise/workflow/), and [change management via
+Terraform](https://goteleport.com/docs/setup/guides/terraform-provider/).
+
+## Teleport at Teleport 
+
+Internally we run a Teleport Enterprise high-availability cluster on AWS to manage access to all of our infrastructure and we integrate it
+with our Single Sign-On provider (Okta), our SIEM [Panther](https://runpanther.io/) , and incident management platform (PagerDuty).
+
+### Managing SSH
+
+At Teleport we have eliminated SSH keys (except for break glass ones) on all production infrastructure. At first, our auditors balked at
+this response that no users have SSH keys and we don't have to worry about revoking any because they are all short-lived, but after a quick
+lesson on how certificates work, they were very impressed.
+
+SOC2 has a few control areas related to SSH management. Teleport goes beyond what's typically required, and we hope that SOC2 requirements
+will eventually be updated to make using certificates the expectation.
+
+| SOC2 SSH Requirements                                                | Teleport                                                                                                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Production access is limited to users with a valid SSH key.          | Short-lived certificates are provided.                                                                                          |
+| SSH users use unique accounts to access production Machines.         | Identity-aware roles are granted with very granular access controls.                                                            |
+| MFA is required for systems with customer data.                      | MFA can be checked during SSO/IdP authentication and on a per-session basis with Teleport Session Controls.                     |
+| Access to production systems is revoked within a day of termination. | Certificates are short-lived, and Teleport users are federated with SSO/IdP so no additional action is needed to revoke access. |
+
+We use Okta internally, and our process to onboard/offboard users to Teleport is simply creating/suspending users in Okta which happens
+automatically when our HRIS (Rippling) triggers the process. Even role changes are zero-touch because the HRIS system updates Okta's
+directory which then updates Teleport roles, revoking access to the systems the employee had in their prior role.
+
+### Change management and approvals
+
+One process that often slows down developers is having to get approvals for access. It often involves creating a Jira ticket, bugging a
+manager to approve it, and then getting Ops to grant the access. This process is simply too slow to be effective in an incident (which is
+why many orgs end up bending the rules). Additionally, it's not very good security. If a single Ops engineer has the ability to grant access
+to anything, what happens if an Ops team member gets compromised?
+
+With Teleport, Ops work disappears and opening tickets becomes invisible to the user thanks to [approval
+plug-ins](https://goteleport.com/docs/enterprise/workflow/). The audit process is a breeze because the built-in reporting can be used with
+familiar tools like Jira or PagerDuty.
+
+Making changes to role configuration is also a process that often involves opening a ticket, describing the changes to be made, getting
+approval, and then actually making the change. Again, it's a slow process that is a bad security practice because there is no mechanism to
+prevent any role change from being made which creates a vector for a hacker to escalate their permissions. With the [Teleport Teraform
+provider](https://goteleport.com/docs/ver/7.0/setup/reference/terraform-provider/) this process is easy. Just open a Pull Request, get a
+code review and merge. We showed our auditors our merge history and GitHub approvals, and we were done.
+
+### SSO integration
+
+We integrate Teleport with Okta which greatly simplifies the developer onboarding/offboarding process and is now entirely zero-touch thanks
+to the HRIS integration and Terraform.
+
+Our HRIS system creates/updates and suspends users in Okta. Their user attributes are populated with HR data about their team/department
+that we can use in Role-Based Access Control (RBAC) rules to determine what directory groups to place them in. (Of course, we Terraformed
+these rules too).
+
+The Okta group membership is then passed to Teleport during the SAML assertion informing Teleport what role to grant them. The entire
+process from HRIS to SSO/IdP to Teleport has built-in change control, so no single person can make an access change. HR changes require
+approval and Okta RBAC rule changes require a code review before Terraform applies. With this setup, we don't need to grant admin roles in
+Okta or Teleport since changes are made via Terraform. This provides robust security where we don't need to worry about a single user being
+compromised leading to privilege escalation.
+
+Providing evidence to auditors is as simple as providing the Okta audit logs that we already share for showing that access to other systems
+was revoked appropriately. Now managing access and compliance for servers is as simple as SaaS app management.
+
+### Audit reporting
+
+Our Teleport logs get pulled into Panther SIEM using an AWS serverless process that pipes DynamoDB events into S3 to be read by Panther.
+Within the SIEM platform we can use SQL to query logs for audits and threat investigations and also set up alerts when suspicious activity
+occurs. Since we federate our users with Okta, one of our indicators of compromise is [manually modifying a
+user](https://github.com/panther-labs/panther-analysis/blob/master/gravitational_teleport_rules/teleport_create_user_accounts.py).
+
+I'm also happy to share that we now have [FluentD support for log forwarding](https://goteleport.com/docs/setup/guides/fluentd/) so people
+running all versions of Teleport can export their logs.
+
+## What key SOC2 controls does Teleport help achieve?
+
+Teleport helps with 4 of the 9 control areas. Here is an overview:
+
+### CC6 Control Activities
+
+Teleport helps with separation of duties using RBAC and restricts access to authorized users
+
+- Provide role-based access controls (RBAC) using short-lived certificates and your existing identity management service.
+
+### CC6 Physical and Logical Access controls
+
+Teleport issues temporarily security credentials according to user's role
+
+### CC7 System Operations
+
+Teleport helps audit and monitor access.
+
+- Audit events and session recordings are securely stored in a vault to prevent tampering.
+- Convert logins, executed commands, deployments, and other events into structured audit logs.
+- Monitor, share, and join interactive sessions in real time from the CLI or browser.
+
+### CC8 Change Management
+
+Teleport helps users elevate their permissions during incidents while RBAC helps limit the need for approvals. The Teleport Slack
+integration allows for managers to quickly approve temporary SSH [access requests](https://goteleport.com/features/access-requests/).
+
+- Let engineers request elevated permissions on the fly without ever leaving the terminal.
+- Approve or deny permission requests with ChatOps workflow via Slack or other supported platforms.
+- Extend and customize permission elevation workflow with a simple API and extendable plugin system.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Teleport is designed to help satisfy tough compliance requirements, and we are committed to continuing to use Teleport internally so we can
+continue to improve our experience for corporate security managers. Want to chat more? [ join us on our community
+slack](https://goteleport.com/slack), or [start a GitHub discussion.](https://github.com/gravitational/teleport/discussions)
