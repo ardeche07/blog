@@ -1,0 +1,73 @@
+---
+title: Best Practices for Secure Infrastructure Access
+description: This paper talks about how companies can secure infrastructure access by basing decisions on identity, not trusting private networks, and centralizing auditing/monitoring.
+articleTitle: Best Practices for Secure Infrastructure Access
+date: "2020-09-10"
+author: Virag Mody
+tags:
+  - security
+logo:
+  image: ./assets/best-practices-for-secure-infrastructure-access-header.png
+  alt: illustration depicting secure infrastructure access
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+This post is an excerpt of the recently published tech paper, Best Practices for Secure Infrastructure Access. For the full paper, download [Best Practices for Secure Infrastructure Access](/resources/white-papers/secure-infrastructure-access/).
+
+---
+
+Technologies build on other technologies to compound growth. It’s no coincidence that of the companies with the highest market capitalization within the US, the first non-tech company is the eighth one down: Berkshire Hathaway. Nor is it a coincidence that tech startups can take their valuation into the 10 digits in a flash on the backs of other tech companies.  This pace of growth can only be afforded by the innovation of new technology.
+
+
+### Cloud Computing
+
+Over 15 years after the launch of AWS, Gartner still projects [17% industry growth](https://www.gartner.com/en/newsroom/press-releases/2019-11-13-gartner-forecasts-worldwide-public-cloud-revenue-to-grow-17-percent-in-2020) in 2020 to over a quarter trillion in public cloud revenues. The new frontier is no longer centralized server clusters, but at the elusive “Edge,” where Gartner predicts [75% of enterprise data](https://www.gartner.com/smarterwithgartner/what-edge-computing-means-for-infrastructure-and-operations-leaders/) will be produced in just five years (2025).
+
+
+### Everything-as-a-Service
+
+The SaaS business model is its own industry, offering every slice of infrastructure as a managed service. Referred to as Everything-as-a-Service (XaaS), these service providers allow companies to outsource core technologies, maintenance, and monitoring at a fraction of the cost required to build in-house.
+
+<BlogImage src="./assets/best-practices-for-secure-infrastructure-access-1.png" alt="identify what you are already doing in the cloud from Gartner" width="100%"/>
+
+### Internet of Things
+
+IoT represents an archetype of compounding technology. The convergence of sensors, edge computing, 5G, and machine learning, have produced a low-fidelity image of a future that looks unimaginably different. Already, it is incredible that the “Smart Cities” promised by Silicon Valley are starting to take their initial shapes in places like [New York](https://www.ny-engineers.com/blog/how-new-york-is-becoming-a-smart-city) and [San Francisco](https://youtu.be/q2hj0mK6HKc) in the prototypical form of transportation and environmental goals.
+
+These examples may seem like buzzwordy puffery and far removed from the majority of day-to-day challenges that organizations face, but they represent a consistent trend that all agree with: Technology continues to grow exponentially in size and scale, producing immense complexity. Infrastructure is managed by service providers, data is distributed across the globe, applications are subscribed to and communicate via APIs, new devices connect daily to internal services, and working-from-home has become universally normalized. Adapting to modernity means the decentralization of hardware, software, and people, by abstracting the IT stack. As if actively resisting these two trends, organizations protect resources with policies and procedures that have evolved from centralized architecture. To protect critical infrastructure against the irreparable security threats presented by the rift, organizations can modernize access governance. These four best practices provide a framework to meet this challenge:
+
+1. Base decisions on identity
+2. Make it easy to use
+3. Don’t trust private networks
+4. Centralize auditing and monitoring
+
+
+## Where’s the Problem?
+
+Historically, organizations have relied on protected networks to distinguish between trusted and non-trusted agents. Conceptually, this mental model was intuitive in design as resources were located within a handful of dedicated environments. Security tools would often define access policies based on address origin. Anything within a known registry was safe, anything without was not until determined otherwise. As the web advanced, this fledgling topology outgrew itself and organizations adapted to fragmented infrastructure. Internal networks grew in complexity, using VPNs to connect remote subnetworks together, security groups batched access behind firewalls, bastion hosts jumped users from public to private subnets, etc.
+
+<BlogImage src="./assets/best-practices-for-secure-infrastructure-access-2.png" alt="enterprise network artchitecture" width="100%"/>
+
+<EmailSubscribeViolet />
+
+**Enterprise Network Architecture**
+
+Underpinning these tactics is the same premise as when packet-switching firewalls were implemented over three decades ago: Environments can reliably evaluate whether access is allowed, or not. Networks could be separated, gateways introduced, and user attributes defined. But after being vetted, actors became trusted and left alone. Pair this philosophy with the growing scale and complexity of company infrastructure, and pressure points present themselves.
+
+
+1. **Dynamic Infrastructure** - The abstraction of higher-level services from lower-level hardware has made environments fluid and ephemeral. From VMs to containers, tech stacks have become increasingly compartmentalized, allowing developers to make piece-meal changes without disrupting operations. Tack on automated scaling and redundancy for high-availability and infrastructure resembles an ever-changing landscape that network engineers must map. In a static world, IP addresses and ingress ports were reliable substitutes for identifying behavior. But in a dynamic world, these variables constantly change. Keeping pace requires firewalls, routing, ACLs, and API white lists to be constantly updated, always one step behind. Even with sufficient automation, network engineers are burdened with tedious manual labor, driving up operational costs and slowing down development.
+2. **Few Internal Protections** - The complexity of mapping traffic across elastic infrastructure produces relaxed internal measures. In an ideal world, devices and services would be isolated into their smallest possible network segments, communicating through secure gateways with uniquely identifiable information. But when schedulers can spin up a container on any node within a single cluster, it becomes easier to bundle and route blocks instead of identifying individual components. Add on the reality that engineers build back doors when well-intentioned security protocols impede their work, and the task of protecting resources compels a trade-off between performance and protection.
+3. **Over Reliance on Secrets** - Secrets like API keys, .PEM files, SSH keys, etc. unlock critical infrastructure and must be guarded with paranoid rigor. This task has turned into a near existential threat as the number of secrets has ballooned from:
+	* [Cloud services](https://aws.amazon.com/products/) like storage, databases, compute, logging, etc.
+	* DevOps teams deploying to bespoke development, testing, staging, and production environments
+	* Machine communications occurring through the exchange of tokens, keys, and certificates
+	* Internet-connected devices requiring their own secure endpoint
+
+	Centralized secret management tools like Hashicorp Vault and AWS Secret Manager only solve half the problem. As with VPNs, once a user is given access, their activity becomes indistinguishable from all the other events, providing minimal visibility for proactive or reactive measures. Once again, IP addresses can be used as a stand-in, but they no longer inspire the same level of confidence as in the past.
+
+Networking is a necessary component of letting the right things in and keeping the wrong things out; ports will never stop being scanned. But the expansion and adoption of technology are outstripping the ability for networks to bear the burden of defense. Modernizing infrastructure access means identifying where and how networks struggle to cope with and comparing alternatives means. It means questioning whether effective security hurdles are being created, or agitating hoops that developers must jump through.
+
+To learn more about how the four practices above can help guide this restoration of effective security controls, read the entire tech paper [here](/resources/white-papers/secure-infrastructure-access/).

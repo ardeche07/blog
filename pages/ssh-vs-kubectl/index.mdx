@@ -1,0 +1,300 @@
+---
+title: What is kubectl exec? How does it work?
+articleTitle: kubectl exec vs SSH
+description: SSH is architecturally set, but higher-level software can learn from Kubernetes about centralized config when managing a fleet of machines.
+author: Andrew Lytvynov
+date: "2020-08-12"
+tags:
+  - ssh
+  - teleport
+  - kubernetes
+logo:
+  image: ./assets/ssh-vs-kubectl-header.png
+  alt: Comparing ssh and kubectl
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## kubectl exec
+
+What is `kubectl exec`? It's a new and popular way of executing remote commands or
+opening remote shells, similar to good ol’ `ssh`.
+
+Below, I will only look at the `kubectl exec` subcommand and its friends.
+`kubectl` itself is a swiss-army knife for all things [Kubernetes](https://goteleport.com/blog/microservices-containers-kubernetes/). Comparing all
+of it to `ssh` is like comparing `systemd` to BSD `init`.
+
+Also, I will use `SSH` to mean `OpenSSH`, which is the de-facto standard
+for SSH protocol implementation. But most discussion points will apply to any
+[SSH implementation](/blog/how-ssh-into-a-self-driving-vehicle/).
+
+
+## Apples to Oranges
+At first glance, this is an odd comparison.
+
+OpenSSH has been around for two decades, long before _The Cloud_ [was born](/blog/saas-to-onprem-considerations/). Its design assumes that you’re managing a handful of pet servers and are carefully configuring and tweaking every aspect of them. SSH has also been adopted as a transport-layer protocol for things like SFTP and Ansible.
+
+kubectl, on the other hand, was born in the cloud, ~~molded by it~~. It deals with remote machines (or containers) by the thousands, treating them like cattle. `kubectl exec` is just a small part of this and is used for debugging when things go wrong.
+
+However, if you step back and squint, `kubectl exec` serves the same purpose as
+`ssh`. It runs a program on a remote machine without leaving the comfort of
+your local terminal and tries to integrate with various terminal features, to
+make it feel like you’ve plugged a keyboard and monitor into a datacenter rack.
+
+With that out of the way, let’s dive into their similarities and differences.
+
+## Authn/z
+Let’s start with everyone’s favorite topic: security.
+
+**TL;DR**: SSH authentication is very customizable, but large-scale management is a pain. `kubectl` deals with _authorization_ much better, but _[authentication](/blog/how-oidc-authentication-works/)_ is usually opaque and hard to tweak.
+
+Note: we won’t discuss pros and cons of authentication methods here, that’s a yak for another shaving session.
+
+### SSH
+SSH supports a range of authentication options:
+
+* Basic passwords
+* Asymmetric cryptographic keys
+  * On disk in plaintext
+  * On disk encrypted with a passphrase
+  * On a hardware token (like [YubiKey](https://www.yubico.com/products/))
+* Certificates ([but not the X.509 kind!](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.certkeys)) linked to a private CA
+  * With all the options for storing a private key above
+* Pluggable external authentication via [GSSAPI](https://en.wikipedia.org/wiki/Generic_Security_Services_Application_Program_Interface) and/or PAM
+  * E.g. Active Directory, LDAP, [OIDC](/blog/how-oidc-authentication-works/), etc
+* With 2FA
+  * Based on a local hardware token
+  * Or remotely, using TOTP (e.g. Google Authenticator) or services like Duo, through PAM
+
+To authenticate a server, you get either an [asymmetric public key](https://goteleport.com/blog/comparing-ssh-keys/) or a certificate. By default, SSH uses trust on first use (TOFU), so you may want to manage ~/.ssh/known_hosts on client machines as a precaution.
+
+As a user, you get to choose which authn method you want and how to configure it on both sides - yay!
+
+When it comes to authorization, things are not great. Authorization granularity is basically: "*user X can log into server Y,*" no grouping. You have to configure each server a user might log into individually by writing users’ public keys to ~/.ssh/authorized_keys and creating a local UNIX user for them. Using [SSH certificates](https://goteleport.com/blog/ssh-certificates/) can help with key distribution. [A bit of PAM plumbing](/docs/server-access/guides/ssh-pam/) can also create users for you. Regardless, it will take some work.
+
+Luckily, higher-level software is available to solve these problems if you’re willing to expand your toolbox.
+
+
+### kubectl
+Most of you will be familiar with `kubeconfig` as "*The ~~One~~ Kubernetes credential ~~to rule them all~~*". With a managed Kubernetes platform, the provider will generate it and you may not even notice. It’s very rare to tinker with kubeconfig contents directly, most of the time you’ll use whatever your cloud or authentication provider generates.
+
+It’s a nice UX abstraction, but underneath there are [the usual suspects](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#authentication-strategies):
+
+* HTTP basic authentication (username+password in plaintext)
+* TLS client certificates (with private key on disk in plaintext)
+* Opaque static (“bearer”) tokens (on disk in plaintext)
+* Cloud provider plugins
+  * These are compiled into the [`kubectl code itself`](https://github.com/kubernetes/client-go/tree/master/plugin/pkg/client/auth)
+  * Getting [slowly phased-out](https://kubernetes.io/blog/2019/04/17/the-future-of-cloud-providers-in-kubernetes/) to reduce the Kubernetes code dependency spaghetti
+* [Exec plugins](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins)
+  * On each request, executes an external binary to get a bearer token or TLS client key/cert
+  * Used by cloud providers to integrate with their bespoke authentication systems
+  * If you want 2FA, this is probably the way to go
+
+Servers are authenticated using TLS, with a private CA usually embedded in `kubeconfig`.
+
+Authorization story here is much nicer than in SSH! No SSH-like (e.g. per-pod) design would fly here, because Kubernetes pods are ephemeral.
+
+Kubernetes handles authorization natively, through [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/). All `kubectl exec` requests are funneled through the Kubernetes API server, which enforces [RBAC rules](https://goteleport.com/docs/access-controls/introduction/). It takes some learning, copy-pasting YAML blobs from the Internet and tweaking them. But when you’re done, you can say: "*everyone in Engineering can log into staging (namespace) pods but only oncall can touch prod (namespace)*".
+
+The “hardest” part is making sure every employee gets a `kubeconfig` with the right identity that your RBAC rules will match against. Luckily, SSO integrations are pretty decent on most hosted platforms.
+
+## Shell UX
+This one is actually pretty close. Both SSH and kubectl handle terminal colors, escape codes, interactive commands and even window resize events. SSH and `kubectl` should both work well with 99% of CLI applications.
+
+SSH does add a few quality-of-life features:
+
+* Environment variable customization
+  * `kubectl` will always set the environment variables provided to the container at startup
+  * `ssh` relies mostly on the system login shell configuration (but can also accept user’s environment via [PermitUserEnvironment or SendEnv/AcceptEnv](https://superuser.com/questions/48783/how-can-i-pass-an-environment-variable-through-an-ssh-command))
+* [Escape sequences](https://man.openbsd.org/ssh#ESCAPE_CHARACTERS) (not to be confused with the [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code))
+  * Super handy to shut down a hung SSH session instead of waiting for a timeout to trigger
+  * Try typing “`~?`” the next time you use `ssh`
+
+## Non-shell features
+### File transfer
+Both `ssh` and `kubectl` support some form of moving files between you and the server/pod.
+
+#### SSH
+SSH has a wide range of tools that piggy-back on it as a transport:
+
+* There are the built-in [SCP](/blog/scp-familiar-simple-insecure-slow/) and newer SFTP
+* There’s the fancier [rsync](https://download.samba.org/pub/rsync/rsync.1), although it needs to be installed separately from OpenSSH
+* You can even slap together [some pipes and tar](https://www.cyberciti.biz/faq/howto-use-tar-command-through-network-over-ssh-session/) in a pinch
+
+#### kubectl
+`kubectl cp` exists, but it’s basically a thin wrapper around `kubectl exec + tar`. And if the container you’re dealing with doesn’t have `tar` installed - tough luck.
+
+You can always jump through some hoops with [volumes](https://kubernetes.io/docs/concepts/storage/volumes/), but this requires planning ahead of time, when you create the pod.
+
+### Port forwarding
+#### SSH
+SSH has very flexible [port-forwarding support](https://help.ubuntu.com/community/SSH/OpenSSH/PortForwarding):
+
+* Local port forwarding (local port -> server -> anywhere) \
+`ssh -L 8080:example.com:80 server`
+* Remote port forwarding (anywhere -> server port -> local port) \
+`ssh -R 80:localhost:8080 server`
+* Dynamic port forwarding (funnel all local outbound traffic through the server over [SOCKS5](https://en.wikipedia.org/wiki/SOCKS)) \
+`ssh -D 1080 server`
+
+You can get pretty creative with this! Or accidentally open up backdoors into your local system or prod environment…
+
+#### kubectl
+[`kubectl port-forward`](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/) lets you traffic through a local port to a remote port on your pod. This is a limited version of SSH’s local port forwarding.
+
+That’s pretty much it.
+
+### Jump hosts
+#### SSH
+With SSH, it’s common to set up [jump hosts](https://goteleport.com/blog/ssh-jump-server/) (aka [bastions](https://goteleport.com/blog/ssh-bastion-host/)) to funnel all access through a single hardened endpoint which is good for enforcing security controls.
+
+You do need to set it up manually, [configure client](https://goteleport.com/blog/ssh-config/) and server appropriately and also think about multi-tenancy on that box. It becomes a maintenance burden.
+
+#### kubectl
+In Kubernetes, the API server is essentially your “jump host”. You get all of the benefits for free!
+
+### X11 forwarding
+With SSH, you can expose a remote graphical application as if it was local:
+
+```
+user@local $ ssh -X server
+user@server % firefox
+```
+
+It’s like a remote desktop, but the applications you launch on the server blend into your local desktop naturally, instead of having a nested desktop.
+
+Is it a good idea? Probably not. But it’s neat!
+
+## Performance
+Both SSH and kubectl perform well from the user perspective. You can perceive some lag, especially when the [network is flaky](https://goteleport.com/blog/troubleshooting-kubernetes-networking/), but neither is noticeably slower than the other.
+
+But I still want to get some hard numbers, so let’s run some contrived benchmarks!
+
+**TL;DR**: kubectl exec is faster at connection establishment but SSH is faster at sending/receiving session data.
+
+The below results are unscientific but still representative of real world usage: running on a laptop with wireless network connection.
+
+The clients are OpenSSH v8.3 and `kubectl` v1.18. For the Kubernetes side, I’m using a simple busybox pod created with `kubectl run -it busybox --image=busybox`.
+
+The local servers are OpenSSH v8.3 and minikube running Kubernetes v1.18.
+
+The remote servers are OpenSSH v8.2 and GKE v1.14 (pretty old, yeah). Both are running on GCP in the same zone.
+
+### Login/setup latency
+First, let’s measure how long it takes for a session to get established.
+
+In both cases, I’ll be running `echo foo` 100 times remotely and measure the timing using [hyperfine](https://github.com/sharkdp/hyperfine). The result measures how long it takes to establish a connection, go through authn/z, open a remote shell and then tear down the connection. The actual `echo `command takes &lt;1ms and shouldn’t affect the results.
+
+#### Local
+```
+$ hyperfine 'ssh localhost echo foo' 'kubectl exec -it busybox echo foo' -r 100
+Benchmark #1: ssh localhost echo foo
+  Time (mean ± σ): 	156.2 ms ±  15.9 ms	[User: 14.0 ms, System: 2.1 ms]
+  Range (min … max): 112.4 ms … 220.9 ms	100 runs
+
+
+Benchmark #2: kubectl exec -it busybox echo foo
+  Time (mean ± σ): 	113.9 ms ±  16.1 ms	[User: 72.4 ms, System: 12.7 ms]
+  Range (min … max):	95.8 ms … 157.2 ms	100 runs
+
+
+Summary
+  'kubectl exec -it busybox echo foo' ran
+	1.37 ± 0.24 times faster than 'ssh localhost echo foo'
+```
+
+`kubectl` comes out on top, ~37% faster!
+
+#### Remote
+What if we add the network into the mix?
+
+```
+$ hyperfine 'ssh ubuntu echo foo' 'kubectl exec -it busybox echo foo' -r 100
+Benchmark #1: ssh ubuntu echo foo
+  Time (mean ± σ): 	689.1 ms ±  42.6 ms	[User: 41.1 ms, System: 6.1 ms]
+  Range (min … max): 653.6 ms … 1022.0 ms	100 runs
+
+
+Benchmark #2: kubectl exec -it busybox echo foo
+  Time (mean ± σ): 	445.7 ms ±  45.3 ms	[User: 130.1 ms, System: 31.2 ms]
+  Range (min … max): 372.3 ms … 655.2 ms	100 runs
+
+
+Summary
+  'kubectl exec -it busybox echo foo' ran
+	1.55 ± 0.18 times faster than 'ssh ubuntu echo foo'
+```
+
+And again, `kubectl` gets the crown: 55% faster!
+
+### Throughput
+What about raw data throughput?
+
+I’ll be sending over the [OpenSSH portable codebase](https://github.com/openssh/openssh-portable), which is ~32MB, and have the remote side echo it back. There is mixed textual and binary data.
+
+<EmailSubscribeViolet />
+
+#### Local
+```
+$ hyperfine 'find . -type f | xargs cat | ssh localhost cat' 'find . -type f | xargs cat | kubectl exec -it busybox cat' -r 10
+Benchmark #1: find . -type f | xargs cat | ssh localhost cat
+  Time (mean ± σ):  	5.457 s ±  0.167 s	[User: 4.464 s, System: 1.259 s]
+  Range (min … max):	5.202 s …  5.657 s	10 runs
+
+
+Benchmark #2: find . -type f | xargs cat | kubectl exec -it busybox cat
+  Time (mean ± σ): 	27.628 s ±  1.725 s	[User: 9.920 s, System: 7.203 s]
+  Range (min … max): 25.044 s … 30.926 s	10 runs
+
+
+Summary
+  'find . -type f | xargs cat | ssh localhost cat' ran
+	5.06 ± 0.35 times faster than 'find . -type f | xargs cat | kubectl exec -it busybox cat'
+```
+
+Well this is interesting. SSH is ~5x faster at sending the data through!
+
+SSH takes ~5.45s which is around 6000 KB/s.
+
+`kubectl` takes ~27.62s, around 1200 KB/s.
+
+If you know why, drop me a note at [andrew@goteleport.com](mailto:andrew@goteleport.com)!
+
+#### Remote
+```
+$ hyperfine 'find . -type f | xargs cat | ssh ubuntu cat' 'find . -type f | xargs cat | kubectl exec -it busybox cat' -r 10
+Benchmark #1: find . -type f | xargs cat | ssh ubuntu cat
+  Time (mean ± σ): 	28.794 s ±  0.627 s	[User: 10.525 s, System: 5.018 s]
+  Range (min … max): 27.788 s … 29.921 s	10 runs
+
+
+Benchmark #2: find . -type f | xargs cat | kubectl exec -it busybox cat
+  Time (mean ± σ): 	33.299 s ±  2.679 s	[User: 10.831 s, System: 8.902 s]
+  Range (min … max): 30.964 s … 40.292 s	10 runs
+
+
+Summary
+  'find . -type f | xargs cat | ssh ubuntu cat' ran
+	1.16 ± 0.10 times faster than 'find . -type f | xargs cat | kubectl exec -it busybox cat'
+```
+
+SSH is still faster, but only by ~16%.
+
+## Conclusion
+
+There’s a lot of similarities between SSH and `kubectl`, and both have their
+strengths and weaknesses. While SSH is architecturally set in stone,
+higher-level software can learn a thing or two from Kubernetes about
+centralized configuration when managing a fleet of machines. See
+[Teleport](https://github.com/gravitational/teleport/) for an example of how
+this can be done. SSH could also borrow the credential management approach from
+`kubeconfigs` (i.e. “put all my client creds and server info into one file that
+I can copy around”).
+
+`kubectl` could improve on its non-shell features like port forwarding and file
+transfer. It’s raw data throughput is also lacking, which precludes it from
+becoming a transport-layer protocol like SSH. In practice, these tools are
+complementary and get used for different tasks, it’s not “one or the other”.
+I hope this post helped you learn something new about both!

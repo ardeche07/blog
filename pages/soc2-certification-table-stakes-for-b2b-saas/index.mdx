@@ -1,0 +1,116 @@
+---
+title: SOC 2 Certification - Table Stakes for B2B SaaS
+description: In this blog post we aim to provide some clarity on what SOC 2 is, what to expect from the certification process based on our own experiences preparing for our Teleport Cloud launch
+articleTitle: SOC 2 Certification - Table Stakes for B2B SaaS
+author: Travis Gary
+date: "2020-07-29"
+tags:
+  - security
+logo:
+  image: ./assets/soc2-header.png
+  alt: Teleport SOC2
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Why get SOC 2 Type II certified? Here’s our experience.
+Just like how computers use trusted third parties and chains of trust to connect with one another, organizations use (admittedly much slower and more human powered) authoritative standards organizations (AICPA) and certified audit firms to create a trust system between organizations. It’s a similar handshake process where we agree upon our protocols before making a trusted connection.
+
+SOC 2 is one of the audits that is used to help provide assurances to companies who store their data with other service providers, which is most commonly their SaaS or cloud providers. Getting a SOC 2 Type II certification is table stakes if you are selling a SaaS B2B product so your customers can be more comfortable that their data is safe with your organization.
+
+We have been somewhat unusual in the SaaS dominated B2B software space in that we have not historically offered a SaaS offering. We develop open source software and offer commercial, open core versions of that software that our customers install and self-host on their own infrastructure. This has arguably given our customers an even higher level of trust (relative to a SOC 2 certified SaaS) when using our software, since we do not host any of their data. So it has not historically been a requirement from our customers. This is one of the big benefits of selling "on-prem software" but of course [there are many trade-offs](/blog/open-core-vs-saas-intro/).
+
+However, there are two reasons why we went through the process recently. The first, unfortunately, had to do with a bit of security theater compliance. It became overly burdensome to explain to bureaucratic compliance departments why SOC 2 is not as relevant for on-prem software. It was a checkbox they wanted checked.
+
+The second, and more relevant, is that we have announced the hosted
+version of our Teleport software, [Teleport Cloud](/pricing/). We may
+have continued to fight the good fight, debating compliance officials about
+security theater, but Teleport Cloud makes the argument moot.
+
+Given we just recently recieved our SOC 2 certification, we thought we'd share our perspectives on the process and why it's worth it to sign your company up for a potentially very expensive and time consuming certification process and a lifetime of auditing.
+
+## What is SOC 2?
+SOC 2, or Service Organization Controls, was developed by the American Institute of CPAs (AICPA). Independent audit firms regularly assess companies on adherence to controls based on five trust service areas: security, availability, processing integrity, confidentiality, and privacy.
+
+Each principal area has many many “Points of Focus” which are listed on the
+
+ AICPA’s official “Trust Service Criteria” [document](https://www.aicpa.org/content/dam/aicpa/interestareas/frc/assuranceadvisoryservices/downloadabledocuments/trust-services-criteria.pdf).
+
+## What's the audit and certification process like?
+In short, at Teleport, we hired an audit firm and went line by line down a very long spreadsheet determining which controls apply to us, describing how we satisfy each control, and finally get audited on how well we adhered to the controls we designed.
+
+The audit firm now repeats this evidence collection on an annual basis (that’s what Type II means, it’s on-going), so our customers can be assured that we are continuing to live up to our security controls.
+
+Controls are wide-ranging, including having an independent board, following proper HR practices, adhering to security vulnerabilities SLAs, using strong cryptography, and granting the right access to the right people.
+
+## What’s the time and employee commitment cost?
+We ran our project with just one project manager, myself, who was about 30% resourced to this project for one quarter. This was my first time leading an SOC 2 audit, although I had experience getting two companies IPO-ready, working on the much more stringent Sarbanes Oxley (SOX) audit, and 10 work years experience in operations and business process engineering, so I felt comfortable diving in. We fortunately had very few process changes thanks to foresight from our very experienced HR/IT/InfoSec and product teams, so our time commitments were minimized.
+
+In any audit, including the annual follow ups, time is always needed from several departments:
+
+* **HR and IT** to help provide audit evidence. This can be time consuming depending on level organization and automation.
+* **Company Officers** need to review company policies and managers need to sign off on quarterly access reviews.
+* **InfoSec and SRE** teams need to provide incident and security breach reporting and evidence.
+
+Many companies that are newer to audit processes or require significant process changes should likely consider hiring a separate firm to help them with SOC 2 readiness before meeting with an auditor. The auditors can't help you fix any insufficient processes or gaps. They can only provide guidance so you need to be sure you're ready before engaging with the auditor.
+
+If going through a readiness process, expect to spend money hiring readiness consultants
+
+and at least an extra quarter of work from the HR, IT, InfoSec and product teams working on making the process and product changes required. The time commitment from those teams can be significant, designing good processes and making good InfoSec decisions early pays dividends.
+
+
+## Will getting SOC 2 require us to implement slow ‘Big Company’ processes?
+
+I’ll be honest, we definitely had developers worried about us ‘getting corporate’ and having to log tickets and [access requests](/features/access-requests/) for everything. That’s one way of handling compliance, adding lots of hoops to jump through, but it’s not the only way.
+
+There are newer schools of thought that meet compliance requirements without getting in the way. Here are two great examples that companies at every size are quickly adopting.
+
+### Role Based Access Controls (RBAC)
+Employees and contractors automatically get access to exactly what they need based on their role. They can elevate that by building [approval workflows](/docs/enterprise/workflow/) for temporarily elevating privileges using Slack bots or integrating with Jira to make approvals quick and automated.
+
+Auditors ask many questions about granting and revoking privileges. There are 110 mentions of the word ‘access’ in the AICPA Trust Service Criteria for SOC 2. For example, expect to provide evidence that a contractor's privileged access was revoked within a day of their end date.
+
+One common “surface area” for SOC 2 compliance developers should think about is infrastructure access: AWS APIs, SSH access, Kubernetes, or any other method of accessing production environments. Our own open-source project, [Teleport](https://goteleport.com/download/), takes care of the latter two.
+
+### Beyond Corp
+In past organizations, we handled firewall rule changes with requests, reviews, approvals, and late night change windows. Now we use [Trusted Clusters](/docs/trustedclusters/), and perimeter security is of little concern.
+
+Expect auditors to ask about firewall rules and how you “protect external access points from attempts and unauthorized access and are monitored to detect such attempts.”
+
+## Why invest the time and money into getting SOC 2?
+1. Provide reassurance to customers that their data is well protected.
+2. Simplify the vendor security review process.
+3. Build a better product that makes the audit process easy for your customers.
+
+### Trust
+When you buy a SaaS product you are trusting that that company will protect your data and more importantly your customers data.
+
+It's often one of the main reasons teams choose to buy rather than build. Having your developers work on complex security and compliance requirements can take important time away from focusing on your product's unique differentiating factor. Developers tend to love working on those features and loath security and compliance projects, unless you work at Teleport, where our developers love a tricky security problem because that is part of our unique differentiating factor.
+
+So if part of your tech stack is provided by third party software, how can you trust them to safely handle your customers data?
+
+Just like how much of the internet uses trusted third parties and certificates to ensure a safe connection between computers, SOC 2 audits do too.
+
+Since SOC 2 is certified by independent auditors, you don’t have to take the company at their word. You can trust that a certified third party dug deep into their systems and processes and continue to hold them to their standards. You can combine the SOC 2 report with a third party PenTest report for a package that makes InfoSec’s vendor review process easy.
+
+### Vendor Security Reviews
+As a buyer and seller of software, we complete a lot of vendor security reviews. Part of being SOC 2 compliant is that we security review every vendor we do business with to create a chain of trust. Our process is to review SOC 2 reports, third party security audits, and whitepapers that describe the softwares architecture. If vendors don’t have SOC 2, we require them to complete a lengthy security questionnaire. Before we got SOC 2 certified, I filled out many very long security questionnaires - the process is often not that different from working with the SOC 2 auditor with many back and forth discussions on spreadsheets describing security controls. Now we only have to do that process once with our auditor rather than with each and every potential client.
+
+We choose to publish our [external audits](/resources/audits/) to make the vendor security review process quicker for customers and to promote transparency.
+
+<EmailSubscribeViolet />
+
+### Building a Better Product
+Through our own journey, we now have a much better understanding of the audit process so we are able to understand what audit features customers need without them having to ask for them first. If your developers don’t like security projects, they especially don’t like having to do them on a deadline because a critical feature needed for an audit was missing.
+
+Our better understanding of SOC 2 also helps improve our documentation. One frequently asked question we got was “What specific audit controls do your products help with” so we published a new documentation page on it. We plan to further improve our documentation with specific how to post’s on handling quarterly and annual access review audits.
+
+Now that we have to go through SOC 2 audits ourselves it’s much easier to put ourselves in the customer's shoes and make great features and documentation to make everyone's compliance headaches go away.
+
+## Conclusion
+SOC 2 can be a difficult and expensive process, but it's essential to provide trust to your customers. In the best case scenario, you can get SOC 2 done in a quarter with a part time project manager with just a little time from HR and IT.
+
+Making good security and process decisions early pays huge dividends later. You never want to be up against a deadline and need to pay high priced consultants to lead a huge cross functional project. It can pull your developers away from working on your products' key differentiators and a large, sudden process change does not make for happy employees.
+
+We recommend that any SaaS company get SOC 2 early or get certified even before the release of your SaaS product to ensure a smooth launch that has security and compliance baked in rather than needing a last minute bolt on.
