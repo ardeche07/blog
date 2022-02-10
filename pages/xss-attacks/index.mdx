@@ -1,0 +1,661 @@
+---
+title: Preventing XSS Attacks
+articleTitle: XSS Attack Examples and Mitigations
+description: Understanding Cross-Site Scripting (XSS) and Its Mitigations.
+date: "2021-02-23"
+author: Russell Jones
+logo:
+  image: ./assets/csrf.png
+  alt: XSS Attacks Introduction
+tags:
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## What is an XSS Attack?
+
+Cross-site scripting (XSS) is an attack that allows JavaScript from one site to run on another. XSS is interesting not due to the technical
+difficulty of the attack but rather because it exploits some of the core security mechanisms of web browsers and because of its sheer
+pervasiveness. Understanding XSS and its mitigations provides substantial insight into how the web works and how sites are safely (and
+unsafely) isolated from each other.
+
+## Background of XSS Attacks
+
+Initially the web was a collection of static HTML documents that the browser would render for users to view. As the web grew, demands for
+richer documents grew, which led to the development of JavaScript and cookies: JavaScript to make documents interactive and cookies to allow
+browsers to save the state of a document.
+
+The advent of these features led to browsers not only rendering HTML documents, but also providing an in-memory representation of the
+document called the Document Object Model (DOM) as an API to the document for developers. The DOM gave developers a tree-based
+representation of the HTML tags of a document and also access to cookies to retrieve the state of the document. As time went on, the DOM
+went from a largely read-only structure to a read-write structure where updating the DOM would lead to re-rendering of the document.
+
+Once documents gained the ability to execute code, browsers needed to define the execution context for JavaScript programs. The policy that
+was developed is called the Same-Origin policy and is still one of the fundamental security primitives of browser security. Originally, the
+Same-Origin policy stated that JavaScript within one document can only access its own DOM and the DOMs of other documents with the same
+origin. Later when `XMLHttpRequest` (and now `Fetch`) were added, a modified version of the same origin policy followed. These APIs could
+issue requests to any origin, they could only read the response to requests from the same origin.
+
+What exactly is an origin? It’s the tuple of protocol, hostname, and port of a document.
+
+```
+https://www.example.com:443/app
+^^^^^   ^^^^^^^^^^^^^^^ ^^^
+Scheme  Host            Port
+```
+
+_Figure 1: Scheme, host, and port of this url is the tuple that composes a browser origin._
+
+<BlogImage
+  src="./assets/same-origin.png"
+  width="100%"
+  alt="XSS Attacks Same Origin Diagram"
+/>
+
+_Figure 2: An illustration of the Same-Origin in action. JavaScript running on www.evil.com is unable to access the DOM of www.example.com._
+
+The Same-Origin policy has been great in mitigating attacks on static sites as illustrated in Figure (2). However, attacks on dynamically generated sites that accept user input have been quite difficult because the web allows mixing of code and data. Mixing code and data allows attacker-controlled input to execute within the origin of the document.
+
+XSS attacks typically manifest themselves in three broad manners: reflected, stored, and DOM-based.
+
+Reflected and stored XSS attacks are fundamentally the same, as they both rely on malicious input being sent to the backend server and the server (at some point) presenting that input to the user. Reflected XSS occurs immediately, usually in the form of a maliciously crafted link by the attacker that the victim then clicks. Stored XSS occurs when the attacker uploads malicious input that is later displayed to the user. DOM-based attacks are different in that they occur purely client-side and involve malicious input manipulating the DOM.
+
+If you didn’t fully grasp the forms above, don’t worry, they’ll make more sense as we cover some examples below.
+
+## Examples
+
+### Reflected XSS Attacks
+
+Below you can see a simple Go-based web application that "reflects" its input (even if it’s a malicious script) back to the user. You can run this application by saving it in a file called `xss1.go` and then typing `go run xss1.go`.
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("X-XSS-Protection", "0")
+
+    messages, ok := r.URL.Query()["message"]
+    if !ok {
+       messages = []string{"hello, world"}
+    }
+    fmt.Fprintf(w, "<html><p>%v</p></html>", messages[0])
+}
+
+func main() {
+    http.HandleFunc("/", handler)
+    log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+}
+```
+
+_Figure 3: An example of a web application with a reflected XSS attack in it._
+
+To see the XSS attack navigate to the vulnerable URL below.
+
+```bash
+http://localhost:8080?message=<script>alert(1)</script>
+```
+
+Take a look at the source, and you’ll see the server returned a document that looks something like the one in Figure (4). Note how the mixing of code and data allowed this attack to occur.
+
+```html
+<html>
+  <p>
+    <script>
+      alert(1);
+    </script>
+  </p>
+</html>
+```
+
+_Figure 4: Example output of a web application vulnerable to XSS._
+
+Admittedly, this may seem like a somewhat contrived example because XSS protection was explicitly disabled. However this form of XSS protection has always been heuristic-based with a variety of workarounds for different browsers. It was disabled to create simple cross-browser examples that illustrate the core concepts of XSS attacks. Furthermore, some browsers are removing these heuristic-based XSS protections, for [example if you are running Chrome 78 or above](https://www.chromestatus.com/feature/5021976655560704), you don’t need to include the `w.Header().Set("X-XSS-Protection", "0")` line for this attack to work.
+
+### Stored XSS Attacks
+
+Stored XSS attacks are fundamentally similar to reflected attacks, the main difference being the attack payload comes from a datastore instead of directly from the input. For example, an attacker will upload the payload to the web application which will then be shown to every logged in user.
+
+Below is a simple chat application written in Go that illustrates a stored XSS attack. You can run this application by saving it in a file called `xss2.go` and then typing `go run xss2.go`.
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"strings"
+	"sync"
+)
+
+var db []string
+var mu sync.Mutex
+
+var tmpl = `
+<form action="/save">
+  Message: <input name="message" type="text"><br>
+  <input type="submit" value="Submit">
+</form>
+%v
+`
+
+func saveHandler(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	r.ParseForm()
+	messages, ok := r.Form["message"]
+	if !ok {
+		http.Error(w, "missing message", 500)
+	}
+
+	db = append(db, messages[0])
+
+	http.Redirect(w, r, "/", 301)
+}
+
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-XSS-Protection", "0")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	var sb strings.Builder
+	sb.WriteString("<ul>")
+	for _, message := range db {
+		sb.WriteString("<li>" + message + "</li>")
+	}
+	sb.WriteString("</ul>")
+
+	fmt.Fprintf(w, tmpl, sb.String())
+}
+
+func main() {
+	http.HandleFunc("/", viewHandler)
+	http.HandleFunc("/save", saveHandler)
+	log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+}
+```
+
+_Figure 5: An example of a web application with a stored XSS attack in it._
+
+To see the XSS attack, navigate to `http://localhost:8080` and type in the message `<script>alert(1);</script>`.
+
+The attack occurs in two phases. First, the attack payload is saved to the datastore in the `storeHandler` function. Next, when the page is rendered in `viewHandler`, the attack payload is directly added to the output.
+
+Once again, the culprit is the allowing of mixing of data and code. The browser has no way to tell if the payload was intentional or malicious.
+
+### DOM-Based XSS Attacks
+
+DOM-based XSS attacks don’t involve the backend and occur purely client-side. They’re also quite interesting because modern web applications are moving logic to the client. DOM- based XSS attacks occur when user input is allowed to directly manipulate the DOM in unsafe ways. The good news for attackers is that the DOM has a wide variety of ways it can be abused, the most popular being `innerHTML` and `document.write`.
+
+Below is an example of a web application that serves static content. It’s fundamentally the same as the reflected XSS example, but here the attack will occur entirely client- side. You can run this application by saving it in a file called `xss3.go` and then typing `go run xss3.go`.
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+)
+
+const content = `
+
+<html>
+   <head>
+       <script>
+          window.onload = function() {
+             var params = new URLSearchParams(window.location.search);
+             p = document.getElementById("content")
+             p.innerHTML = params.get("message")
+	     };
+       </script>
+   </head>
+   <body>
+       <p id="content"></p>
+   </body>
+</html>
+`
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("X-XSS-Protection", "0")
+    fmt.Fprintf(w, content)
+}
+
+func main() {
+    http.HandleFunc("/", handler)
+    log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+}
+```
+
+_Figure 6: An example of a web application with a DOM-based XSS attack in it._
+
+To see this attack, navigate to `http://localhost:8080/?message="<BlogImage src=1 onerror=alert(1);/>"`. Note that the attack vector is slightly different, and the XSS sink `innerHTML` won’t execute a script directly; however, it will add HTML elements which will then execute JavaScript. In the example given, an image element is added that executes JavaScript when an error occurs. The error always occurs because the attacker conveniently always provides an invalid source.
+
+If you want to directly add a script element, you’ll have to use a different XSS sink. As we mentioned, you’re in luck because the DOM provides a wide variety of dangerous sinks. Replace the script element in Figure (6) with the script element in Figure (7) and navigate to the following URL `http://localhost:8080/?message="<script>alert(1);</script>"`. This attack works because `document.write` accepts script elements directly.
+
+```go
+<script>
+   window.onload = function() {
+      var params = new URLSearchParams(window.location.search);
+      document.open();
+      document.write(params.get("message"));
+      document.close();
+   };
+</script>
+```
+
+_Figure 7: Another example of DOM-based XSS attack._
+
+### Related Avenues of Attack
+
+While not typically referred to as XSS attacks, a few related avenues exist that are worth mentioning.
+
+#### Content-Type
+
+A related avenue of attack is incorrectly setting the `Content-Type` of HTTP responses. This can occur both at the backend level (response has incorrect Content-Type header set) or if the browser tries to sniff the MIME type. Internet Explorer was particularly susceptible to this, with the classic example being an image upload service where an attacker uploads JavaScript instead. The browser sees the Content-Type was set to `image/jpg`, but the payload contains JavaScript and executes JavaScript turning it into a XSS attack.
+
+#### URL Schemes
+
+Another related avenue of attack is through URLs whose scheme is JavaScript. For example, imagine a website which allows the user to control the target of a link as in Figure (8). If the attacker can control the target, the attacker can provide a URL that executes JavaScript by using the JavaScript scheme.
+
+To see this type of attack in action, you can run this application by saving it in a file called `xss4.go` and then typing `go run xss4.go`. To see the XSS attack, navigate to `http://localhost:8080?link=javascript:alert(1)`.
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+)
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("X-XSS-Protection", "0")
+
+    links, ok := r.URL.Query()["link"]
+    if !ok {
+        messages = []string{"example.com"}
+    }
+    fmt.Fprintf(w, `<html><p><a href="%v">Next</p></html>`, links[0])
+}
+
+func main() {
+    http.HandleFunc("/", handler)
+    log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+}
+```
+
+_Figure 8: XSS attack introduced through a URL scheme._
+
+## Mitigations
+
+Unfortunately, no single mitigation for XSS exists. If it did, XSS would not be the widespread and pervasive issue that it is. As seen in the previous section, the fundamental problem of XSS is caused by the lack of separation between code and data. Mitigations for XSS typically involve sanitizing data input (to make sure input does not contain any code), escaping all output (to make sure data is not presented as code), and re-structuring applications so code is loaded from well-defined endpoints.
+
+### Input Sanitization
+
+The first line of defense against XSS is input sanitization. Whenever accepting any data, ensure the format of the data is what you expect. In effect, this whitelists data to ensure that the application does not accept any code.
+
+Unfortunately, input sanitization is a hard problem. No general tooling or technique exists for all situations and all applications. The best bet is to structure your application such that it requires developers to think about the type of data that is being accepted and provide a convenient location where sanitization can not only be placed, but expected.
+
+A good pattern when writing Go applications is to not have any of your application logic within your HTTP request handlers and to instead use your HTTP request handlers to parse and validate input, which is then sent off to some other package (or struct) that handles application logic. The request handlers become not only dead simple, but provide a convenient centralized location to look during code reviews to make sure input is being correctly sanitized.
+
+Figure (9) shows how we could rewrite the saveHandler to work with the limitation that only ASCII characters `[A-Za-z\.]` should be accepted.
+
+```go
+func saveHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	messages, ok := r.Form["message"]
+	if !ok {
+		http.Error(w, "missing message", 500)
+	}
+
+	re := regexp.MustCompile(`^[A-Za-z\\.]+$`)
+	if re.Find([]byte(messages[0]))) == "" {
+		http.Error(w, "invalid message", 500)
+	}
+
+	db.Append(messages[0])
+
+	http.Redirect(w, r, "/", 301)
+}
+```
+
+_Figure 9: An example of using HTTP request handlers to validate data._
+
+While this may seem somewhat contrived, after all, a chat application typically has to accept much more than the limited characters in Figure (9). However, it should be noted that a lot of data that applications accept is quite structured. Addresses, phone numbers, zip codes, and much more haves inherent structure that can be validated.
+
+### Output Escaping
+
+The next line of defense is output escaping. To continue with the example of a chat application, it had a telltale sight of an XSS bug: HTML was handwritten. In the case of the chat application, whatever was extracted from the database was injected directly into the output document.
+
+The same application could be made substantially safer (even if code was injected into it) by escaping all unsafe output. In fact, this is exactly what the html/template package in Go does. Instead of handwriting the output document, using a templating language and using a contextually aware parser to escape data before it’s rendered will reduce the chances of malicious data being executed.
+
+Below is an example that uses the `html/template` package. You can run this application by saving it in a file called `xss5.go` and then typing `go run xss5.go`.
+
+```go
+package main
+
+import (
+	"bytes"
+	"html/template"
+	"io"
+	"log"
+	"net/http"
+	"sync"
+)
+
+var db []string
+var mu sync.Mutex
+
+var tmpl = `
+<form action="/save">
+  Message: <input name="message" type="text"><br>
+  <input type="submit" value="Submit">
+</form>
+<ul>
+{{range .}}
+    <li>{{.}}</li>
+{{end}}
+</ul>`
+
+func saveHandler(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	r.ParseForm()
+	messages, ok := r.Form["message"]
+	if !ok {
+		http.Error(w, "missing message", 500)
+	}
+
+	db = append(db, messages[0])
+
+	http.Redirect(w, r, "/", 301)
+}
+
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-XSS-Protection", "0")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	t := template.New("view")
+
+	t, err := t.Parse(tmpl)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	var buf bytes.Buffer
+
+	err = t.Execute(&buf, db)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	io.Copy(w, &buf)
+}
+
+func main() {
+	http.HandleFunc("/", viewHandler)
+	http.HandleFunc("/save", saveHandler)
+	log.Fatal(http.ListenAndServe("127.0.0.1:8080", nil))
+}
+```
+
+_Figure 10: Using output escaping to mitigate stored XSS attacks._
+
+Try the XSS attack used previously by navigating to `http://localhost:8080` and typing in `<script>alert(1);</script>` to the input box. Notice that the alert was not triggered.
+
+To see what’s happening, open your browser console and take a look at the `li` element in the DOM. Two properties are of interest: `innerHTML` and `innerText`.
+
+```javascript
+innerHTML: "&lt;script&gt;alert(1);&lt;/script&gt;";
+innerText: "<script>alert(1);</script>";
+```
+
+_Figure 11: Inspecting the DOM when using output escaping._
+
+Notice how using output escaping, we were able to cleanly separate code and data mitigating an XSS attack?
+
+### Content Security Policy
+
+Content Security Policy (CSP) allows web applications the ability to define a set of whitelisted sources to load content from (like scripts from). CSP can be leveraged to separate code and data by denying inline scripts and only loading scripts from certain sources.
+
+Writing a CSP for small self-contained applications is straightforward — start with a policy that denies all sources by default then allow in a small set of trusted sources. However, writing an effective CSP for large sites has always been difficult. Once a site starts loading content from external sources, like embedding a Tweet, the CSP becomes large and unwieldy. Some developers give up entirely and include the `unsafe-inline` directive, defeating the purpose of CSP altogether.
+
+To simplify writing a CSP, CSP3 introduced the `strict-dynamic` directive. Instead of maintaining a large whitelist of trusted sources, applications generate a random number (nonce) each time a page is requested. This nonce is sent along with the headers of the page and embedded into `script` tags. This directs browsers to trust those scripts with the matching nonce as well as any scripts they may load. This means instead of whitelisting the scripts and trying to find out what other scripts they load and then whitelisting them, and doing this recursive pattern over and over, you only have to whitelist the top-level script you are importing.
+
+[Google maintains an excellent resource on how to write an effective CSP using the strict-dynamic directive](https://csp.withgoogle.com/docs/index.html). Using the “Strict CSP” approach suggested by Google, let’s take a look at what a simple application that accepts user input and also embeds a tweet would look like. You can run this application by saving it in a file called `xss6.go` and then typing `go run xss6.go`.
+
+```go
+package main
+
+import (
+	"bytes"
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"strings"
+)
+
+const scriptContent = `
+document.addEventListener('DOMContentLoaded', function () {
+   var updateButton = document.getElementById("textUpdate");
+   updateButton.addEventListener("click", function() {
+      var p = document.getElementById("content");
+      var message = document.getElementById("textInput").value;
+      p.innerHTML = message;
+   });
+};
+`
+
+const htmlContent = `
+<html>
+   <head>
+      <script src="script.js" nonce="{{ . }}"></script>
+   </head>
+   <body>
+       <p id="content"></p>
+
+       <div class="input-group mb-3">
+         <input type="text" class="form-control" id="textInput">
+         <div class="input-group-append">
+           <button class="btn btn-outline-secondary" type="button" id="textUpdate">Update</button>
+         </div>
+       </div>
+
+       <blockquote class="twitter-tweet" data-lang="en">
+         <a href="https://twitter.com/jack/status/20?ref_src=twsrc%5Etfw">March 21, 2006</a>
+       </blockquote>
+       <script async src="https://platform.twitter.com/widgets.js"
+         nonce="{{ . }}" charset="utf-8"></script>
+
+   </body>
+</html>`
+
+func generateNonce() (string, error) {
+buf := make([]byte, 16)
+\_, err := rand.Read(buf)
+if err != nil {
+return "", err
+}
+
+    return base64.StdEncoding.EncodeToString(buf), nil
+
+}
+
+func generateHTML(nonce string) (string, error) {
+var buf bytes.Buffer
+
+    t, err := template.New("htmlContent").Parse(htmlContent)
+    if err != nil {
+    	return "", err
+    }
+
+    err = t.Execute(&buf, nonce)
+    if err != nil {
+    	return "", err
+    }
+
+    return buf.String(), nil
+
+}
+
+func generatePolicy(nonce string) string {
+s := fmt.Sprintf(`'nonce-%v`, nonce)
+var contentSecurityPolicy = []string{
+`object-src 'none';`,
+fmt.Sprintf(`script-src %v 'strict-dynamic';`, s),
+`base-uri 'none';`,
+}
+return strings.Join(contentSecurityPolicy, " ")
+}
+
+func scriptHandler(w http.ResponseWriter, r \*http.Request) {
+nonce, err := generateNonce()
+if err != nil {
+returnError()
+return
+}
+
+    w.Header().Set("X-XSS-Protection", "0")
+    w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+    w.Header().Set("Content-Security-Policy", generatePolicy(nonce))
+
+    fmt.Fprintf(w, scriptContent)
+
+}
+
+func htmlHandler(w http.ResponseWriter, r \*http.Request) {
+nonce, err := generateNonce()
+if err != nil {
+returnError()
+return
+}
+
+    w.Header().Set("X-XSS-Protection", "0")
+    w.Header().Set("Content-Type", "text/html; charset=utf-8")
+    w.Header().Set("Content-Security-Policy", generatePolicy(nonce))
+
+    htmlContent, err := generateHTML(nonce)
+    if err != nil {
+
+returnError()
+return
+}
+
+    fmt.Fprintf(w, htmlContent)
+
+}
+
+func returnError() {
+http.Error(w, http.StatusText(http.StatusInternalServerError),
+http.StatusInternalServerError)
+}
+
+func main() {
+http.HandleFunc("/script.js", scriptHandler)
+http.HandleFunc("/", htmlHandler)
+log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+`
+```
+
+_Figure 12: An example of CSP mitigating an XSS attack._
+
+To try and exploit this application, navigate to the `http://localhost:8080` and try and submit `<BlogImage src=1 onerror"alert(1)"/>` like before. This attack would have worked without a CSP, but because the CSP does not allow inline scripts, you should see something like the following in your browser console.
+
+Refused to execute inline event handler because it violates the following Content Security Policy directive: `"script-src 'nonce-XauzABRw9QtE0bzoiRmslQ==' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:"` Note that `'unsafe-inline'` is ignored if either a hash or nonce value is present in the source list.
+
+Why was the inline script that the attacker included rejected? Let’s take a closer look at the CSP.
+
+```
+script-src 'strict-dynamic' 'nonce-XauzABRw9QtE0bzoiRmslQ==';
+object-src 'none';
+base-uri 'none';
+```
+
+_Figure 13: A basic strong CSP. The nonce is re-generated for every request — the above nonce is just an example._
+
+What does this policy do? As mentioned above, the `script-src` directive includes `strict-dynamic` and the nonce value used to load scripts. This means the only scripts that will be loaded will be from script elements where the nonce is included in an attribute; critically, this means no inline scripts will be loaded. The last two directives prevent plugins from loading and prevents the base URL for the application from being changed.
+
+The main complication of using this approach is that a nonce needs to be generated for every page load and injected into the headers and script elements in the response. As Figure (13) illustrates, this is a fairly straightforward process, which furthermore only needs to happen once. After that, the pattern can be applied to all page loads.
+
+### Related Mitigation Techniques
+
+#### Content-Type
+
+As we saw in the related attack section, not only should you always set your content type, but you should also — to prevent some browser to still try and automatically detect the content type — use the `X-Content-Type-Options: nosniff` header.
+
+#### Virtual DOMs
+
+While Virtual DOMs are not a security feature by design, modern web application frameworks like React and Vue that use a Virtual DOMs can help mitigate DOM-based XSS attacks.
+
+These frameworks work by building a DOM in parallel to the one in the browser and comparing them. Where the DOM is different, that part of the browser DOM is then updated. To do this, the Virtual DOM needs to be built, and these frameworks discourage the user of things like `innerHTML` and pushes developers to use things like `innerText`.
+[React requires the use of the dangerouslySetInnerHTML](https://reactjs.org/docs/dom-elements.html#dangerouslysetinnerhtml) attribute while [Vue points out that using innerHTML can introduce XSS vulnerabilities to your application](https://vuejs.org/v2/guide/syntax.html#Raw-HTML).
+
+Having a framework that by default makes the safe choice and makes the developer make a conscientious dangerous choice goes quite a way in reducing DOM-based XSS attacks.
+
+### Future Work
+
+Google has been doing quite a bit of interesting work in the XSS mitigation area. Two of the biggest things coming soon are [Trusted Types](https://developers.google.com/web/updates/2019/02/trusted-types) in Chrome and CSP improvement proposals by Google Engineer Mike West.
+
+#### Trusted Types
+
+As mentioned in the DOM-based XSS attacks section, the DOM API provides a wide variety of sinks that can trigger an XSS attack. Trusted Types is a forward-looking attempt in Chrome to fix this problem. Instead of allowing sinks to accept raw strings, with Trusted Types, sinks only accept data which has passed through a Trusted Type policy. An example can be seen in the blog post linked above.
+
+```javascript
+const templatePolicy = TrustedTypes.createPolicy("template", {
+  createHTML: (templateId) => {
+    const tpl = templateId;
+    if (/^[0-9a-z-]$/.test(tpl)) {
+      return `<link rel="stylesheet" href="./templates/${tpl}/style.css">`;
+    }
+    throw new TypeError();
+  },
+});
+
+const html = templatePolicy.createHTML(
+  location.hash.match(/tplid=([^;&]*)/)[1]
+);
+// html instanceof TrustedHTML
+document.head.innerHTML += html;
+```
+
+_Figure 14: Example from Trusted Types helps prevent Cross-Site Scripting._
+
+This provides a convenient location for input sanitization to the frontend. Trusted Types is not a magic bullet. It doesn’t prevent developers from writing bad policy like allowing .\*, but it does centralize input validation and force developers to conscientiously make a bad decision.
+
+#### CSP Proposals
+
+Mike West also has some proposals on how to modify CSP, which in his words would ["break CSP in half and throw away some options while we're at it"](https://github.com/mikewest/strict-csp-for-everyone) and another proposal for browser to [automatically enforce strict CSP](https://github.com/mikewest/csp-next) for all sites forcing developers to explicitly opt-out of the safety features.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+If you’ve gotten this far, you should have a reasonable understanding of what
+XSS bugs are and how to mitigate them and hopefully a better understanding of
+how browsers work.
+
+XSS is difficult to eradicate from web applications, especially as they get
+larger. However, by applying the techniques mentioned in this article, it
+should make the lives of attackers more difficult.
+
+If you enjoyed this article, you may want to learn more about another common
+type of web application vulnerability: [CSRF Attacks](https://goteleport.com/blog/csrf-attacks).

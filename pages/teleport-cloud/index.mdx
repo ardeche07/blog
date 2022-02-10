@@ -1,0 +1,128 @@
+---
+title: SSH and Kubernetes Access | Teleport Cloud
+articleTitle: Introducing Teleport Cloud
+description: Teleport Cloud brings cloud-based access to SSH servers and Kubernetes clusters anywhere in the world.
+date: "2020-12-01"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/teleport-cloud-header.png
+  alt: access points revollving around Teleport
+tags:
+  - company
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+This blog post marks an important milestone for us! Just four years ago, as we grew frustrated with the state of SSH server access, Teleport
+was born. Eventually it grew way bigger than just SSH access, as our users want to use the same access workflow for all layers of their
+stacks.
+
+And today we’re announcing another way to use Teleport: as a hosted offering. Let’s dig deeper!
+
+## What is Teleport?
+
+For those who don’t know, Teleport is an open-source [Access Plane](https://goteleport.com/), i.e. a smart proxy that understands all common
+remote access protocols. We’ve started with SSH and are adding others quickly. Available as a [single binary
+download](https://goteleport.com/teleport/download/), it allows engineers to access their servers, Kubernetes clusters, or internal web
+applications (dashboards, etc) regardless of where they are - on any cloud, behind NAT, in a self-driving car, anywhere.
+
+Teleport started as an experiment of using Golang’s first-class SSH facilities for our own SSH access needs. Other companies noticed, and in
+just a couple of years it’s gone from just a handful of early adopters to organizations like NASDAQ, Snowflake, and IBM trusting Teleport to
+access their environments across any infrastructure.
+
+Teleport gives the industry best practices for secure access by default: the SSH proxy, identity-centric authentication, [session
+recording](https://goteleport.com/blog/enhanced-session-recording/), structured [audit
+log](https://goteleport.com/resources/videos/webinar-kubernetes-audit-logging/), etc. This is how [SSH is done
+properly](https://goteleport.com/blog/how-to-ssh-properly/) at Silicon Valley unicorns, usually with something built in-house. We wanted
+Teleport to be the standard access solution for the rest of the world.
+
+Then we discovered that Kubernetes users face similar challenges and Teleport added support for [Kubernetes
+access](https://goteleport.com/kubernetes-access/), gradually turning into a multi-protocol access plane.
+
+We always believed that _bad user experience and complexity are the biggest obstacles to good security_. That is why Teleport was designed
+to be simple and easy to use.
+
+## Cloud Preview
+
+From the beginning, we have adopted the design mindset to “do the right thing by default” to minimize the need for configuration and to
+reduce operational overhead of running Teleport on your infrastructure.
+
+As easy as it is, some users still preferred that we do it for them. There’s a huge distance between “easy” and “one click away” and today,
+we’re closing this gap.
+
+We are announcing the preview release of Teleport Cloud. Teleport Cloud allows you to simply copy-paste a single CLI command on your
+servers, regardless of where they are, and you’ll get SSH and Kubernetes access to all of your environments with industry best practices for
+security and compliance. Our security and compliance experts will run and manage the Access Plane for you.
+
+When we say all of your environments, we literally mean any computing device on planet Earth. Teleport Cloud gives you remote access
+connectivity into:
+
+- Cloud and on-premise environments
+- IoT devices running on your customer’s premises behind NAT
+- Edge environments
+
+What do we mean by remote access connectivity? We mean full support for the following protocols:
+
+- SSH
+- Kubernetes API
+- HTTPS for accessing internal web apps
+- Databases (coming soon)
+
+We called it Teleport because we wanted to get as close as possible to defeating the laws of physics. In other words, we set out to erase
+the annoying boundaries that currently exist between cloud providers and networks.
+
+## How does it work?
+
+The underlying technology behind Teleport Cloud is reverse tunnels. A reverse tunnel is a persistent secure connection established by your
+servers into the Teleport control plane hosted by the team at Teleport.
+
+When you type `ssh user@node`, the Teleport client connects to the node via the SSH proxy hosted by us. The proxy routes your connection to
+the node using the tunnel. This allows you to SSH into nodes that are running behind NAT, even on third party infrastructure. This
+technology can be used not only to deploy software into your own clouds, but also to update software or firmware on appliances running in
+your customer’s clouds or even in their basements.
+
+You can also log in into your Teleport Cloud account to access servers, review audit logs, and configure role-based access via the control
+panel. The audit log deserves a special mention. Having a centralized audit log with recorded sessions and instant visibility into your
+environment has always been a major reason for organizations to adopt Teleport.
+
+The diagram below shows how this works:
+
+<BlogImage
+  src="./assets/teleport-cloud-1.png"
+  width="100%"
+  alt="how Teleport Cloud works"
+/>
+
+Teleport Cloud is running on AWS. The audit logs are encrypted at rest and stored in DynamoDB and Amazon S3. We have also taken some measures to isolate Teleport Cloud tenants, so every Teleport Cloud instance is an isolated single tenant and is running as a standalone process with SELinux profile and a separate kIAM role using the industry [best security practices](https://github.com/gravitational/workshop/blob/master/k8ssecurity.md).
+
+## FAQ
+
+**Q: Can the Teleport Team decrypt and see my SSH traffic?**
+**A:** No. We cannot see your SSH traffic, because encryption happens end-to-end, i.e. from your client machines to your servers.
+
+**Q: Preview Release? Is this production-ready?**
+**A:** Teleport itself has been in production at organizations like Samsung, Snowflake, and IBM, and Teleport Cloud is the same product,
+just hosted by us. We are hand-selecting early Cloud users because Teleport Cloud isn’t yet available in every geographic region and also
+because we want more UX feedback before we make it generally available.
+
+**Q: Can I use Teleport Cloud Preview in production?**
+**A:** We expect Teleport Cloud to be suitable to use in non mission critical systems that do not require 24/7 access or a guaranteed SLA.
+We recommend a fallback option be available in the event of error or outage.
+
+**Q: Are you using AWS-managed encryption keys, or CMKs via KMS?**
+**A:** We use AWS-managed keys. Currently there is no option to provide your own key.
+
+[See More FAQ](https://goteleport.com/docs/cloud/introduction/)
+
+<EmailSubscribeViolet />
+
+## Starting with Teleport Cloud
+
+If you are interested in trying a fully hosted Teleport, or simply want to hear
+more, please [sign up here](https://goteleport.com/pricing/) and let us know what you think!
+
+Initially, we are focusing on the most common US-based hosting regions, but we
+need more input from you on where to go next. Teleport will not be worthy of
+its name until you can instantly “teleport” your software anywhere you want!

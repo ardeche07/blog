@@ -1,0 +1,126 @@
+---
+title: Fuzzing | Teleport OSS | Ada Logics
+articleTitle: How We Use Fuzzing Integrated by Ada Logics
+description: A fuzzer is a program that passes randomized data to an entrypoint of a target application. The goal is to stress test the target application.
+date: "2020-12-20"
+author: Adam Korczynski, Andrew Lytvynov
+logo:
+  image: ./assets/fuzzing-header.png
+  alt: fuzzing teleport ada logics
+tags:
+  - engineering
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+This summer, [Ada Logics](https://adalogics.com/) integrated continuous fuzzing into Teleport to strengthen the security posture of the
+project. We’d like to thank [Adam Korczynski](https://twitter.com/AdamKorcz4) from Ada Logics for initiating contact and doing the work. In
+this blog post, we will give a brief introduction to fuzzing and explain how to carry on the work moving forward.
+
+The motive for this work was to take the first steps in implementing fuzzing into Teleport’s development pipeline. In essence, this included
+constructing an initial set of fuzzers as well as integrating Teleport into OSS-Fuzz, which is a service offered by Google to continuously
+fuzz important open source projects.
+
+## What is fuzzing?
+
+A fuzzer is a program that passes randomized data to an entrypoint of a target application. The goal is to stress test the target
+application by finding inputs that bring the application into an undesirable and buggy state. In recent years, fuzzing has made tremendous
+progress, and the open source fuzzing project OSS-Fuzz has, to date, found more than 20,000 bugs and vulnerabilities in more than 350 open
+source projects.
+
+The fuzzers written for the Teleport project were implemented by way of [go-fuzz](https://github.com/dvyukov/go-fuzz). Go-fuzz is a fuzzing
+engine that handles the input data generation as well as passing this data to the entrypoint defined in a fuzz harness. Go-fuzz is a
+coverage-guided fuzzer, which from a high-level perspective means that the fuzzer uses coverage information from the target execution to
+continuously explore more and more code in the target. This type of fuzzing is by far the most widely used technique and is often the most
+effective technique as argued by [Mateusz
+Jurczyk](https://googleprojectzero.blogspot.com/2016/07/a-year-of-windows-kernel-font-fuzzing-2.html) of Google’s Project Zero:
+
+“As AFL, LibFuzzer and other coverage-guided fuzzers have recently shown, this single feature can improve fuzzing results by an order of
+magnitude, depending on the target software, nature of input data and quality of the initial corpus.”
+
+## How does fuzzing help Go projects?
+
+Fuzzing has had a tremendous impact on memory-unsafe languages like C and C++. Go, on the other hand, is a memory-safe language and the bugs
+we can find in Go projects are a bit different than traditional memory corruption vulnerabilities. Two examples of popular bugs in Go are,
+“slice access out of range” and “nil pointer dereference,” which cause a program to panic (crash). The maintainer of go-fuzz has
+conveniently created a list with many of the findings from Go-Fuzz that is accessible [here](https://github.com/dvyukov/go-fuzz#trophies). A
+quick scroll will show some large projects on the list, including multiple bug reports submitted to the standard library.
+
+Go-fuzz has also found various security critical bugs in popular open source projects.
+[CVE-2019-11254](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-11254) in Kubernetes was found by a fuzzer running on the OSS-fuzz
+platform, and [CVE-2019-13126](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-13126) was found in the NATS Server project by
+independent researchers.
+
+## Continuous fuzzing
+
+To provide a sustainable solution, Teleport’s fuzzers now run continuously through OSS-fuzz. OSS-fuzz is a project by Google that offers an
+infrastructure free of charge for open source projects to run, monitor, and manage fuzzers. The costs of running them are covered by Google
+as well and fuzz runs are scheduled to run them automatically. OSS-fuzz handles the collection of corpus of the fuzzers and uses this corpus
+for future runs, and statistics of runs and bug reports are available through a dashboard.
+
+What this means for Teleport is that the two initial fuzzers as well as all future ones added to the project on github will run continuously
+through OSS-fuzz.
+
+It furthermore means that Teleport is supported by a dedicated team that works on implementing the latest techniques and research into
+OSS-fuzz to support all the projects on the platform. Over time, this will prove fruitful as new features are introduced to improve the
+effectiveness of the existing fuzzers.
+
+## First finding
+
+And we already have some results! The fuzzers found [an issue](https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=27505) in Teleport’s
+RBAC expression parser.
+
+Teleport’s [RBAC](https://goteleport.com/teleport/features/rbac-for-ssh/) expressions are of the form `{{external.claim_name}}` and are used to dynamically
+configure access rules based on information received from the SSO provider (e.g. the groups that a user belongs to).
+
+Most of the time, this expression will be two levels deep `({{internal.user}}` or `{{external.claim_name}}`) but there are more complex cases.
+To keep the code flexible, we walked the entire expression however long it took. Unfortunately, our expression walking code was recursive
+and allocated a lot of small buffers along the way. The performance and memory use grew **exponentially** with the number of levels in the
+expression!
+
+When provided with a very long expression, like `{{a.a.a.a...100,000 times...a.a.a}}`, the parser would take minutes and consume a huge chunk
+of available memory. Sending an expression 1MB large, an attacker could DoS (denial of service) the Teleport instance.
+
+Luckily, to submit such an expression to Teleport, an attacker needs privileged access to the Teleport auth service, usually reserved for
+administrators. Therefore, we [fixed](https://github.com/gravitational/teleport/pull/4848) this in the public in Teleport 5.0.0 without
+backporting it to earlier versions.
+
+<EmailSubscribeViolet />
+
+## How you can help
+
+We’re off to a great start with fuzzing, but it’s just the beginning. To catch more issues we need more fuzzers for code that accepts
+external input.
+
+This is where open source contributions are helpful! If you use Teleport, this is a good way to increase your confidence in its security and
+stability. If you want to learn practical fuzzing, Teleport is a great target to start. Don’t worry, you won’t be on the hook to fix any
+nasty findings, the Teleport team can take care of that.
+
+Don’t want to let a company benefit from your free work? That’s understandable, but consider fuzzing your own code or contributing fuzzers
+to other OSS projects!
+
+### Writing a fuzzer
+
+It’s quite easy - all you need is a bit of Go knowledge, familiarity with GitHub, and finding an interesting piece of code to fuzz. When you
+find a good fuzzing target, add new fuzzer in [lib/fuzz/fuzz.go](https://github.com/gravitational/teleport/blob/master/lib/fuzz/fuzz.go)
+(you can use existing fuzzers as an example):
+
+```
+func FuzzFooBar(data []byte) int {
+  err := foo.Bar(data) if err != nil { return 0 } return 1
+}
+```
+
+Here, foo.Bar is a function we want to fuzz. We need to pass the ‘data’ argument to it somewhere, which will contain the test input
+generated by oss-fuzz.
+
+Returning 1 tells oss-fuzz to explore more inputs similar to the current one, while returning 0 tells oss-fuzz to de-prioritize it.
+Generally, you want to de-prioritize “invalid” inputs that get filtered out early by the parser. That way, the fuzzer gets to cover more
+code which increases the probability of finding bugs.
+
+In case you are looking for a practical walk-through of fuzzing with go-fuzz, check out this article on [getting started with
+go-fuzz](https://adalogics.com/blog/getting-started-with-go-fuzz) that takes you from zero knowledge of fuzzing through the steps up to
+fuzzing a large open source project.
+
+After you wrote your fuzzer (and made sure it compiles), send a pull request and that’s it!

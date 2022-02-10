@@ -1,0 +1,309 @@
+---
+title: Comparing SSH Keys - RSA, DSA, ECDSA, or EdDSA?
+articleTitle: Comparing SSH Keys - RSA, DSA, ECDSA, or EdDSA?
+description: This article compares asymmetric crypto algorithms. In the PKI world they are RSA, DSA, ECDSA, and EdDSA. Which SSH crypto algorithm is the best?
+date: "2021-04-06"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/comparing-ssh-keys-header.png
+  alt: comparing ssh keys
+tags:
+  - ssh
+layout: blogArticle
+---
+import BlogImage from "components/BlogImage"
+import css from "@styled-system/css";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+<iframe
+  src="https://protocol.podigee.io/3-comparing-ssh-keys/embed?context=external&theme=default"
+  style="border: 0"
+  border="0"
+  height="150px"
+  width="100%"
+/>
+This blog post was originally released on 08/26/20.
+
+What’s worse than an unsafe private key? An unsafe public key.
+
+The “secure” in secure shell comes from the combination of hashing, symmetric encryption, and asymmetric encryption. Together, SSH uses
+cryptographic primitives to safely connect clients and servers. In the 25 years since its founding, computing power and speeds in accordance
+with [Moore’s Law](https://www.quora.com/How-does-Moore-s-Law-affect-the-security-of-cryptographic-algorithms) have necessitated
+increasingly complicated low-level algorithms. This article will focus on asymmetric keygen algorithms.
+
+As of 2020, the most widely adopted algorithms are RSA, DSA, ECDSA, and EdDSA, but it is RSA and EdDSA that provide the best security and
+performance.
+
+## Encryption Within the SSH Protocol
+
+SSH is used almost universally to connect to shells on remote machines. The most important part of an SSH session is establishing a secure
+connection. This happens in two broad steps:
+
+- Negotiation & Connection
+- Authentication
+
+### Negotiation & Connection
+
+In order for an SSH session to work, both client and server must support the same version of the SSH protocol. Modern clients will support
+SSH 2.0, as SSH 1.0 has [identified flaws](https://goteleport.com/blog/ssh-handshake-explained/). After coming to a consensus on which protocol version to follow,
+both machines negotiate a per-session symmetric key to encrypt the connection from the outside. Generating a symmetric key at this stage,
+when paired with the asymmetric keys in authentication, prevents the entire session from being
+[compromised](https://en.wikipedia.org/wiki/Forward_secrecy) if a key is revealed. Negotiation terms happen through the [Diffie-Helman key
+exchange](https://www.youtube.com/watch?v=NmM9HA2MQGI), which creates a shared secret key to secure the whole data stream by combining the
+private key of one party with the public key of the other. These keys are different from the SSH keys used for authentication. For those
+interested in learning more about this step, this comprehensive article, [SSH Handshake Explained](https://goteleport.com/blog/ssh-handshake-explained/), is a
+great starting point.
+
+<figure>
+  <BlogImage
+    src="./assets/comparing-ssh-keys-1.png"
+    width="100%"
+    alt="shared secret creation"
+  />
+  <figcaption>Figure 1: Shared Secret Creation</figcaption>
+</figure>
+
+### Authentication
+
+After completing the negotiation and connection, a reliable and secure channel between the client and server has been established. During the KEX, the client has authenticated the server, but the server has not yet authenticated the client. In most cases, public-key authentication is used by the client. This method involves two keys, a [public and private key](https://www.cloudflare.com/learning/ssl/how-does-public-key-encryption-work/). Either can be used to encrypt a message, but the _other_ must be used to decrypt. This is what is meant by _asymmetric_ encryption. [Figure 2] If Bob encrypts a message with Alice’s public key, only Alice’s private key can decrypt the message. This principle is what allows the SSH protocol to authenticate identity. If Alice (client) can decrypt Bob’s (server) message, then it proves Alice is in possession of the paired private key. This is, in theory, how SSH keys authentication should work. Unfortunately with the dynamic nature of infrastructure today, SSH keys are increasingly shared or [managed improperly](https://goteleport.com/blog/ssh-key-management/), compromising its integrity. To learn more, read this article, [How to SSH Properly.](/blog/how-to-ssh-properly/)
+
+<figure>
+  <BlogImage
+    src="./assets/comparing-ssh-keys-2.png"
+    width="100%"
+    alt="Alice and Bob SSH keys"
+  />
+  <figcaption>
+    <a href="https://en.wikipedia.org/wiki/Public-key_cryptography#/media/File:Public_key_encryption.svg">
+      Figure 2: Only Alice’s private key can decrypt a message signed with Alice’s public key
+    </a> 
+  </figcaption>
+</figure>
+
+## Asymmetric Encryption Algorithms
+
+What makes asymmetric encryption powerful is that a private key can be used to derive a paired public key, but not the other way around.
+This principle is core to public-key authentication. If Alice had used a weak encryption algorithm that could be brute-forced by today's
+processing capabilities, a third party could derive Alice's private key using her public key. Protecting against a threat like this requires
+careful selection of the right algorithm.
+
+There are three classes of these algorithms commonly used for asymmetric encryption: RSA, DSA, and elliptic curve based algorithms. To
+properly evaluate the strength and integrity of each algorithm, it is necessary to understand the mathematics that constitutes the core of
+each algorithm.
+
+### RSA: Integer Factorization
+
+First used in 1978, the RSA cryptography is based on the held belief that factoring large semi-prime numbers is difficult by nature. Given
+that no general-purpose formula has been found to factor a compound number into its prime factors, there is a direct relationship between
+the size of the factors chosen and the time required to compute the solution. In other words, given a number `n=p\*q` where
+`p` and `q` are sufficiently large prime numbers, it can be assumed that anyone who can factor `n` into its
+component parts is the only party that knows the values of `p` and `q`. The same logic exists for public and private
+keys. In fact, `p` & ` q` are necessary variables for the creation of a private key, and ` n` is a variable for the subsequent public key. This presentation simplifies RSA integer factorization. For those interested in
+learning more, [click here](https://www.slideshare.net/dganesan11/security-of-rsa-and-integer-factorization).
+
+### DSA: Discrete Logarithm Problem & Modular Exponentiation
+
+DSA follows a similar schema, as RSA with public/private keypairs that are mathematically related. What makes DSA different from RSA is that
+DSA uses a different algorithm. It solves an entirely different problem using different elements, equations, and steps. While the discrete
+log problem is fun, it is [out of scope](https://www.youtube.com/watch?v=PQ8AruHaoLo) for this post. What is important to note is the use of
+a randomly generated number, `m`, is used with signing a message along with a private key, `k`. This number `m` must be kept private. More
+in this later.
+
+### ECDSA & EdDSA: Elliptic Curve Discrete Logarithm Problem
+
+Algorithms using elliptic curves are also based on the assumption that there is no generally efficient solution to solving a discrete log
+problem. However, ECDSA/EdDSA and DSA differ in that DSA uses a mathematical operation known as modular exponentiation while ECDSA/EdDSA
+uses elliptic curves. The computational complexity of the discrete log problem allows both classes of algorithms to achieve the same level
+of security as RSA with significantly smaller keys.
+
+<figure>
+  <BlogImage
+    src="./assets/comparing-ssh-keys-3.png"
+    width="100%"
+    alt="bitcoin elliptic curve"
+  />
+  <figcaption>
+    Figure 3 - Elliptic curve, Secp256k1 used in the Bitcoin protocol
+  </figcaption>
+</figure>
+
+## Comparing Encryption Algorithms
+
+Choosing the right algorithm depends on a few criteria:
+
+- Implementation - Can the experts handle it, or does it need to be rolled?
+- Compatibility - Are there SSH clients that do not support a method?
+- Performance - How long will it take to generate a sufficiently secure key?
+- Security - Can the public key be derived from the private key? (The use of quantum computing to break encryption is not discussed in this article.)
+
+### RSA
+
+<table width="100%" css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", 'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
+  <tr>
+    <th >Implementation</th>
+    <td>
+      RSA libraries can be found for all major languages, including in-depth
+      libraries (<a href="https://gist.github.com/jo/8619441">JS</a>,
+      <a href="https://cryptography.io/en/latest/">Python</a>,
+      <a href="https://golang.org/pkg/crypto/rsa/">Go</a>,
+      <a href="https://docs.rs/rsa/0.3.0/rsa/">Rust</a>,
+      <a href="https://www.libtom.net/LibTomCrypt/">C</a>).
+    </td>
+  </tr>
+  <tr>
+    <th>Compatibility</th>
+    <td>
+      Usage of SHA-1 (
+      <a href="https://www.openssh.com/txt/release-8.3">OpenSSH</a>) or public
+      keys under 2048-bits may be unsupported.
+    </td>
+  </tr>
+  <tr>
+    <th>Performance</th>
+    <td>
+      Larger keys require more time to generate.
+    </td>
+  </tr>
+  <tr>
+    <th>Security</th>
+    <td>
+      Specialized algorithms like <a href="https://mathworld.wolfram.com/QuadraticSieve.html">Quadratic Sieve</a> and <a href="https://en.wikipedia.org/wiki/General_number_field_sieve"> General Number Field Sieve</a>
+      exist to factor integers with specific qualities.
+    </td>
+  </tr>
+</table>
+
+Time has been RSA’s greatest ally and greatest enemy. First published in 1977, RSA has the widest support across all SSH clients and languages and has truly stood the test of time as a reliable key generation method. Subsequently, it has also been subject to Moore’s Law for decades and key bit-length has grown in size. According to NIST standards, achieving 128-bit security requires a key with length 3072 bits whereas other algorithms use smaller keys. Bit security measures the number of trials required to brute-force a key. 128 bit security means 2<sup>128</sup> trials to break.
+
+<figure>
+  <BlogImage
+    src="./assets/comparing-ssh-keys-4.png"
+    width="100%"
+    alt="RSA key bit-length"
+  />
+  <figcaption>
+    <a href="https://www.keylength.com/en/4/">Figure 4</a> - NIST 2020
+    Recommendations for RSA key bit-length (Factoring Modulus)
+  </figcaption>
+</figure>
+
+### DSA
+
+<table css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", 'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
+  <tr>
+    <th>Implementation</th>
+    <td>
+      DSA was adopted by FIPS-184 in 1994. It has ample representation in<a href="https://en.wikipedia.org/wiki/Comparison_of_cryptography_libraries">major crypto libraries</a>, similar to RSA.
+    </td>
+  </tr>
+  <tr>
+    <th>Compatibility</th>
+    <td>
+      While DSA enjoys support for PuTTY-based clients, OpenSSH 7.0 <a href="https://www.openssh.com/legacy.html">disables</a> DSA by default.
+  </td>
+  </tr>
+  <tr>
+    <th>Performance</th>
+    <td>
+      <a href="https://security.stackexchange.com/questions/97411/significance-of-the-difference-between-dsa-and-rsa-in-signature-verifying-speed">Significant improvement</a>
+      in key generation times to achieve comparable security strengths, though recommended
+      bit-length is the same as RSA.
+    </td>
+  </tr>
+  <tr>
+    <th>Security</th>
+    <td>
+      DSA requires the use of a randomly generated unpredictable and secret
+      value that, <a href="https://rdist.root.org/2010/11/19/dsa-requirements-for-random-k-value/"> if discovered</a>, can reveal the private key.
+    </td>
+  </tr>
+</table>
+
+Recall earlier in the article:
+
+_“What is important to note is the use of a randomly generated number, `m`, is used with signing a message along with a private key, `k`.
+This number `m` must be kept privately.”_
+
+The value `m`is meant to be a nonce, which is a unique value included in many cryptographic protocols. However, the additional
+conditions of unpredictability and secrecy makes the nonce more akin to a key, and therefore extremely important.
+
+Not only is it difficult to [ensure true randomness](https://blog.cloudflare.com/ensuring-randomness-with-linuxs-random-number-generator/)
+within a machine, but improper implementation can break encryption. For example:
+
+1. Android’s Java `SecureRandom` class was known to create [colliding R
+   values](https://crypto.stackexchange.com/questions/9694/technical-details-of-attack-on-android-bitcoin-usage-of-securerandom). In other
+   words, the class reused some randomly generated numbers. This exposed a number of different [Android-based Bitcoin
+   wallets](https://bitcoin.org/en/alert/2013-08-11-android) to having their private keys stolen. The requirements of the nonce `m` means that
+   any two instances with the same nonce value could be reverse engineered and reveal the private key used to sign transactions.
+
+2. Taking this a step further, [fail0verflow](https://fail0verflow.com/blog/) discovered the private key used to sign firmware updates for
+   the Sony Playstation 3. In other words, programmers could write their own code, sign it with the revealed private key, and run it on the
+   PS3. As it turns out, Sony was using the _[same random number](https://www.youtube.com/watch?v=LP1t_pzxKyE)_ to sign each message.
+
+### ECDSA & EdDSA
+
+The two examples above are not entirely sincere. Both Sony and the Bitcoin protocol employ ECDSA, not DSA proper. ECDSA is an elliptic curve
+implementation of DSA. Functionally, where RSA and DSA require key lengths of 3072 bits to provide 128 bits of security, ECDSA can
+accomplish the same with only 256-bit keys. However, ECDSA relies on the same level of randomness as DSA, so the only gain is speed and
+length, [not security](https://blog.trailofbits.com/2020/06/11/ecdsa-handle-with-care/).
+
+In response to the desired speeds of elliptic curves and the undesired security risks, another class of curves has gained some notoriety.
+EdDSA solves the same discrete log problem as DSA/ECDSA, but uses a different family of elliptic curves known as the [Edwards
+Curve](https://en.wikipedia.org/wiki/Edwards_curve) (EdDSA uses a [Twisted Edwards
+Curve](https://en.wikipedia.org/wiki/Twisted_Edwards_curve)). While offering slight advantages in speed over ECDSA, its popularity comes
+from an improvement in security. Instead of relying on a random number for the nonce value, EdDSA generates a nonce deterministically as a
+hash making it collision resistant.
+
+Taking a step back, the use of elliptic curves does not automatically guarantee some level of security. Not all curves are the same. Only a
+[few curves](https://safecurves.cr.yp.to/) have made it past rigorous testing. Luckily, the PKI industry has slowly come to adopt
+[Curve25519](https://en.wikipedia.org/wiki/Curve25519) in particular for EdDSA. Put together that makes the public-key signature algorithm,
+[Ed25519](https://ed25519.cr.yp.to/).
+
+<table css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", marginTop: "20px",'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
+  <tr>
+    <th>Implementation</th>
+    <td>
+      EdDSA is fairly new.<a href="https://en.wikipedia.org/wiki/Crypto%2B%2B#Algorithms">Crypto++</a> and <a href="https://en.wikipedia.org/wiki/Cryptlib#Algorithm_support">cryptlib</a>do not currently support EdDSA.
+    </td>
+  </tr>
+  <tr>
+    <th>Compatibility</th>
+    <td>
+      Compatible with newer clients, Ed25519 has seen the <a href="https://ianix.com/pub/ed25519-deployment.html#ed25519-libraries">largest adoption</a>
+      among the Edward Curves, though NIST also proposed Ed448 in their recent
+      draft of <a href="https://www.nist.gov/news-events/news/2019/10/digital-signatures-and-elliptic-curve-cryptography-request-comments-draft">SP 800-186</a>.
+    </td>
+  </tr>
+  <tr>
+    <th>Performance</th>
+    <td>
+      Ed25519 is the fastest performing algorithm across all metrics. As with
+      ECDSA, public keys are twice the length of the desired bit security.
+    </td>
+  </tr>
+  <tr>
+    <th>Security</th>
+    <td>
+      EdDSA provides the <a href="https://ed25519.cr.yp.to/">highest security level </a>compared to
+      key length. It also improves on the insecurities found in ECDSA.
+    </td>
+  </tr>
+</table>
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+When it comes down to it, the choice is between RSA 2048/4096 and Ed25519 and the trade-off is between performance and compatibility. RSA is
+universally supported among SSH clients while EdDSA performs much faster and provides the same level of security with significantly smaller
+keys. Peter Ruppel puts the answer succinctly:
+
+<Quote>
+The short answer to this is: as long as the key strength is good enough for the foreseeable future, it doesn't really matter. Because here
+we are considering a signature for authentication within an SSH session. The cryptographic strength of the signature just needs to withstand
+the current, state-of-the-art attacks.
+
+- [Ed25519 for SSH](https://blog.peterruppel.de/ed25519-for-ssh/)
+</Quote>
+Just don’t use ECDSA/DSA!

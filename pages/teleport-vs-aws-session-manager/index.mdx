@@ -1,0 +1,283 @@
+---
+title: Teleport vs. AWS SSM Session Manager
+articleTitle: Teleport Compared to AWS SSM Session Manager
+description: AWS Systems Manager provides session management and session recording features. We’ll explore these new interactive  capabilities and compare them to Teleport
+date: "2021-03-08"
+author: Ev Kontsevoy
+logo:
+  image: ./assets/teleport-aws-hero-image.png
+  alt: teleport-vs-aws-ssm
+tags:
+  - teleport
+layout: blogArticle
+---
+import BlogImage from "components/BlogImage"
+import css from "@styled-system/css";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## What is AWS SSM Session Manager?
+
+Amazon’s AWS Systems Manager, better known as SSM to long-time AWS users, was announced at the [end of 2017](https://aws.amazon.com/about-aws/whats-new/2017/11/aws-announces-aws-systems-manager/), replacing the similarly named EC2 Systems Manager that had launched [a year prior](https://aws.amazon.com/about-aws/whats-new/2016/12/introducing-ec2-systems-manager-for-automated-configuration-management-of-ec2-and-on-premises-systems/). Similar to other AWS products, System Manager provides a broad spectrum of features instead of a focused and opinionated product.
+
+SSM’s capabilities revolve around managing bare operating-system level details that would otherwise be inaccessible from Amazon’s ever-expanding and all-encompassing `aws` CLI and API control plane layer. It has grown into having its own dedicated interface within the Amazon AWS console and its underlying system-level agent has been released under an open source software [license on Github](https://github.com/aws/amazon-ssm-agent). Amazon has touted SSM as a [general-purpose devops tool](https://aws.amazon.com/blogs/mt/amazon-ec2-systems-manager-as-a-general-purpose-devops-tool/) - a replacement for fleet management stalwarts such as Ansible, Chef, Puppet and similar decade-old cloud agnostic tooling.
+
+## How does Session Manager Work?
+
+Systems Manager’s core is a set of APIs built upon other proprietary AWS services such as IAM, CloudWatch, S3 and KMS. To use SSM, an administrator typically installs the `aws` command line CLI plus additional SSM plugins and then also runs an agent or client on every instance in their fleet. Access to the SSM API is controlled via AWS Identity & Access Management (IAM). For the SSM node-level agent to function, a given EC2 instance must be able to “assume” the requisite roles (aka, permissions).
+
+Once SSM agents are up and running, an administrator submits commands or session requests via the AWS cli/api and then the instance-local agents receive messages to take action. In the case of interactive sessions, the admin’s AWS CLI plugin opens up a websocket connection to the SSM service in a given region, which in turn is directly connected to the `ssm` agent running on the target instance. Session recording appears to happen locally on each EC2 instance and after a session is closed, the node-local SSM process uploads the logs to long-term (S3) storage.
+
+## How does Teleport Compare to Session Manager?
+
+The AWS team is always improving Session Manager and in recent years they have added many
+of the basic SSH features supported by Teleport and now provide the ability to use Session
+Manager in different environments. There are a few reasons why you would want to pick
+Teleport over AWS SM. AWS SM strongly relies on IAM; while a best practice this can also be a
+con. As organisations move to OIDC for authentication, creating IAM users with the correct
+permissions can become “politically challenging,” as said by [AWS EKS Team](https://aws.amazon.com/blogs/opensource/authenticating-eks-github-credentials-teleport/).
+
+Teleport [Trusted Clusters](https://goteleport.com/docs/setup/admin/trustedclusters/) feature is a powerful addition to monitoring and managing access
+between AWS accounts. This can be extremely helpful for MSP providers, or companies with
+multiple AWS root accounts. By rolling out Teleport Trusted Clusters, we are able to provide a
+foundation that’ll help streamline multi-cloud access and auditing.
+
+### Teleport's Bastion vs. Session Manager Setup
+
+Teleport enforces an opinionated security design based on Google’s BeyondCorp
+security model. As part of this design, all traffic must be routed through a simple proxy or
+bastion. While the proxy is designed with the aforementioned security model in mind to be
+stateless and only pass through encrypted data, it does require provisioning a machine to run
+the service. This is the greatest appeal of System’s Manager and its Session Manager -- instead
+of having to run a dedicated bastion, an administrator only has to run the ssm daemon and
+manage appropriate IAM roles for their fleet. On the other hand, some of Teleport’s features
+(which SSM has a hard time replicating) come from running inline as a proxy for all connections.
+
+Session Manager has agent and plugin packages available for all major operating systems.
+Teleport supports most Unix / Linux based operating systems on the server side. The Teleport
+client can additionally run on Windows with limited functionality.
+
+For AWS, Teleport comes with a single AMI-based installation option, plus in-depth examples for
+typical highly-available configurations based on CloudFormation, Terraform, Ansible, etc. that
+are easily adapted into existing configuration & change management practices.
+
+### Teleport vs SSM's End-User Experience
+
+Teleport comes with a native client called `tsh` that serves as a drop-in replacement for workflows that currently leverage `ssh` directly. In practice, most Teleport users will alias their ssh to tsh and all of their existing commands/scripts will continue to work just as they did with legacy, static-key or password-authenticated ssh. Teleport also automatically upgrades end users to certificate-based authentication, removing the need to manage and pre-distribute public user and host keys.
+
+Session Manager requires that end-users have the `aws` client and credentials installed. The
+aws client does not integrate with existing ssh workflows/tools. When ssm starts an end-to-end
+session, the provided terminal uses a non-SSH HTTPS websockets “upgraded” TCP connection
+for its transport to materialize a shell on the remote EC2 instance. Users have reported issues
+with how ssm handles normal and routine shell scenarios such as typing Control-C to cancel a
+long-running process. While ssm’s handling of `TERM=xterm-256color` appears to work, the
+resulting sessions recorded in the administrator log review interface show a raw
+escape-encoded recording rather than a usable plain text recording.
+
+Teleport optionally integrates with normal UNIX (POSIX) login facilities, so active user sessions
+can have pam.d rules applied to them and sessions may be visible within traditional node-local
+logging facilities. SSM-connected sessions do not tie back to these long-held POSIX
+conventions, which can be confusing in multi-user scenarios - “Who is logged into this EC2
+instance? I have to go look at SSM’s web UI to see, I can’t simply run `w`?”
+
+Another well-liked aspect of Teleport’s end-user experience which isn’t matched by Session
+Manager is the ability to interactively share sessions. Users simply run `teleport status` while in
+a session and can share the unique session URL with coworkers (subject to that coworker
+having the same Teleport RBAC permissions).
+
+Related to session sharing (or session playback), companies that leverage Teleport will often provide access to session replay (and session reply only) within Teleport directly to SOC-2 CPAs or similar auditors so that they can verify low, shell-level activity was within scope without having to open tons of tickets or ask for screenshots. Within SSM, there is no simple interface for delegation of session replay, and as noted above, ssm’s recordings are often riddled with escape sequences.
+
+## Teleport Audit Logging Compared to SSM + Cloudwatch + S3
+
+How does the picture look if we zoom in further on session capture, logging, and audit topics
+required by information security professionals who depend on accurate data capture? Teleport
+is a well-known open source project with 8,000+ stars on GitHub with a track record of public
+audits by security researchers. Security is its primary design goal and accurate logging of all
+activity is also of paramount concern. Besides logs being captured via an agent, Teleport offers
+a full “man-in-the-middle” mode that captures sessions even if an instance-level agent is
+compromised. SSM batches its logs locally on the node to be audited and key aspects of its
+recordings are trivially easy to “hide” from if you also have “root” on the nodes, which is
+ssm-agent’s default install. To “hide”, an administrator simply has to kill the ssm recording
+process at the end of the session instead of logging out cleanly, or they can simply block DNS or
+network access to S3 & CloudWatch from the target EC2 instance. SSM also only plugs into CloudWatch, whereas Teleport’s events are available as a JSON stream (locally on disk or within
+a DynamoDB table) and can be fed into standard enterprise log indexing pipelines such as ELK,
+Splunk, Sumo Logic, LogDNA, etc.
+
+## tsh ssh Compared to aws ssm
+
+AWS provides an option to execute commands on EC2 host using [AWS Systems Documents](https://aws.amazon.com/blogs/mt/writing-your-own-aws-systems-manager-documents/),
+and provides [examples](https://docs.aws.amazon.com/systems-manager/latest/userguide/composite-docs.html) for standard update / run options. This can be helpful when trying to
+patch and update a fleet of machine, but the syntax is AWS specific.
+
+```text
+aws ssm send-command \
+    --document-name document-name \
+    --targets Key=tag:Department,Values=Sales,Finance \
+    [...]
+```
+
+Teleport’s tsh client offers the same functionally but using a familiar SSH syntax. Using [TSH
+Labels](https://goteleport.com/docs/server-access/guides/tsh/#resolving-node-names/) provides a powerful abstraction for sysadmins.
+
+```text
+tsh ssh os=ubuntu apt-get update -y
+```
+
+## Kubernetes and EKS Support
+
+Teleport leverages user and group impersonation to obtain access to Kubernetes. When a cluster
+is created in AWS. In larger organizations, Teleport offers more dynamic access for team
+members without the extra overhead of managing individual IAM roles.
+
+## Enhanced Session Recording
+
+Teleport offers best in class session recording, backed by our expertise using [BPF](https://goteleport.com/blog/enhanced-session-recording/). Teleport
+can transform SSH sessions into structured events. This has a few advantages of SSM auditing
+capabilities, by providing visibility into Shell Scripts and End-User Objuscation.
+
+## User Experience
+
+### Session Manager
+
+AWS Session Manager falls under the AWS Systems Manager UI. Systems manager offers a
+range of services that can provide insight and automation around Operation, Applications and
+Instances. This has resulted in System Manager being a jack of all trades and master of node.
+The start a session UI is currently lacking when compared to Teleport’s offering.
+
+<BlogImage
+  src="./assets/aws-session-manager.png"
+  width="100%"
+  alt="aws-ssm-session-manager"
+/>
+
+### Teleport
+
+Teleport’s web UI offers a centralized location for starting sessions and auditing
+events. These options can be limited via RBAC roles, providing customization for teams wanting
+to provide just enough access to developers.
+
+<BlogImage
+  src="./assets/teleport-resource-catalog.png"
+  width="100%"
+  alt="unified-resource-catalog"
+/>
+
+Teleport's Audit log provides at a glance view into session and access activity. The audit log can be consumed by log aggregation systems, but having a UI to review activity can provide a jumping off point for retrospectives.
+
+<BlogImage src="./assets/teleport-audit-log.png" width="100%" alt="event-logs" />
+
+<EmailSubscribeViolet />
+
+## Summary and Feature Comparison
+
+Both Teleport and Session Manager provide a convenient way to manage and restrict shell
+access. For AWS-only users, Session Manager offers less operational overhead by integrating
+with IAM and does not require running any service, other than installing the SSM daemon.
+However, Teleport provides better interoperability with native SSH based workflows and tools
+and is open source. Teleport also delivers a more robust security design and has the additional nice-to-have feature of session sharing. You can refer to the matrix below for a more comprehensive feature comparison.
+
+<table>
+  <tr css={css({
+      td: { paddingTop: "10px"},
+    })}>
+    <td></td>
+    <td>Teleport</td>
+    <td>AWS SSM Session Manager</td>
+  </tr>
+  <tbody>
+    <tr>
+      <td>Open Source Client &amp; Agent</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Open Source Server</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Legacy Linux Support (RHEL-5.x)</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>KMS-Backed Encryption at Rest</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Native SSH Compatibility</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Works with ssh-agent</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Strict Session Timeouts</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Kubernetes Support</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Works On-Premises</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Works within Air-Gapped Environments</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>FedRAMP/FISMA FIPS 140-2 Validated Crypto Mode</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Interactive Session Sharing</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Works with any Single Sign-On (SAML &amp; OIDC)</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Supports Tagging and Labels</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Works without Bastion Server</td>
+      <td>No</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Works wioth OpenSSH Clients and Servers</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Logs directly to Cloudwatch</td>
+      <td>No</td>
+      <td>Yes</td>
+    </tr>
+    <tr>
+      <td>Man-in-the-Middle Recording Mode</td>
+      <td>Yes</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td>Supports SSH Tunnels and Port Forwarding</td>
+      <td>Yes</td>
+      <td>Yes</td>
+    </tr>
+  </tbody>
+</table>
