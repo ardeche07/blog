@@ -89,7 +89,7 @@ function BlogIndexPage({
                 <Pagination
                   currentPage={currentPage}
                   maxPage={maxPages}
-                  baseUrl={!!tag ? `/tags/${tag}` : "/"}
+                  baseUrl={!!tag ? `/tags/${tag}` : ""}
                 />
               )}
             </Box>
