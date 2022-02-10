@@ -1,0 +1,152 @@
+---
+title: Migrating To Kubernetes
+description: Learn about common problems when migrating your application to Kubernetes.
+articleTitle: Migrating To Kubernetes
+date: "2017-12-02"
+author: Sasha Klizhentas
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Containers have become the next big thing in infrastructure software. However, in order to take full advantage of
+containers you need to know how to turn them into production services.
+This is where Kubernetes helps - as an orchestrator of your containerized applications.
+
+Kubernetes is an exciting project that solves some important container deployment issues in really interesting ways. It is also one of the fastest growing open source projects in existence. If you aren't familiar with Kubernetes, this [introduction and tutorial](https://kubernetes.io/docs/tutorials/kubernetes-basics/) is a good place to start.
+
+At Teleport, we have our own CNCF certified distribution of Kubernetes,
+called [Gravity](https://goteleport.com/gravity/), which is optimized for running many instances of cloud-native applications across a variety of infrastructure footprints. We have helped many organizations deliver their production Kubernetes clusters with the help of Gravity.
+
+In this article, we are going to discuss some of the common challenges
+we've seen adapting existing software to run on Kubernetes.
+
+## High Availability
+
+One of the ways Kubernetes delivers high availability is by treating each instance of
+software as a disposable entity called [Pods](https://kubernetes.io/docs/concepts/workloads/pods/pod/). A Pod can be stopped and moved to another server at any time. This brings up
+additional requirements to the application design.
+
+#### Potential Problems
+
+If your software is not designed to run in multiple copies, for example
+it keeps local state, or has to connect to a specific database instance,
+this will be a problem when Kubernetes reschedules the Pod
+to another server.
+
+Kubernetes provides a framework
+[for failover and load balancing](https://kubernetes.io/docs/concepts/services-networking/service/)
+but migration efforts have to be paired with application-specific scalability work.
+
+#### Advice
+
+Learn more about high availability, sharding, caching and the usage patterns
+of your application first to see if it’s actually ready to jump from machine
+to machine behind a load balancer. Use Kubernetes to implement
+[failover](http://blog.kubernetes.io/2016/01/simple-leader-election-with-Kubernetes.html)
+and [auto scaling strategies](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
+
+## Performance and Scalability
+
+Kubernetes makes it really easy to run many copies of the same service
+with [Deployments and Replica Sets](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/).
+
+#### Potential Problems
+
+Many common performance problems occur because
+[of non-optimized database access](http://highscalability.com/blog/2014/5/12/4-architecture-issues-when-scaling-web-applications-bottlene.html). Running many copies of an application connecting to the same database could
+decrease performance of the application.
+
+#### Advice
+
+Kubernetes will solve the scalability problem very well
+if your application is CPU bound. However, you should make sure that's actually the case.
+
+Figure out the application level bottlenecks first. Understand if
+your app workload is CPU or IO bound and whether it is using the database(s) efficiently.
+
+## Security
+
+Kubernetes provides really powerful tools to specify what containers are allowed
+to do via [pod security policies](https://kubernetes.io/docs/concepts/policy/pod-security-policy/)
+and [network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/).
+
+#### Potential Problems
+
+Container security requires more in-depth understanding of containers and
+systems in general. Someone on the team should consider understanding and managing this to be their
+part time (or better, yet, full time) job.
+
+#### Advice
+
+Learn how Kubernetes will help you to improve infrastructure security with
+its [pod](https://kubernetes.io/docs/concepts/policy/pod-security-policy/)
+and [network](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+security policies and [secrets](https://kubernetes.io/docs/concepts/configuration/secret/).
+Learn more about [container security](https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2016/april/understanding-and-hardening-linux-containers/).
+
+## Monitoring
+
+Monitoring distributed applications that can move around the cluster
+[requires advanced instrumentation](https://landing.google.com/sre/book/chapters/monitoring-distributed-systems.html).
+
+#### Potential Problems
+
+If you don’t have good distributed monitoring systems in place, debugging a set of distributed
+services running in containers across the network boundaries will be a challenge.
+
+#### Advice
+
+Focus on [instrumenting](https://prometheus.io/docs/practices/instrumentation/)
+your application first, set up [alerting](https://landing.google.com/sre/book/chapters/practical-alerting.html),
+and then integrate with Kubernetes by using its [liveness and health probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/).
+
+## Logging
+
+Kubernetes (and Docker) by default expect the logs to be sent to standard
+output, where logs are collected and forwarded to the centralized log storage.
+
+#### Potential Problems
+
+If your application logs to disk, it should be reconfigured to log to standard
+output. Additionally, if the logs are unstructured, aggregating them together will make the logs
+harder to read.
+
+#### Advice
+
+Focus on [transitioning logs to structured event streams](https://12factor.net/logs) first
+and only then use Kubernetes to collect and forward the logs to the event
+stream storage of your choice. Otherwise you'll have to
+jump into containers and tail the logs manually. Learn more about Kubernetes
+integrations with log forwarders like [fluentd](https://www.fluentd.org/).
+
+## Operations
+
+Kubernetes is a distributed system itself, and it consists of a database
+([etcd](https://github.com/coreos/etcd)) and a
+[set of microservices](https://kubernetes.io/docs/concepts/overview/components/).
+
+#### Potential Problems
+
+Various Kubernetes components could fail, for example networking, and it takes
+significant expertise to learn how to
+[troubleshoot common failures](https://goteleport.com/blog/troubleshooting-kubernetes-networking/).
+
+<EmailSubscribeViolet />
+
+#### Advice
+
+Use managed service by [cloud providers](https://cloud.google.com/kubernetes-engine/),
+if possible, and [invest in your team's Kubernetes training](https://www.cncf.io/certification/expert/).
+
+## Next steps
+
+Kubernetes can improve your application resiliency, scalability and infrastructure security but it's not magic. You need to be prepared to learn and understand this complex (and awesome!) system.
+
+You can check out this [guide to assist you with your migration](https://github.com/gravitational/workshop/blob/master/k8sprod.md).
+These [war stories](https://engineering.saltside.se/our-failure-migrating-to-kubernetes-25c28e6dd604)
+and this [outage post mortem](https://community.monzo.com/t/resolved-current-account-payments-may-fail-major-outage-27-10-2017/26296/95)
+may also help you understand possible failure scenarios.

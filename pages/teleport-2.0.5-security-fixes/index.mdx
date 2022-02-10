@@ -1,0 +1,33 @@
+---
+title: Teleport 2.0.5 Security Fixes in this release
+description: Teleport 2.0.5 Security Fixes
+articleTitle: Teleport 2.0.5 Security Fixes
+date: "2017-05-03"
+author: Sasha Klizhentas
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+**TLDR:** Teleport 2.0.5 fixes several security vulnerabilities. [Upgrade here](https://github.com/gravitational/teleport/releases/tag/v2.0.5)
+
+## Impact
+
+We have identified several vulnerabilities in Teleport 2.0. The full list of changes can be seen [in the release notes](https://github.com/gravitational/teleport/releases/tag/v2.0.5). They are relevant to the heavy users of Teleport web-UI.
+
+As a result of this, we strongly recommend Teleport users upgrade to Teleport 2.0.5 as soon as possible.
+
+The most pressing issues can be resolved by upgrading the web proxy which would mitigate most of the potential attacks, however all nodes should be upgraded to 2.0.5 as soon as possible to mitigate all vulnerabilities.
+
+## Full Report
+
+We will release a full report and more details in one week - our main goal is to let everyone to upgrade and not make it easy to exploit the vulnerabilities discovered for the folks who haven’t upgraded yet.
+
+<EmailSubscribeViolet />
+
+## Actions
+
+Upgrade to 2.0.5 [here](https://github.com/gravitational/teleport/releases/tag/v2.0.5)

@@ -1,0 +1,98 @@
+---
+title: Teleport 2.4 release information
+description: Announcing the new version of Teleport SSH server. Two major new features of this release are recording of OpenSSH sesssions for audit purposes and authentication via Github OAuth2.
+articleTitle: Teleport 2.4 released
+date: "2018-01-10"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we are releasing version 2.4 of Teleport, our popular open source SSH
+server. Despite the uneventful version number, this release brings a couple
+exciting new features. As always, most of them have became a reality thanks to
+the Teleport community.
+
+## What is Teleport?
+
+Teleport is a modern SSH+kubectl bastion server designed for teams managing distributed
+infrastructure. Major benefits include certificate-based authentication which
+removes the need to manage static keys, integration with SAML and OAuth2 OpenID Connect
+single sign-on, built-in bastion and advanced audit with full session recording.
+You can read more about Teleport on [its website](https://goteleport.com/) or
+[online documentation](https://goteleport.com/docs/getting-started/).
+
+This version brings three major new features to Teleport.
+
+## SSH Authentication via Github
+
+Teleport's [Github Authentication Connector](https://goteleport.com/docs/setup/admin/#github-oauth-20/)
+allows users of Teleport Community edition to move away from the local user
+database and use their Github credentials to SSH into their servers. This is
+exciting because OAuth2 authentication has previously only been available to
+Teleport Enterprise users. Now, by configuring your Teleport cluster to
+authenticate against Github, administrators automatically inherit Github's
+robust 2FA features plus a single source of truth of who gets SSH access and
+who does not based on Github team membership.
+
+## Session Recording, Audit and Compliance for OpenSSH
+
+One of the
+most popular Teleport features is that all SSH sessions are automatically
+recorded and can be replayed later or archived for audit purposes. One can say
+that a Teleport cluster is a "Youtube for SSH sessions." However, there has
+always been two things users kept asking us for:
+
+1. Allow Teleport administrators to turn SSH session recording off.
+2. Implement session recording when connecting to OpenSSH servers (sshd).
+
+The former is easy, there is now a switch to turn session recording off. The
+latter was more complicated but we consider it a major feature request because
+every large Teleport customer usually has pockets of infrastructure where
+OpenSSH cannot be replaced.
+
+Version 2.4 now supports session recording when a user connects to an OpenSSH
+server via a Teleport proxy. You can read more in our blog post about how the
+Recording Proxy works.
+
+## Commercial Offering for Startups and Small Businesses
+
+When we open sourced Teleport we did not expect it to become as popular as it
+did. Originally, it was just an SSH library we had built for [Gravity](https://goteleport.com/),
+our product for remotely managing Kubernetes applications on enterprise private
+clouds. However, we started getting requests for the same enterprise features
+(like role-based access control and SAML / OAuth2 authentication via providers
+like Okta) from Teleport users who did not need Kubernetes. So, we started
+offering a commercial Teleport offering (Teleport Enterprise) for large
+companies with customized pricing.
+
+Turns out, start-ups and smaller businesses also want [role-based access control](https://en.wikipedia.org/wiki/Role-based_access_control)
+(RBAC) for SSH. We’ve had numerous conversations with smaller companies who
+wanted to move away from SSH keys to SSH certificates issued via Okta or Github
+but didn’t need a customized enterprise contract. That is why we’ve decided to
+launch a standardized and more affordable commercial Teleport edition.
+
+Starting with 2.4 anyone can visit the [Teleport Website](https://goteleport.com/)
+and sign up for Teleport Pro or Teleport Business. Users of these editions will
+get the same enterprise features as large companies do, including commercial
+support from us.
+
+<EmailSubscribeViolet />
+
+## Upgrading
+
+You can download [Teleport 2.4 binaries](https://goteleport.com/teleport/download/)
+from Github or build your own from source.
+
+Teleport 2.4 is meant to be a drop-in replacement for 2.x series.
+However, it is always recommended to make a backup of the cluster state prior
+to replacing the teleport binary with a new version. The cluster state is
+located in `/var/lib/teleport` directory for filesystem-based deployments. Users
+of the `etcd` backend should use etcdctl backup command to accomplish this.
+
+Thanks to Josh Donzello, Brendan Germain and other community contributors and
+testers who helped us make 2.4 a reality!

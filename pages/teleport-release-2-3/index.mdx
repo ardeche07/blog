@@ -1,0 +1,271 @@
+---
+title: Teleport 2.3 Released
+description: We are happy to announce the release of v2.3 of Teleport. This release focuses on making Teleport much easier to configure and use.
+articleTitle: Teleport 2.3 Release - Easy to use
+date: "2017-09-19"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we are happy to unwrap [version 2.3](https://github.com/gravitational/teleport/releases)
+of [Teleport](https://goteleport.com/). The focus of this release has been on making
+Teleport more pleasant to configure and use.
+
+Teleport was initially developed to be an internal library
+that [Gravity](https://goteleport.com/) used to connect distributed Kubernetes clusters. However, its rapid adoption as a standalone tool (over 7,000 stars on Github) has warranted more focus on improving its user experience.
+
+Before we dive into the 2.3 release notes, let us introduce Teleport to new
+readers of this blog.
+
+## What is Teleport?
+
+Teleport is a modern SSH server designed for distributed teams accessing shared, distributed
+infrastructure. It allows teams or organizations to manage trust across their users and compute infrastructure with the following features:
+
+- Certificate-based SSH: Teleport removes the need to distribute SSH keys.
+- Use of SSH jump-hosts / bastions by default.
+- Built-in [SSH audit capabilities](https://goteleport.com//features/) with [session recording and replay](https://goteleport.com//features/).
+- Flexible Web UI: SSH into your servers from any OS via browser.
+- The Enterprise edition includes [SSH RBAC](https://goteleport.com//teleport/features/rbac-for-ssh/) with SSO via SAML or OpenID Connect.
+
+<BlogImage src="./assets/certificates-with-logo-simple.png" />
+
+Teleport is fully compatible with OpenSSH clients and servers and can be used
+just as a bastion, issuing SSH certificates and providing connectivity to
+legacy clusters located behind firewalls.
+
+## What's new in 2.3?
+
+As usual, the full list of changes can be found on [Github](https://github.com/gravitational/teleport/milestone/15?closed=1)
+but here is the list of the most significant changes:
+
+- Web UI Improvements.
+- Enhanced OpenSSH compatibility.
+- Simplified configuration of trusted clusters.
+- Dynamic (programmatic) configuration of clusters.
+
+The Enterprise Teleport users also receive:
+
+- Vastly improved RBAC with more granular access rules.
+- Authentication against multiple SAML/[OIDC](https://goteleport.com/blog/how-oidc-authentication-works/) providers.
+
+### Web UI Improvements
+
+Previous versions of Teleport had the unfortunate limitation of not letting the Web UI
+users to connect to OpenSSH servers. The new UI now includes a simple edit box which
+gives users familiar syntax: just type `user@host` in a "connect" field to connect to
+any server within a cluster:
+
+<BlogImage src="./assets/new-login.png" />
+
+### OpenSSH Compatibility
+
+With larger organizations adopting Teleport, we have been receiving
+numerous requests to make it easier for users to migrate to Teleport from their
+existing OpenSSH-based workflows.
+
+Below are some examples:
+
+#### SSH CLI
+
+Typing `tsh ssh` can be tiresome and creating a shell alias isn't always an
+option, especially if you have a lot of scripts that won't benefit from an
+alias. The latest Teleport `tsh` client can be renamed to `ssh` (or you can
+create a symlink) and its CLI flags become fully compatible with the existing
+`ssh` usage: inside of bash scripts, Ansible scripts, etc.
+
+#### SSH Agents
+
+At the end of a successful login, `tsh login` command now sends the SSH
+certificate to an active SSH agent. This, again, allows a much easier
+usage of `ssh` (or any other SSH clients) after the login, perhaps by
+modifying `~/.ssh/config`:
+
+```bash
+# Instructs ssh client to use 'lab.example.com' Teleport proxy to
+# access any servers behind it. The active SSH agent will provide a
+# an SSH certificate
+Host *.lab.example.com
+    Port 3022
+    ProxyCommand ssh -p 3023 %r@lab.example.com -s proxy:%h:%p
+```
+
+Needless to say, when `tsh logout` is executed the keys are removed from the
+agent.
+
+#### Identity Files
+
+Teleport always supported identity files, i.e. the ability to store the
+ephemeral private key and a certificate in a file to be used later via `-i`
+flag.
+
+However, the OpenSSH `ssh` client uses different format for accepting an SSH certificate
+via an identity file: it requires the certificate to be placed in a separate
+file, so if you have:
+
+```bash
+$ ssh -i key.pem login@host
+```
+
+You should also have `key.pem-cert.pub` file in the same directory for this to
+work.
+
+To support this workflow, `tsh login` now supports `--out` and `--format` flags.
+To generate the required identity files for the cluster controlled by
+'lab.example.com' proxy:
+
+```bash
+# login:
+$ tsh login --out=key.pem --format=openssh --proxy=lab.example.com
+
+# use the retrieved certificate:
+$ ssh -i key.pem login@host.lab.example.com
+```
+
+If this behavior is required by default, you can configure `ssh` to simply
+grab the certificate from Teleport's `~/.tsh` directory:
+
+```bash
+# ~/.ssh/config entry to tell 'ssh' to use teleport certificate when
+# connecting to any host behind lab.example.com:
+Host *.lab.example.com
+    Port 3022
+    IdentityFile ~/.tsh/keys/lab.example.com/username
+    ProxyCommand ssh -i ~/.tsh/keys/lab.example.com/username -p 3023 %r@lab.example.com -s proxy:%h:%p
+```
+
+With these changes, the Teleport user experience becomes almost identical to traditional ssh.
+
+We have also received _tremendeous_ amount of interest of
+improving the Web client to completely replace [PuTTY](http://www.putty.org/)
+for Windows users. Teleport already has a much nicer web-based terminal UI
+but additional features like web-based `scp` and
+web-based agent forwarding are also in the works.
+
+#### Configurable Ciphers
+
+Teleport is based on Google's [SSH implementation](https://github.com/golang/crypto/tree/master/ssh) and we initially assumed
+that their choice of ciphers, key exchange and MAC algorithms should work for everybody. However, we found that different organizations may have their own, different standards.
+
+In order to accommodate this, the crypto can now be restricted to the
+pre-defined list of ciphers, KEX and MAC algorithms. See the new
+[configuration](https://goteleport.com/docs/setup/admin/#configuration/)
+options in Teleport documentation.
+
+## Simplified Trusted Clusters.
+
+The Teleport Trusted Clusters feature allows users of one SSH cluster "A" to
+connect to another cluster "B" even when "B" is located behind a firewall
+without any open TCP ports.
+
+We have seen this feature used in scenarios like:
+
+- Connecting to IoT systems when remote SSH connectivity is needed into "field devices".
+- Managed service providers (MSP) managing someone else's infrastructure
+  remotely.
+- Software teams adding Teleport to their products so they can remotely
+  troubleshoot issues and push releases into end user infrastructure.
+
+As popular as this feature is, it was historically quite difficult to configure.
+
+Teleport 2.3 makes it much easier. Borrowing from the Kubernetes concept of managed
+[resources](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/),
+we have introduced a simple [CLI-based CRUD](https://goteleport.com/docs/setup/admin/#resources/)
+interface to Teleport internals.
+
+To connect two clusters together, an administrator only needs to:
+
+1. Create a YAML description (resource) of a cluster to connect to.
+2. Execute `tctl create cluster.yaml` command.
+
+Of course, the same steps can be executed programmatically via a
+management tool like Ansible or Chef.
+
+## Enterprise Enhancements
+
+#### SSO Improvements
+
+Earlier Teleport versions had a single "authentication preference" setting in
+the configuration file. Users could select either a SAML (including ADFS) or
+OpenID Connect endpoint.
+
+Teleport 2.3 allows many authentication connectors, and even allows mixing different authentication types. Here's an example:
+
+- Regular users receive their SSH certificates via [Okta](https://www.okta.com/products/single-sign-on/) SSO.
+- If something happens to Okta, the SSH
+  administrators can always SSH into servers using a built-in Teleport user
+  database via `--auth` connector switch.
+- Temporary contractors can authenticate against a different identity provider,
+  perhaps an [auth0](https://auth0.com/) instance fetching credentials from
+  Github.
+
+This workflow is supported by adding multiple authentication connectors via
+the same `tctl create` resource interface covered above.
+
+<EmailSubscribeViolet />
+
+#### RBAC Improvements
+
+Perhaps the biggest news is the new RBAC role format which is now officially
+supported by Teleport 2.3. Below is the example of a new role format:
+
+```bash
+kind: role
+version: v3
+metadata:
+  name: admin
+spec:
+  # SSH options used for user sessions
+  options:
+    # max_session_ttl defines the TTL (time to live) of SSH certificates
+    # issued to the users with this role.
+    max_session_ttl: 8h
+
+    # forward_agent controls either users are allowed to use SSH agent forwarding
+    forward_agent: true
+
+  # allow section declares a list of resource/verb combinations that are
+  # allowed for the users of this role. by default nothing is allowed.
+  allow:
+    # logins array defines the OS logins a user is allowed to use.
+    logins: [root, dba]
+
+    # node labels that a user can connect to. The wildcard ('*') means "any node"
+    node_labels:
+      '*': '*'
+
+    # see below.
+    rules:
+    - resources: [role]
+      verbs: [list, create, read, update, delete]
+    - resources: [auth_connector]
+      verbs: [connect, list, create, read, update, delete]
+    - resources: [session]
+      verbs: [list, read]
+    - resources: [trusted_cluster]
+      verbs: [connect, list, create, read, update, delete]
+
+  # the deny section uses the identical format as the 'allow' section.
+  # the deny rules always override allow rules.
+  deny: {}
+```
+
+As you can see, different parts of an SSH cluster now have quite granular
+access rights and permissions. A Teleport administrator can remove access to the recorded
+sessions, configure SSH options on a per-role basis, map roles between
+different clusters for infrastructure co-owned by multiple organizations and
+much, much more.
+
+## Talk to us!
+
+For more information about Teleport, you can take a look at the
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[overview](https://goteleport.com/). It is open sourced, so
+feel free to dig in - issues and/or pull requests are welcome. Also, feel free to
+reach out via email if you have additional questions: [info@goteleport.com](mailto:info@goteleport.com).

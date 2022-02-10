@@ -1,0 +1,179 @@
+---
+title: Teleport 2.2 Release Announcement
+description: This post covers the new features and improvements that made it into 2.2 release.
+articleTitle: Teleport 2.2 Released:\ New Features, Enhancements and Updated Security Audit Report Published.
+date: "2017-06-30"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we are officially releasing [version
+2.2](https://github.com/gravitational/teleport/releases) of [Teleport](https://goteleport.com/). We'd
+like to thank the community and our growing customer base for their valuable
+feedback and support of Teleport. We are also excited to publish an updated security
+audit of the Teleport code performed by folks at [Cure 53](https://cure53.de/).
+
+But first, let's start with some quick stats on the Teleport [Github repository](https://github.com/gravitational/teleport)
+as of 06/13/2017:
+
+- Over 5,000 Github Stars
+- Over 2,771 commits from 36 contributors
+
+## What is Teleport?
+
+Teleport is a modern SSH server designed for teams managing distributed
+infrastructure. The most popular Teleport features are:
+
+- Certificate-based SSH: no need to distribute SSH keys.
+- Teleport makes behind-firewall / cross-region SSH easy with automatic SSH jump-hosts.
+- Strong audit capabilities including session recording & replay.
+- Built-in 2nd factor authentication.
+- Beautiful Web UI.
+- Integration with SAML & OpenID Connect providers like Okta, Active Directory, Auth0, etc (Teleport Enterprise version only)
+- SSH role-based access control / RBAC (Teleport Enterprise version only)
+
+## What's new in 2.2?
+
+### HTTP proxy support
+
+It is now possible to run behind-firewall Teleport clusters that are forced to
+tunnel all connections via an HTTP proxy set in `http_proxy` and `https_proxy`
+environment variables. See more here: [#860](https://github.com/gravitational/teleport/issues/860)
+
+The use case for this is when you have a group of servers located in a
+locked-down enterprise environments (possibly controlled by enterprise IT)
+where all servers are forced to go via an HTTP proxy when talking to the
+outside world (public internet). If you need to remotely manage such cluster via SSH,
+Teleport proxy (SSH jump host) will now look for `xxx_proxy` environment
+variables and will establish an outgoing SSH tunnel going through HTTP proxy.
+
+### ARM
+
+We have been happily running Teleport on our Raspberry Pi test cluster for over
+a year now. Due to the popular demand, we have decided to start officially
+publishing ARM binaries with our releases and we're adding ARM platform to the
+list of supported platforms for Teleport Enterprise.
+
+For those building Teleport from source, the official way to bake an ARM
+executable is to build on ARM. We do not use cross-compiling at the moment, so:
+
+1. Get yourself an ARM box. Raspberry Pi 3 would do. We like hosted ARM servers
+   from [Scaleway](https://www.scaleway.com/en/) but hear
+   that folks [Packet](https://metal.equinix.com/) have
+   something even beefier.
+2. Get [Golang 1.8.3 for ARM](https://storage.googleapis.com/golang/go1.8.3.linux-armv6l.tar.gz).
+3. Build as usual:
+
+   ```bash
+   $ git-clone git@github.com:gravitational/teleport.git
+   $ cd teleport
+   $ make release
+   ```
+
+### Client Improvements
+
+- For some folks, `tsh ssh` meant twice as much typing than `ssh`. Now, if you
+  rename `tsh` binary to `ssh` (or if you make a symlink `ssh -> tsh`) you can
+  skip typing `tsh` and use familiar SSH syntax like `ssh user@host`. This also
+  makes it easier integrating with Ansible, since you can now easily configure
+  Ansible for Teleport by setting its ssh-executable setting.
+
+- Another nice addition is the support for `-i` flag. This is useful for
+  authenticating SSH robots who cannot (obviously) answer 2FA challenge or go
+  via SAML endpoint. First, you can generate an identity file using `tctl`
+  tool, and then you can pass it via `-i` flag to `tsh ssh` like this:
+
+  ```bash
+  # do this once on the Teleport auth server:
+  $ tctl auth sign --user=joe > joe.pem
+
+  # now you can use joe.pem to authenticate as joe:
+  $ tsh -i joe.pem ssh host
+  ```
+
+- Starting with 2.2 `tsh` now supports per-user environment files, similar to
+  `ssh`. If you create an environment file on a server in `~/.tsh/environment`
+  it will be applied to your SSH sessions. The format of that file is the same
+  as the output of `env`.
+
+### Server Improvements
+
+Teleport 2.2 allows you to **restrict ciphers, key exchange algorithms and MACs**
+to your own subset. Teleport is based on Golang's implementation of SSH,
+which we always felt provided secure defaults, but enterprise Teleport users
+needed a way to hand-pick which ciphers are allowed.
+With 2.2 this is [now possible](https://github.com/gravitational/teleport/issues/1062).
+
+We have also significantly improved interoperability with OpenSSH, including:
+
+- Using the same file format for exporting cluster certificates.
+- Compatible `scp` behavior between OpenSSH clients and Teleport servers.
+- Compatible [keep alive](https://github.com/gravitational/teleport/issues/963) message processing.
+
+## New in Enterprise 2.2
+
+Enterprise edition of Teleport also gained a couple new features:
+
+- [Full support for SAML 2.0](https://goteleport.com/docs/)
+- **Role mapping for Trusted Clusters**. For example if you have two organizations,
+  say "EU" and "US" and you have SSH roles defined inside of each, you can map
+  users of a role of the EU cluster to another role inside the US cluster and vice versa.
+  It is possible to say that US-based role "admin" automatically becomes
+  "guest" if a user connects to the EU cluster. This allows to create flexible
+  [RBAC-driven](https://goteleport.com/features/) policies in environments where outsourced IT (or external vendor
+  support) need to securely access a subset of your infrastructure.
+
+## Full Changelog
+
+You can see the full list of changes in the [CHANGELOG](https://github.com/gravitational/teleport/blob/master/CHANGELOG.md).
+You can also see the list of [Github issues](https://github.com/gravitational/teleport/milestone/11?closed=1)
+that have been addressed during 2.2 release cycle.
+
+## Security Audit
+
+Last year before the release of Teleport 1.0, we hired a well known security
+consultancy to audit the Teleport code base so we could be confident calling
+Teleport 1.0 a production ready release. While we were incredibly satisfied
+with the work, we could not publicly publish the results. When we were
+discussing the release of Teleport 2.0, being able to publicly release the
+results of the latest security audit was one of the top requirements for the
+next audit because we wanted to increase transparency around Teleport security.
+
+That's why decided to use [Cure 53](https://cure53.de/). They have done impressive work auditing software like `Dovecot` and `ntp` as part of
+[Mozilla's Secure Open Source initiative](https://wiki.mozilla.org/MOSS/Secure_Open_Source/Completed) and they
+also publish the results openly.
+
+We started the engagement with Cure53 in late April as we were preparing the major changes in 2.x series of Teleport.
+We worked together to identify and patch all issues as they were found and released
+[released Teleport 2.0.5](https://goteleport.com/blog/teleport-2.0.5-security-fixes/) as they
+completed the audit. Now with the release of Teleport 2.2.0, which contains all
+the security fixes in addition to additional features, we're also releasing the full report from Cure 53.
+
+[You can download the full report from Cure 53 here](https://cure53.de/pentest-report_teleport.pdf).
+
+With two professional security audits and thousands of OSS adopters performing
+their own independent analysis, we continue to be confident in recommending
+Teleport for production use.
+
+<EmailSubscribeViolet />
+
+## Upgrading
+
+Teleport 2.2 is meant to be a drop-in replacement for the 2.x series. However, it is always
+recommended to make a backup of the cluster state prior to replacing the
+`teleport` binary with a new version. The cluster state is located in
+`/var/lib/teleport` directory for filesystem-based deployments. Users of the `etcd` backend
+should use `etcdctl backup` command to accomplish this.
+
+## More info
+
+For more information about Teleport, you can take a look at the
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[overview](https://goteleport.com/). It is open sourced so
+feel free to dig in - issues and/or pull requests are welcome. Also, feel free to
+reach out via email if you have additional questions: [info@goteleport.com](mailto:info@goteleport.com).

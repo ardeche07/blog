@@ -1,0 +1,210 @@
+---
+title: How to record SSH sessions with OpenSSH servers
+description: In this blog post we show how to record SSH sessions with OpenSSH sshd using Teleport as a recording proxy
+articleTitle: How to record SSH sessions with OpenSSH servers
+date: "2018-01-18"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Recording SSH sessions can be useful for compliance as well as for educational
+reasons. Replaying a session recording can be the ultimate answer to the _"how
+did they do that?"_ question. This blog post is about implementing [SSH session
+recording](https://goteleport.com/features/) using open source tools.
+
+The [Teleport SSH server](https://goteleport.com/teleport/download/) is free
+and open source, and it does this out of the box, but...
+
+People who cannot run the Teleport daemon on every server have been asking
+us how to record SSH sessions using good old [OpenSSH](https://goteleport.com/blog/introducing-teleport-4-point-3-modern-replacement-for-openssh/). Even organizations who
+would like to be full Teleport users usually have legacy pockets where sshd
+cannot be replaced.
+
+##### TLDR; Starting with version 2.4, Teleport can now be used in a "recording proxy" mode, so you can keep your fleet of OpenSSH servers and have your SSH sessions stored on the Teleport audit server.
+
+Before we dive into how to configure it, let's take a look at how session
+recording usually works in a pure-Teleport installation.
+
+## Architecture
+
+In the default Teleport cluster configuration, destination nodes submit SSH
+session traffic to the auth server for storage. These recorded sessions can be
+replayed later via the `tsh play` command or in a web browser.
+
+Some Teleport users believe that audit and session recording happen on the
+Teleport proxy server. This is not the case because a proxy cannot see the
+encrypted traffic, it is encrypted end-to-end, i.e. from an SSH client to an
+SSH server/node, see the diagram below:
+
+<BlogImage
+  alt="TSH Architecture"
+  src="./assets/session-recording.svg"
+  width="100%"
+/>
+
+Starting with Teleport 2.4, it is now possible to configure the Teleport proxy
+to enable the "recording proxy mode". In this mode, the proxy terminates
+(decrypts) the SSH connection using the certificate supplied by the client via
+SSH agent forwarding and then establishes its own SSH connection to the final
+destination server, effectively becoming an authorized "man in the middle".
+
+This allows the proxy server to forward SSH session data to the auth server to
+be recorded, as shown below:
+
+<BlogImage
+  alt="TSH Session Recording Architecture"
+  src="./assets/recording-proxy.svg"
+  width="100%"
+/>
+
+The recording proxy mode, although less secure, was added to allow Teleport
+users to enable session recording for OpenSSH servers running `sshd`, which is
+helpful when gradually transitioning large server fleets to Teleport.
+
+We consider the "recording proxy mode" to be less secure for two reasons:
+
+1. It grants additional privileges to the Teleport proxy. In the default mode,
+   the proxy stores no secrets and cannot "see" the decrypted data. This makes
+   a proxy less critical to the security of the overall cluster. If an attacker
+   gains physical access to a proxy node running in the "recording proxy" mode,
+   they will be able to see the decrypted traffic and client keys stored in
+   proxy's process memory.
+2. Recording proxy mode requires the SSH agent forwarding. Agent forwarding is
+   required because without it a proxy will not be able to establish the 2nd
+   connection to a destination node.
+
+## How to set it up
+
+To add session recording to your fleet of OpenSSH servers you will have to:
+
+1. Install a Teleport auth+proxy server. For simplicity of this post we can
+   assume that a single Teleport process is running both.
+2. Configure Teleport to use the proxy recording mode.
+3. Configure your sshd servers to trust certificates issued by Teleport auth
+   server.
+
+Let's look into each step.
+
+## Installing Teleport
+
+Teleport is a single binary which can be downloaded from the
+[Teleport's download page](https://goteleport.com/teleport/download/)
+or you can build your own from the source. Before starting Teleport, you have
+to create `/etc/teleport.yaml` first as shown below:
+
+```bash
+auth_service:
+   # IMPORTANT: this line enables the proxy recording / OpenSSH mode:
+   session_recording: "proxy"
+
+   # For better security it’s recommended to enable host checking as well,
+   # this is when the Teleport proxy will verify the identity of the
+   # nodes. Teleport documentation covers how to issue host certificates,
+   # but for simplicity of this tutorial we are disabling strict host
+   # checking here
+   proxy_checks_host_keys: no
+
+   # turn 2FA off to make the tutorial easier to follow
+   authentication:
+      second_factor: off
+```
+
+Now you can start Teleport proxy + auth servers. They can be executed by the same binary:
+
+```bash
+$ teleport start --roles=auth,proxy
+```
+
+With the server running, let’s add a user:
+
+```bash
+# this line says that a user “joe” can request a certificate for himself but also for ‘root’ and ‘ec2-user’
+$ tctl users add joe joe,root,ec2-user
+```
+
+This will print a URL where Joe can finish creating his Teleport user record.
+Teleport will now be able to issue self-expiring SSH certificates for Joe.
+
+## Configuring OpenSSH servers
+
+Now we must configure OpenSSH servers to trust users who will be connecting via
+a Teleport proxy. We need to provide them with the Teleport public CA key,
+which we need to export first:
+
+```bash
+$ tctl auth export --type=user > teleport_user_ca.pub
+```
+
+Remove "cert-authority" prefix from the file (so the first line starts with
+“ssh-”) and save it to `/etc/ssh/teleport_user_ca.pub` on every OpenSSH machine.
+
+Add the following line to `/etc/ssh/sshd_config`:
+
+```
+TrustedUserCAKeys /etc/ssh/teleport_user_ca.pub
+```
+
+IMPORTANT: make sure to restart sshd daemon after updating its configuration.
+
+<EmailSubscribeViolet />
+
+## Trying it out
+
+Now, Joe can request a certificate (assuming that Teleport is running on teleport-proxy.example.com):
+
+```bash
+$ tsh login --proxy=teleport-proxy.example.com
+```
+
+Remember, the SSH agent forwarding must be enabled for this to work. TSH will
+try to load the certificate into the active agent. You can verify if the agent
+is active and contains the certificate by executing `ssh-add -L`.
+
+Finally, lets login into a node:
+
+```bash
+# TSH SSH to use default ssh port:22
+$ tsh ssh --port=22 user@host.example.com
+# Example for an Amazon EC2 Host
+# tsh ssh --port=22 ec2-user@ec2-54-EXAMPLE.us-west-2.compute.amazonaws.com
+```
+
+NOTE: it is also possible to use a regular OpenSSH client `ssh`, which needs
+a little bit of [additional configuration](https://goteleport.com/docs/server-access/guides/tsh/#using-openssh-client/).
+
+The session will be recorded and you can replay it later via the Web UI served
+by the Teleport proxy or via CLI (if you know the session ID):
+
+```bash
+$ tsh play <session-id>
+```
+
+And here's how a recorded session will look like in the web UI, kind of like
+your personal YouTube for SSH:
+
+<BlogImage
+  alt="TSH Session Recording Session"
+  src="./assets/recorded-session.gif"
+  width="100%"
+/>
+
+## Summary
+
+To recap, here is what you need to do to record SSH sessions with OpenSSH:
+
+1. Install and configure a Teleport proxy node.
+2. Configure OpenSSH nodes to trust user certificates issued by Teleport.
+3. Use Teleport to issue host SSH certificates and distribute them to OpenSSH
+   nodes. Or disable strict host checking in Teleport proxy.
+4. Make sure that SSH agent is running on a client.
+
+We hope this allows people still using OpenSSH on target nodes to receive the
+benefits of Teleport’s recorded sessions and audit capabilities. You can read
+more about [Teleport's OpenSSH mode](https://goteleport.com/docs/setup/admin/#using-teleport-with-openssh/) or reach out to us [for a demo](https://goteleport.com/pricing/).
