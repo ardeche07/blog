@@ -199,6 +199,7 @@ const StyledSection = styled(Section)(
     pb: [3, 4],
     px: [4, 5],
     mt: 6,
+    mb: 5,
     borderRadius: "16px",
     boxShadow: "0 0 12px rgba(0, 0, 0, 0.32)",
   }),
