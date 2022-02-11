@@ -47,7 +47,8 @@ const StyledQuote = styled("blockquote")(
     borderLeftStyle: "solid",
     borderLeftColor: "dark-purple",
     boxShadow: "0 8px 64px rgb(0 0 0 / 12%)",
-    my: 3,
+    mt: 5,
+    mb: 3,
     mx: 0,
     "&::before": {
       content: '"“"',
