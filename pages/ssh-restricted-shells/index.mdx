@@ -140,7 +140,7 @@ $ echo Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg== | base64 --decode | sh
 
 In the above case example.com never appears in the byte stream but the action of accessing content on example.com still happened.
 
-Examining this issue further, this approach fails as a escape hatch as well. Imagine instead of alerting on example.com, the alert is on <strong><code>rm</code></strong>, but what if the data to be protected is not on disk but instead in a database? This approach fails here as well.
+Examining this issue further, this approach fails as a escape hatch as well. Imagine instead of alerting on example.com, the alert is on **`rm`**, but what if the data to be protected is not on disk but instead in a database? This approach fails here as well.
 
 While parsing may seem like a more secure approach, for sure it doesn't have the code smell issue that pattern matching does, it fundamentally has the same issues that pattern matching does. Differences between the alerting parser and the real database parser create interesting opportunity of vulnerability arbitrage.
 
@@ -148,7 +148,7 @@ While parsing may seem like a more secure approach, for sure it doesn't have the
 
 Some shells like Bash have [restricted modes](https://www.gnu.org/software/bash/manual/html_node/The-Restricted-Shell.html). The fundamental problem with these shells is that the access controls are at the application level, and if they allow execution of a program, which most shells do, any program you run launches with the permissions of the program without the application level restrictions. This approach effectively relies on the attacker acting in good faith which is rarely the case.
 
-To illustrate this with Restricted Bash, to work around it, simply type <strong><code>bash</code></strong> to re-launch bash and you get a un-restricted bash session.
+To illustrate this with Restricted Bash, to work around it, simply type **`bash`** to re-launch bash and you get a un-restricted bash session.
 
 ```
 $ bash --restricted
@@ -176,10 +176,10 @@ For more details on SCP read the article on [SCP Simple Secure Slow](/blog/scp-f
 
 ### ForceCommand: Forcing execution of a specific command
 
-Force command is an approach where only the command embedded either in a certificate or <code>authorized_keys</code> file is run by an OpenSSH server on connection. This approach can be secure but can [easily be misconfigured](https://www.openwall.com/lists/oss-security/2014/07/21/9) or chained with unrelated vulnerabilities to provide [no security at all.](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2008-1657) A few examples:
+Force command is an approach where only the command embedded either in a certificate or `authorized_keys` file is run by an OpenSSH server on connection. This approach can be secure but can [easily be misconfigured](https://www.openwall.com/lists/oss-security/2014/07/21/9) or chained with unrelated vulnerabilities to provide [no security at all.](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2008-1657) A few examples:
 
-- If the force command allows execution of other binaries, all restrictions can potentially be bypassed. This means you have to go further than just avoid obvious things like shells, even commands like <code>git</code> can be dangerous because it supports post-commit scripts which effectively allow you to run arbitrary commands.
-- If the user can somehow update files on the server they are trying to access, force command restrictions can be lifted by updating the <code>authorized_keys</code> file or the users RC file.
+- If the force command allows execution of other binaries, all restrictions can potentially be bypassed. This means you have to go further than just avoid obvious things like shells, even commands like `git` can be dangerous because it supports post-commit scripts which effectively allow you to run arbitrary commands.
+- If the user can somehow update files on the server they are trying to access, force command restrictions can be lifted by updating the `authorized_keys` file or the users RC file.
 
 It should be said that unlike the other approaches, force commands can be used effectively. For the force command to be secure, you have to define a small (or zero) set of supported inputs and be confident that arbitrary code execution is not a side effect of any of them. However, once you get to this point, the Admin Panel approach listed below becomes a much more scalable and user friendly option.
 
