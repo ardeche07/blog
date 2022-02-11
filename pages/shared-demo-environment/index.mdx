@@ -1,0 +1,157 @@
+---
+title: Using Teleport to Create and Maintain Shared Demo Environments
+description: This blog shows how the Teleport Solutions Engineering team uses Teleport to create and maintain shared demo environments.
+articleTitle: How Teleport Uses Teleport to Create and Maintain Shared Demo Environments
+date: "2022-02-09"
+author: Steven Martin
+logo:
+  image: ./assets/zero-trust-se-demos@2x-min.png
+  alt: Zero Trust Demos
+tags:
+  - teleport
+  - access-requests
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Our Solution Engineering (SE) team is full of individuals who have vast real-world experience building and maintaining complex IT access systems with sophisticated audit layers through their work as DevOps engineers. The problems that we have all faced before joining Teleport are the exact problems that our customers face. So when it comes to our demos, we like to show real-world scenarios aligned to customer usage patterns, in environments similar to our customers. That means that we regularly create resources like EC2 instances, RDS databases, Jenkins clusters, and more to show how Teleport combines connectivity, authentication, authorization, and audit into a single platform to improve security and productivity.
+
+Because these demo environments mimic the real production environments of our customers, they cost real money, and as a growing team, we have an incentive to control costs by not provisioning more resources than are necessary. This blog post will describe how the Teleport SE team built a shared demo environment on top of Teleport Enterprise, so that each SE can get access to their own demo resources, while limiting unnecessary resource provisioning to reduce costs. It will also demonstrate the architectural flexibility of Teleport by mimicking customer requirements for multiple distributed Teleport clusters across their global footprint. The use case we will discuss centers on how to consolidate access to database servers and Kubernetes clusters, and how we use [just-in-time access requests](https://goteleport.com/docs/enterprise/workflow/) to approve changes that require provisioning additional resources that will cost money.
+
+## Configuring a shared demo environment for SEs
+
+To set up this central demo environment, we need a Teleport cluster that maintains access to a core set of cloud resources like RDS DB instances. These are real resources that we pay for, so we want to control who can provision resources, and we also need to enable easy access for maintenance and patching. If any updates are needed, SEs can use Teleport’s just-in-time access requests functionality to request access to maintain AWS resources and IAM policy/roles. This allows for authorizing administrative changes across team members while providing an audit of what was changed.
+
+To set this up, there are four steps:
+
+1. Create a role for our SEs so they can admin their own database running on a common RDS DB instance
+2. Create a DB user with specific permissions that will be assumed when using the role above
+3. Create an AWS IAM policy that will be assigned to the role where the data service is running
+4. Create a role for a more privileged DBA user and assign to user
+
+Let’s dive in.
+
+## 1. Create a role for our SEs so they can admin their own database running on a shared RDS DB instance
+
+The configuration below shows an access role for a set of databases that are used by each SE. While we want to use a common set of RDS DB instances to control costs, each RDS instance can have multiple databases. These individual databases can be used by SEs to create their own customer demos. Some things to note in this role config:
+
+- The label `demonstration: yes` is listed in the Teleport UI.
+- The `external.dbnames` variable is used to automatically populate the particular user’s set of databases.
+- The `external.<attribute>` comes from the Single Sign On (SSO) provider used to authenticate the user such as Azure AD or KeyCloak. That allows us to use the same role for all the SEs while still only showing them the unique databases they have access to.
+
+```
+kind: role
+metadata:
+name: access-db
+spec:
+allow:
+db_labels:
+  demonstration: yes
+db_names:
+- '{{external.dbnames}}'
+db_users:
+- maintaindata
+request:
+  roles:
+  - maintaindemodatabase
+review_requests:
+  roles:
+  - maintaindemodatabase
+deny: {}
+options:
+max_session_ttl: 30h0m0s
+version: v4
+```
+
+## 2. Create a DB user with specify permissions that will be assumed when using the role above
+
+The Teleport role will only allow the user to connect to their assigned databases. But we still need to specify what the user can do. That’s where a user comes in. To make sure SEs can administer their own databases, we created the `maintaindata` user and assigned grants to manage data in each database.
+
+```
+CREATE USER maintaindata;
+GRANT rds_iam TO maintaindata;
+\connect sampledatabase1
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO maintaindata;
+\connect sampledatabase2
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO maintaindata;
+```
+
+## 3. Create an AWS IAM policy that will be assigned to the role where the data service is running
+
+Now we need to map all this to an IAM policy. The IAM policy below is assigned to the role where the Teleport `db_service` is running. It allows an SE to connect to the RDS database with the user created above. Optionally, instead of `*` at the end of the resource, you can specify just one specific user if you need to restrict which users should be able to connect.
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "rds-db:connect"
+      ],
+      "Resource": [
+        "arn:aws:rds-db:us-east-1:4232222:dbuser:cluster-YOF73DDDDDDDSSFQRUM/*"
+      ]
+    }
+  ]
+}
+```
+
+Example Teleport database service pointing at the PostgreSQL RDS:
+
+```
+db_service:
+ enabled: "yes"
+ databases:
+ - name: "postgresql-db"
+   description: "🐘 db database"
+   protocol: "postgres"
+   uri: "postgresql-db.asdadasd.us-east-1.rds.amazonaws.com:5432"
+   aws:
+     region: "us-east-1"
+   static_labels:
+     demonstration: yes
+```
+
+## 4. Create a role for a more privileged DBA user and assign to user
+
+As we have mentioned, this level of access allows an SE to use and maintain data in the database, but does not provide DBA-level access. What if we want to add a new table or schema? Or if we need to make changes to the database instance itself? For these changes, the SE can create an [access request](https://goteleport.com/docs/enterprise/workflow/) for the role `maintain-db` which maps to the `adminuser` user with higher-level permissions. SE team members can approve each other’s access requests through this configuration but are not allowed to approve their own changes, keeping each other accountable. Because Teleport uses short-lived certificates, and not shared credentials like SSH passwords, SEs are limited to two hours to apply their changes to the database before the elevated access expires and they revert to their default role. And of course, all changes to the database are audited through the [Teleport Audit Log](https://goteleport.com/docs/setup/reference/audit/).
+
+To configure a user that can manage databases and users while connecting through Teleport, first create them via the following in the PostgreSQL database server:
+
+```
+CREATE ROLE adminuser CREATEDB CREATEROLE LOGIN;
+GRANT rds_iam to adminuser;
+GRANT rds_superuser to adminuser;
+```
+
+The Teleport role below will match to the `adminuser` user that SEs can request and then make their changes via [Teleport Database Access](https://goteleport.com/database-access/). Changes are audited so we can easily identify what changes were made.
+
+```
+kind: role
+metadata:
+  name: maintain-db
+spec:
+  allow:
+    db_labels:
+      demonstration: yes
+    db_names:
+    - '*'
+    db_users:
+    - adminuser
+  deny: {}
+  options:
+    max_session_ttl: 2h0m0s
+version: v4
+```
+
+## Running Teleport with advanced configurations
+
+For the purposes of a simple demo, the entire SE team could use a single Teleport cluster that provides unified access to Linux and Windows servers, databases, Kubernetes clusters, and DevOps tools like Jenkins, GitLab, Grafana, and more. However, our customers often want to see Teleport run with configurations that mirror their own production deployments. For instance, they may want to deploy Teleport in AWS directly on an EC2 instance to support RDS access, but in GCP, they may want to run Teleport on a Kubernetes cluster powered by GKE for containerized applications. So we give SEs the ability to deploy their own Teleport instance using things like Kubernetes, docker-compose, CloudFormation. However, just because a customer has two Teleport instances, they do not create islands of access. By using [Teleport trusted clusters](https://goteleport.com/docs/setup/admin/trustedclusters/), this new deployment can still securely access the database resources we talked about before, giving the best of both worlds. SEs can still access the central resources that have been provisioned, while demonstrating that multiple Teleport clusters can be used to unify access to globally distributed resources.
+
+<EmailSubscribeViolet />
+
+## Summary
+
+We have stepped through an example of providing centralized access and auditing for multiple shared demonstration environments. By requiring SEs to request elevated privileges before deploying or configuring new instances, we’re able cut costs while still showing demos that mimic customer environments. Want to try Teleport yourself? [Download the Teleport community edition](https://goteleport.com/teleport/download/) or [reach out to us today](https://goteleport.com/signup/enterprise/) to see how we can help your team securely access your infrastructure.
