@@ -1,0 +1,142 @@
+---
+title: Teleport 2.6 Released
+description: We are happy to announce the release of v2.6 of Teleport. This is a major release which delivers several important new features. The source code of this release has also gone through a security audit performed by Cure53.
+articleTitle: Teleport 2.6 Release Information
+date: "2018-05-31"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we are releasing a major new version of [Teleport](https://goteleport.com/), [version 2.6](https://goteleport.com/teleport/download), that brings several new features requested by Teleport administrators, both in cloud-native environments and those with more traditional data center fleets.
+
+Before we dive into the details, let's introduce Teleport to the new readers of
+this blog.
+
+## What is Teleport?
+
+Teleport is a [privileged SSH access manager](https://goteleport.com/) for elastic compute infrastructure.
+Teleport brings productized SSH security best-practices to companies who have
+traditionally relied on complex DIY solutions.
+
+By adopting Teleport in your organization you will:
+
+- Secure your infrastructure and meet compliance requirements.
+- Reduce the operational overhead of enforcing security best-practices.
+- Have complete visibility into access and behavior.
+
+<BlogImage src="./assets/certificates-with-logo-simple.png" />
+
+Teleport is open sourced and fully compatible with OpenSSH clients and servers
+and can be used just as a bastion, issuing SSH certificates and providing
+connectivity to legacy clusters located behind firewalls.
+
+## What's new in 2.6?
+
+As usual, the full list of changes can be found on [Github](https://github.com/gravitational/teleport/milestone/22?closed=1)
+but here are the major new features:
+
+- Support for DynamoDB for storing the audit log.
+- Ability to use AWS S3 for storing the recorded sessions.
+- Support for certificate authority (CA) rotation.
+- Integration with PAM (Linux Pluggable Authentication Module) subsystem.
+
+In addition, the source code of this release has also gone through a security audit performed by [Cure53](https://cure53.de/).
+This audit report will be published publicly by Cure53 in the near future.
+
+### DynamoDB and S3
+
+AWS users of Teleport can now store their cluster state in
+AWS-provided storage back-ends. This release allows
+AWS users to use DynamoDB and S3 to store audit information instead of using local disks (or EBS volumes).
+
+This brings several advantages:
+
+- S3 buckets have much more flexible [RBAC](https://goteleport.com/teleport/features/rbac-for-ssh/), which allows for policies
+  like "write-only".
+- DynamoDB offers much more robust search capabilities than JSON files on a
+  local disk. Obviously, it scales better, as well, for large clusters with
+  significant audit event traffic.
+- Deploying highly available (HA) Teleport clusters is now much easier because
+  all nodes are nearly stateless.
+
+### Certificate Authority Rotation
+
+Teleport is quite opinionated about SSH authentication and it only uses SSH
+certificates, not keys. This important design decision makes the entire "SSH
+key management" habit obsolete, because users' certificates are rotated daily
+(or even hourly).
+
+However, Teleport has historically used the same long-lived certificates for _host
+authentication_. We have never been comfortable with this compromise, so in
+this release we have finally added the ability to rotate _all_ certificates within
+a cluster by rotating the certificate authority (CA) for both users and hosts.
+
+To trigger CA rotation:
+
+```bash
+# execute this on a Teleport auth server to rotate both CAs, for users and hosts:
+$ tctl auth rotate
+```
+
+This operation will start the rotation procedure and after a few hours all
+previously issued certificates will be invalid. The rotate operation was
+designed to be safe and to be used frequently. It uses the principle of a "grace
+period" (24 hours by default) during which both sets of certificates, old
+and new, are accepted. This gives the ability for users and hosts to
+re-authenticate with the cluster and receive new certificates (hosts will do
+this automatically).
+
+You can read more about this in [the docs](https://goteleport.com/docs/setup/admin/#certificate-rotation/).
+
+### PAM Integration
+
+Modern Linux systems rely on the [PAM (Pluggable Authentication Modules) subsystem](https://en.wikipedia.org/wiki/Linux_PAM)
+for authenticating users and customizing their sessions.
+
+This release of Teleport allows administrators to define a PAM profile to be used
+for SSH sessions initiated by the `teleport` daemon. This capability is not enabled
+by default, but can be turned on by modifying the Teleport configuration file,
+usually `/etc/teleport.yaml`:
+
+```bash
+teleport:
+   ssh_service:
+      pam:
+         # "no" by default
+         enabled: yes
+         # use /etc/pam.d/sshd configuration (the default)
+         service_name: "sshd"
+```
+
+Note that `/etc/pam.d/sshd` profile may not be installed on your system. In
+this case you'll have to define your own.
+
+### Upgrading
+
+Follow the [recommended upgrade procedure](https://goteleport.com/docs/admin-guide/#upgrading-teleport)
+to upgrade to this version.
+
+### AWS Marketplace Listing
+
+We are happy to report that, due to popular demand, we are submitting this
+release to be listed in the AWS marketplace. This will allow AWS users to quickly
+instantiate properly deployed and configured Teleport clusters into their AWS
+accounts using the AWS web interface.
+
+Thanks to our community contributors and testers who helped us make 2.6 a reality!
+
+<EmailSubscribeViolet />
+
+## Talk to us!
+
+For more information about Teleport, you can take a look at the
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[overview](https://goteleport.com/). It is open sourced, so
+feel free to dig in - issues and/or pull requests are welcome. Also, feel free to
+reach out via email if you have additional questions: [info@goteleport.com](mailto:info@goteleport.com).

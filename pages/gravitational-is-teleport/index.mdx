@@ -1,0 +1,101 @@
+---
+title: Gravitational Changes Name to Teleport
+description: We have renamed ourselves Teleport! In this blog post our CEO covers the Teleport mission and makes some new product announcements.
+articleTitle: Gravitational Rebrands as Teleport
+date: "2020-11-19"
+author: Ev Kontsevoy
+tags:
+  - company
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Dear Reader,
+
+Today we are officially announcing that Gravitational is becoming Teleport. As part of the transition, we are launching a new website and moving from gravitational.com to [https://goteleport.com](/). But that’s not the most important part.
+
+<BlogImage
+  src="./assets/gravitational-is-teleport-header.png"
+  width="100%"
+  alt="new teleport logo"
+/>
+
+A much more interesting side of the story is why we are doing this and the new product announcements and the direction we are taking. This is an interesting journey and as we enter this new chapter, it is important to better understand these decisions.
+
+## Our Past and our Vision
+
+The Gravitational founders, like many engineers, fell in love with programming by giving a computer some instructions and watching the magic happen. The close relationship between a programmer, a machine, and code felt special.
+
+We went to college and joined the workforce. We even started our own startups and witnessed the transition to horizontal scaling and cloud computing. There is no “computer” anymore that we can give instructions to. Half of our effort now goes towards erecting and continuously maintaining complex “cloud environments” for our programs. The complexity of environments is slowing us down.
+
+**What is an environment?**
+
+Essentially, it is a _custom, single-purpose computer_ that we must build and maintain for ourselves. It is a fragile beast consisting of many “computer parts” like virtual instances, load balancers, docker registries, DNS records, SSH jump hosts, monitoring dashboards, CI/CD pipelines with blue/green deployments, network policies, plus dozens of other “parts” I will not bore you with. Some organizations, having assembled an environment some years ago, are unable to re-create one from scratch: that’s how complex these single-purpose custom “computers” tend to become.
+
+We started Gravitational because we found this mess with environments…unpleasant. We liked the simplicity of giving instructions to a computer better. Can we have _that_ in the modern era of cloud computing?
+
+We believe the answer is yes, but we have to let go of environments and move into environment-free computing, i.e. fully embrace the promise of the cloud and _treat the entire planet as a single, multi-tenant computer_.
+
+<Quote>
+  Environment-free computing is like treating the entire planet as a single
+  multi-tenant computer.
+</Quote>
+
+Among other things, this planetary computer will need:
+
+- An operating system
+- Convenient access
+
+What we built at Gravitational is Gravity and Teleport. The Gravity project was meant to be the “runtime” for this computer, while the goal of Teleport was to provide an easy way to access it.
+
+We have enjoyed amazing success considering how young Gravitational is. What we have noticed is that Gravity’s primary use case became deploying SaaS applications into restricted environments, i.e. Gravity today enables SaaS companies to convert their offerings into downloadable software. This is fantastic, but not exactly as grand as we have imagined.
+
+So it really is a no-brainer. This is why we are renaming ourselves Teleport. Teleport fulfills what we have been trying to do since we created the company - to be the first stepping stone towards environment-free computing. Gravity will still be actively supported, but we have learned from successful companies that focus is what creates great companies and today we are focused on Teleport.
+
+## Teleport’s Mission
+
+SaaS applications today run in custom-built, single-purpose environments that only grow over time. An environment consists of numerous components (computing instances, databases, kubernetes clusters, storage volumes, internal dashboards, etc). Let’s call them computing resources.
+
+All of these resources come with a remote access protocol, and using them all is painful:
+
+- Many of those have been inherited from the client-server era and do not naturally extend to cloud scale.
+- They are fragmented, as resources do not share the same authentication and authorization.
+- Some of them rely on network boundaries and protected perimeters. This is not adequate security, and it’s just plainly inconvenient.
+- They provide no discovery, so developers need to build and maintain “inventories” of resources, often one per resource type, i.e. a list of AWS accounts, a list of VMs, a list of databases, Jenkins instances, and so on.
+
+The idea of Teleport is surprisingly simple: let’s have a very smart proxy with a deep understanding of all underlying access protocols and a collection of “side cars” that can be deployed next to any computing resource. In principle, this allows a Teleport user to have instant access to any computing resource anywhere in the world. And that’s what the Teleport mission is.
+
+<Quote>
+  Teleport’s mission is to give developers instant access to any computing
+  resource anywhere in the world.
+</Quote>
+
+## Access Plane
+
+Access Plane is what we call the technology of accessing any computing resource located anywhere.
+
+Teleport started with SSH as its only supported protocol, with Kubernetes access added recently. This brings me to other announcements we’re making today.
+
+Today we are launching [Application Access](https://goteleport.com/application-access/), i.e. the ability for developers to discover and access all HTTPs endpoints of internal web applications that are running on their cloud environments, behind NAT.
+
+We are also showing off the early technology preview of [Database Access](https://goteleport.com/docs/database-access/introduction/), which allows developers to enumerate and access the endpoints of databases, regardless of where they are.
+
+Moreover, we’re looking to integrate [Teleconsole](https://www.teleconsole.com/), our laptop-to-laptop access project into Teleport mainline, so developers can temporarily grant each other secure command-line access to their laptops without having to be on the same network.
+
+And that’s not all. I will keep one more announcement for dessert. Make sure to visit this blog next couple of weeks to see what else our product team will be getting out of the oven!
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+We are now the Teleport company with the URL, goTeleport.com. Becoming a verb similar to google is what we’re after. We want all developers to instantly teleport themselves anywhere: into any environment, any resource, to anything they need to be productive.
+
+So it’s easy to see how Teleport is a much better name for what we do! Try Teleport for yourself, as it’s open source and [available for download](https://goteleport.com/teleport/download).
+
+But also, consider joining us as [we’re hiring](https://jobs.lever.co/teleport) for numerous positions, anywhere in the US and Canada. Yes, we also have made the transition to be a fully remote company, because how else can we build a good Teleport without having the need to use one ourselves?!
+
+Ev Kontsevoy,
+~~Gravitational~~ Teleport CEO

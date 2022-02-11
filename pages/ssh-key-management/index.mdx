@@ -1,0 +1,173 @@
+---
+title: How to manage SSH keys?
+description: How to avoid managing SSH keys and switch to short-lived SSH certificates.
+articleTitle: SSH Key Management & SSH Key managers
+date: "2018-02-02"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+This is going to be a quick read. Ever since diving into the infrastructure
+security space I started to get this question often:
+
+<Quote>
+  What is the best way to manage SSH keys for remote access? Which SSH key
+  manager should I use?
+</Quote>
+
+Friends, Romans, countrymen, .. you are asking the wrong questions. A
+world-class ops team should not be "managing SSH keys" and googling for an SSH key manager.
+While valid **in theory**, key-based authentication is probably not the best
+approach to SSH security **in practice**. Indeed, if not properly "managed", SSH
+keys can be no more safe than good old passwords.
+
+## What is SSH Key Management?
+
+TL;DR version is that "key management" can get so complicated that you'll be
+best advised to stop using SSH keys.
+
+Why? We'll get to this in a second, but the short answer is because SSH key-based
+authentication simply does not scale. As engineers begin to feel the pain, they
+start looking for solutions, and frequently these solutions are described as
+"SSH key management" products.
+
+Often the key component of SSH key management is secure storage of keys, or
+implementing key rotation best practices.
+
+Those things do not scale and they're too complex. The complexity of SSH key
+management will make you exposed to errors in configuration and will make it
+hard to reason about security. You must not be looking for an SSH key
+managers. Instead of treating the symptoms, let's attack the root cause, i.e.
+key-based authentication.
+
+## SSH Key-based Authentication
+
+Let's do a quick overview of SSH key authentication. Any authentication scheme
+based on asymmetric cryptography, including SSH, uses a pair of keys:
+
+- A private key which is never shared with anyone. Usually users [generate their
+  private SSH key](https://goteleport.com/blog/comparing-ssh-keys/) using the `ssh-keygen` utility which stores private keys in a
+  user’s `~/.ssh` directory.
+- A public key, which is algorithmically derived from that private key. A
+  public key is safe to share with everyone.
+
+In a key-based system all users and servers must have their own private keys.
+Servers generate their own private keys usually when an SSH server is installed
+on them. When a user tries to access a server via SSH, two things happen:
+
+1. A server needs to authenticate this user. This works by a user presenting
+   her public key, so a server can look into a list of public keys it trusts
+   and accept or reject the connection.
+2. A user must also ensure that a server can be trusted. What if an attacker
+   somehow managed to assign a well-known, trusted IP address to a rogue
+   machine? A server must present its public key to a user, so a user can check
+   her known_hosts file to decide either this server can be trusted.
+
+It is easy to see that for this to work well, two things must be true:
+
+1. Every user must have a list of public keys of all servers she wants to access.
+2. Every server must have a list of public keys of all users who should be allowed in.
+
+This critical list of trusted public keys also needs to be updated on a regular
+basis, because servers and users change all the time. This is why you may be
+thinking that you need an “SSH key management” solution.
+
+But you don’t. You should be using short lived, **automatically expiring SSH
+certificates** instead.
+
+## What is an SSH Certificate?
+
+An [SSH certificate](https://goteleport.com/blog/ssh-certificates/) is simply a public key signed by a well-known, trusted
+entity called a [certificate authority ("CA")](https://goteleport.com/blog/ssh-certificates/). A certificate authority is the
+ultimate grantor of trust in an organization. This means that copying keys
+around is no longer necessary; users and servers simply must agree on which CA
+to trust.
+
+SSH Certificates have a few important properties:
+
+- A "certificate" is a public key bundled with its digital signature
+  algorithmically derived from a CA's private key. This means that only a CA
+  can issue a certificate.
+- A certificate can be supplied with a date range for when it’s considered
+  valid. This means that certificates can automatically expire.
+- A certificate can contain arbitrary cryptographically signed metadata, which
+  allows a CA to encode additional instructions to how a certificate must be
+  handled. For example, one can think of encoding various SSH options into it,
+  like "do not allow port forwarding".
+
+When a user tries to access a server, there is no need for users and servers to
+know each other's public keys ahead of time. Instead, they exchange their
+certificates and validate that they are signed by the same certificate
+authority (CA).
+
+## SSH Certificates in Production
+
+How would using SSH certificates [work in practice](https://goteleport.com/blog/how-uber-netflix-facebook-do-ssh/)?
+
+1. When a new server is provisioned, it must receive its own certificate from a
+   trusted fleet-wide corporate CA.
+2. When a user shows up for work, she must also receive her user certificate
+   from the same trusted corporate CA.
+3. All users and all servers must trust certificates signed by the corporate
+   CA, assuming the certificates have not expired.
+
+#### Issuing Certificates
+
+This diagram illustrates that servers and users must periodically request
+their certificates from a mutually trusted corporate CA:
+
+<BlogImage src="./assets/cert-diagram-1.svg" width="100%" alt="Certification" />
+
+#### Logging in with a Certificate
+
+Once both a server and a user have their certificates, authentication becomes
+simply the process of showing each other a certificate and validating that it's
+signed by the trusted CA:
+
+<BlogImage
+  src="./assets/cert-diagram-2.svg"
+  width="100%"
+  alt="Certification Overview"
+/>
+
+## Open Source SSH Servers that Support Certificates
+
+Certificate-based authentication can be implemented using OpenSSH. RedHat has
+an [excellent guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/deployment_guide/sec-using_openssh_certificate_authentication)
+on how to do this, so we are not repeating it here. OpenSSH is the undisputed
+champ of the SSH world and comes by default with every Linux system and
+supports every SSH authentication method, i.e. it needs to be carefully
+configured and locked down for certificate-based access.
+
+Another open source alternative is [Teleport](https://goteleport.com/), a relatively
+new addition to the world of SSH servers. It is open source, it is based on
+Google's crypto and has been successfully adopted into production by
+numerous well companies like NASDAQ, Qualcomm, Samsung and others.
+
+Teleport makes SSH certificates its sole purpose, i.e. its user experience and
+ease of configuration are optimized specifically for certificate-based
+authentication, i.e. Teleport defaults make it easy to reason about
+certificate-based SSH security.
+
+I suggest you glance at Teleport’s [Quick Start](https://goteleport.com/docs/getting-started/)
+and go through its [architecture](https://goteleport.com/docs/architecture/overview/)
+to see how simple it is to leave behind SSH keys for good.
+
+<EmailSubscribeViolet />
+
+## Summary
+
+- Do not use SSH key managers.
+- In fact, disable key-based SSH authentication and use SSH certificates instead.
+- Both OpenSSH and Teleport support SSH certificates for server access.
+- Teleport was built from the ground up to take advantage of certificates, i.e.
+  it's a more natural way of adopting them.

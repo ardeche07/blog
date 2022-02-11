@@ -1,0 +1,80 @@
+---
+title: Teleport Audit Report is Available
+description: Cyber security researches from Cure53 have completed a full security audit of Teleport, the privileged access management layer for SSH and Kubernetes. Here is a brief summary of their findings and links to the full source-assisted penetration test report.
+articleTitle: Teleport 2.6 Audit Report is Available
+date: "2018-06-01"
+author: Russell Jones
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+Teleport will be three years old in just a few weeks. Since its public debut in June 2016,
+Teleport has been adopted as a PAM solution for SSH by numerous individuals and companies - from start-ups to large enterprises such as banks,
+semiconductor manufacturers, stock exchanges and government entities.
+
+While we are happy with what we have achieved, three years is still a very young age
+for a priviledged access management product central to cyber security. That is why we remain
+committed to regularly performing full security audits (as in "all source
+code") by industry-trusted third parties.
+
+Today, we are announcing another full security audit performed by Cure53.
+
+## Who is Cure53?
+
+[Cure53](https://cure53.de) is a team of security researches based in Germany.
+We like working with them due to their reputation in auditing open source
+projects and the fact that they publish results publicly for the community to see.
+
+You can see some of their reports published on [their web site](https://cure53.de/#publications).
+
+## Audit Findings
+
+The full text of the report (PDF) can be downloaded [here](https://cure53.de/pentest-report_teleport_2.pdf)
+The summary of the findings is:
+
+- No critical vulnerabilities have been discovered.
+- One _high_ vulnerability was found: The roles API of the auth server allow directory traversal.
+- Two medium issues have been discovered.
+- Two "info" level issues have been discovered.
+- The latest 2.6.0 release already contains patches for these issues.
+
+Quoting from the report:
+
+<Quote>
+  Of the five discoveries made during this test, one is considered to be a
+  security vulnerability issue, while the other four were classified as general
+  weaknesses.
+</Quote>
+
+**IMPORTANT:** The discovered issues have been patched and patches were provided for 2.5.x
+and 2.4.x series (published as 2.5.8 and 2.4.8)
+
+## Conclusions
+
+Quoting the "Conclusions" section of the report:
+
+<Quote>
+  The results of this second-run Cure53 security assessment of the latest
+  release of the Teleport software by Teleport Inc are once again very positive.
+  With the first Cure53-Teleport collaboration already yielding good results,
+  the fact that this time the findings are few and far between across the board
+  is very much praiseworthy...
+</Quote>
+To read the entire section, download the [full report](https://cure53.de/pentest-report_teleport_2.pdf).
+
+Thanks to Cure53 for working with us again!
+
+<EmailSubscribeViolet />
+
+## Contact us
+
+For more information about Teleport, you can take a look at the
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[Github repo](https://github.com/gravitational/teleport). It is open sourced, so
+feel free to dig in - issues and/or pull requests are welcome. Also, feel free to
+reach out via email if you have additional questions: [info@goteleport.com](mailto:info@goteleport.com).

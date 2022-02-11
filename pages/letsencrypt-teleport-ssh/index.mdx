@@ -1,0 +1,155 @@
+---
+title: How to use Let's Encrypt with an SSH Bastion
+description: The Teleport Proxy requires a valid x509 certificate to serve content like the Web UI via HTTPS. In this post we show how to configure the Teleport Proxy to use Let's Encrypt for this.
+articleTitle: How to use Let's Encrypt with an SSH Bastion
+date: "2018-02-05"
+author: Russell Jones
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+This blog post is about configuring the [Teleport SSH proxy (aka, bastion)](https://goteleport.com/)
+to use x509 certificates (AKA SSL or HTTPS) issued by [Let's Encrypt](https://letsencrypt.org/). Let's be careful and not confuse x509 certificates with SSH certificates.
+Teleport itself is a [clustered, certificate-based SSH server](https://goteleport.com/docs/architecture/overview/#teleport-cluster/)
+(i.e., the Teleport Auth Service acts as an SSH certificate authority (CA) for
+your organization.)
+
+<BlogImage src="./assets/lets-encrypt-bastions.png" />
+
+A Teleport user must request an SSH certificate before connecting to any
+Teleport nodes. Typically, the certificate automatically expires at the end of the day, so the process of issuing a user SSH certificate happens daily. A user can request their SSH certificate from a Teleport proxy server:
+
+```
+$ tsh login --proxy=proxy.example.com
+```
+
+The Teleport proxy server behind `proxy.example.com` uses the `HTTPS` protocol (on
+port 3080 by default) to serve the SSH certificate back to the `tsh` client. This
+means that a Teleport proxy must use a valid x509 certificate to securely serve
+via HTTPS. Below, we'll go through the steps for using Let's Encrypt to provide this x509 certificate.
+
+## Let's Encrypt
+
+From the [Let's Encrypt website](https://letsencrypt.org/about/):
+
+<Quote>
+  Let’s Encrypt is a free, automated, and open certificate authority (CA), run
+  for the public’s benefit. It is a service provided by the Internet Security
+  Research Group (ISRG).
+</Quote>
+
+In this post we won't go into a lot of detail about [how Let's Encrypt works](https://letsencrypt.org/how-it-works/)
+but the most important highlights are:
+
+- The process of validating a certificate domain is automated.
+- A certificate issued by Let’s Encrypt is valid for just a couple of weeks and
+  must be renewed frequently.
+
+We'll use domain validation based on HTTP ACME challenge,
+which works by "provisioning an HTTP resource under a well-known URI", in our
+case it's `http://proxy.example.com`. This means the port 80 on the Teleport
+Proxy server machine must be available and accessible by Let's Encrypt servers.
+
+## Initial Setup
+
+First, you need to [install CertBot](https://certbot.eff.org/), the official
+Let's Encrypt client, which is a command line utility we’ll use below to
+receive a x509 certificate for proxy.example.com domain. Using Debian 9, it's
+as simple as typing:
+
+```bash
+$ sudo apt-get install certbot
+```
+
+You can follow one of the official tutorials on how to obtain a certificate
+from Let's Encrypt but here’s how we recommend doing it:
+
+```bash
+sudo certbot certonly --standalone \
+                      -d proxy.example.com \
+                      -n \
+                      --agree-tos \
+                      --email=letsencrypt@example.com
+```
+
+Here is some more detail:
+
+| Flag           | Meaning                                                                                                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--standalone` | Use standalone domain validation. This will cause certbot to launch a web server listening on port 80 to respond to a ACME challenge. This is also why we have to run this command under sudo, otherwise certbot will not be able to bind to this port |
+| `-d`           | Domain we're requesting a certificate for. This must be the same name which will be used with `tsh login --proxy=proxy.example.com`                                                                                                                    |
+| `-n`           | Run non-interactively                                                                                                                                                                                                                                  |
+| `--agree-tos`  | Tells Let's Encrypt that you agree with their Terms of Service.                                                                                                                                                                                        |
+| `--email`      | Your email address                                                                                                                                                                                                                                     |
+
+By default, this command will create `/etc/letsencrypt/` directory and populate
+it with all kinds of interesting information. We are mostly interested in
+`/etc/letsencrypt/live/proxy.example.com`:
+
+```bash
+$ ls -lh /etc/letsencrypt/live/proxy.example.com
+lrwxrwx--- 1 root root  43 Jan 18 14:28 cert.pem
+lrwxrwx--- 1 root root  44 Jan 18 14:28 chain.pem
+lrwxrwx--- 1 root root  48 Jan 18 14:28 fullchain.pem
+lrwxrwx--- 1 root root  46 Jan 18 14:28 privkey.pem
+-rw-r--r-- 1 root root 543 Jan 18 14:22 README
+```
+
+We'll need the private key and the "full chain" certificate to configure the
+Teleport Proxy.
+
+## Teleport Configuration
+
+Open `/etc/teleport.yaml` and make sure it contains the following section:
+
+```yaml
+proxy_service:
+  enabled: yes
+  https_cert_file: /etc/letsencrypt/live/proxy.example.com/fullchain.pem
+  https_key_file: /etc/letsencrypt/live/proxy.example.com/privkey.pem
+```
+
+Restart the Teleport proxy and it should be able to serve a valid HTTPS content
+running on `https://proxy.example.com:3080`
+
+## Certificate Renewals
+
+As we mentioned earlier, a certificate issued by Let's Encrypt is valid only
+for a few weeks, which means it must be renewed periodically. You can run this
+command periodically (see letsencrypt [rate limit guidelines](https://letsencrypt.org/docs/rate-limits/)) as root:
+
+```bash
+$ certbot certonly --standalone -d proxy.example.com -n --force-renewal
+```
+
+As you can see, it forces the renewal of the certificate. The Teleport proxy must be restarted after it runs. Another option is to run
+it more frequently but you will have to drop `--force-renewal` flag. CertBot is
+smart enough not to touch a certificate if it's still valid.
+
+You can configure this command to run as a cron job or you can use systemd
+timers. The Certbot package from Debian 9, which we used for this post, comes
+with the pre-configured systemd timer which you can configure by editing these
+two files:
+
+```text
+/lib/systemd/system/certbot.service
+/lib/systemd/system/certbot.timer
+```
+
+<EmailSubscribeViolet />
+
+## Summary
+
+To recap, here's what we have done to configure an SSH Bastion to serve HTTPS content using a certificate from Let's Encrypt:
+
+1. Install certbot on the same server where a Teleport proxy is running.
+2. Make sure the port 80 is available and accessible by Let’s Encrypt servers.
+3. Use "standalone" domain verification method.
+4. Update Teleport configuration in `/etc/teleport.yaml`
+5. Create a systemd timer which renews the certificate and restarts Teleport daemon.

@@ -1,0 +1,76 @@
+---
+title: Chasing missing SIGINT signals - SSH
+description: This post is the first of an ongoing series about interesting issues and bugs that the Teleport team has worked on. This post, about missing SIGINTs and SSH, should be interesting for developers who leverage signal handling in terminal-based applications written in Go.
+articleTitle: Chasing missing SIGINT signals - SSH
+date: "2018-05-24"
+author: Russell Jones
+tags:
+  - programming
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## The initial issue: missing SIGINTs
+
+We recently received an interesting bug report on our issue tracker: [#1650: ctrl-c
+ignored.](https://github.com/gravitational/teleport/issues/1650). A [Teleport](https://goteleport.com/) end user reported that our [SSH
+client](https://goteleport.com/docs/server-access/guides/tsh/) (`tsh` CLI tool) was ignoring Ctrl-C key press, aka the [SIGINT
+signal](http://man7.org/linux/man-pages/man7/signal.7.html), when tailing logs across multiple servers in a
+[cluster](https://goteleport.com/docs/architecture/#teleport-cluster). Due to this, when the user hit Ctrl-C on their keyboard, Teleport would print `^C`
+but continue blocking.
+
+The issue was that Teleport's ssh certificate-integrated client, `tsh`, was incorrectly handling SIGINT. Digging into the problem revealed
+something interesting about SSH internals: _precisely where signals are handled depends on the type of SSH connection created._
+
+## Background on SSH protocol internals
+
+For those not familiar with SSH internals, the protocol allows the creation of a secure channel between a client and server. When running
+programs on the remote machine, first a "session" SSH channel is created, then a ssh client, such as Teleport's `tsh`, issues either a
+`shell` or `exec` request in that channel.
+
+When typical users think of SSH, it is these `shell` requests they think of. This is the type of request that is created when you type `ssh ec2-user@instance.us-east-1.compute.amazonaws.com`. A pseudo terminal ("PTY") will be allocated on
+`instance.us-east-1.compute.amazonaws.com` and a program (typically a command shell like Bash) will be launched in it. Programs like
+Teleport or OpenSSH connect your local PTY to that remote PTY which allows you to run programs like you would locally.
+
+When issuing `shell` requests, `tsh` puts your local PTY in raw mode. In raw mode, the local PTY will not perform any interpretation of what
+you are typing and simply send everything to the remote PTY. (Note, to see this you can type `stty raw` and compare what happens when you
+hit Ctrl-C to what you normally expect. To return to your terminal to sane settings, type `stty sane`). When the remote PTY receives the
+Ctrl-C, it interprets it as SIGINT, and issues a SIGINT to the foreground process in the PTY.
+
+<BlogImage src="./assets/unix-signals-diag-0.png" />
+<center>_Figure 1: Signal handling in Teleport for `shell` requests._</center>
+
+In the case of this bug, the user created an `exec` request which is what happens when you do something like `ssh ec2-user@instance.us-east-1.compute.amazonaws.com tail -f /var/log/kube-apiserver.log`. `exec` requests typically do not allocate a PTY and
+are used to run commands on a remote server, collect output, and return. (Note: PTY allocation can always be forced even for `exec` requests
+with the `-t` flag.)
+
+With `exec` requests, the client and server's PTY is not in raw mode. When the user types Ctrl-C the local PTY will send a SIGINT to the
+foreground process: `tsh` which then sends a message to the server telling it to terminate the session.
+
+<EmailSubscribeViolet />
+
+## Fixing differences between OpenSSH and Teleport behavior
+
+Here is where things differ between Teleport and OpenSSH. With OpenSSH, the client would send `SSH_MSG_DISCONNECT` and cause `sshd` to call
+`exit(1)`. Unfortunately the golang SSH library that Teleport uses does not support sending `SSH_MSG_DISCONNECT` messages and even if it
+did, there still exists the issue of how to kill the child process because Teleport follows a different process spawning model than OpenSSH.
+
+Instead, what `tsh` does is close the channel and client. Once Teleport detects the channel has been closed it reaps any resources
+associated with the connection and then sends a `SIGKILL` to any running processes.
+
+You can see the difference in behavior in Figures (2) and (3) that show how OpenSSH and Teleport behave respectively.
+
+<BlogImage src="./assets/unix-signals-diag-1.png" />
+<center>_Figure 2: Signal handling in OpenSSH for `exec` requests._</center>
+
+<BlogImage src="./assets/unix-signals-diag-2.png" />
+
+<center>_Figure 3: Signal handling in Teleport for `exec` requests._</center>
+
+In the case of [#1650](https://github.com/gravitational/teleport/issues/1650) `tsh` was not killing the connection when SIGINT was received.
+The fix was propagating the SIGINT to the code that was running the remote command, killing it and then finally closing the connection.
+We've fixed this issue now, so Teleport users should be able to tail server logs and exit without a problem anymore!

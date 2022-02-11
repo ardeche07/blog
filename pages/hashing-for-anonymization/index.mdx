@@ -1,0 +1,122 @@
+---
+title: The False Allure of Hashing for Anonymization
+description: Why using cryptographic hashes doesn't make data anonymous.
+articleTitle: The False Allure of Hashing for Anonymization
+date: "2018-04-30"
+author: Kevin Nisbet
+tags:
+  - programming
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Intro
+
+Recently, I was reading Latacora's update to the [cryptographic right answers](http://latacora.singles/2018/04/03/cryptographic-right-answers.html) and it reminded me of a topic that doesn’t get enough attention.
+
+With [endless data breaches](https://gizmodo.com/the-great-data-breach-disasters-of-2017-1821582178) and [new regulations](https://goteleport.com/blog/gdpr-impact-on-saas-vendors/), I'm starting to see more companies be more conscious about how they handle customer data. The idea is pretty simple, use cryptography to strip personal identifiers, and replace them with something that is difficult to reverse. This way, we can continue to use the valuable data, but reduce who has access to personally identifiable information.
+
+As developers, we try and find similar problems that have already been solved. Isn't running data through an algorithm to make it difficult to reverse something we've all seen and solved before?
+
+Sounds a lot like the way we hash a file or store passwords.
+
+Unfortunately, this is a mistake that I've caught more than once at several organizations, so it's time we have a discussion on what makes data anonymous, why most anonymous data tends to be trivial to unmask, and why cryptography alone can't always make data anonymous.
+
+## Teleport
+
+When I joined the Teleport team, I was reading through the specs for upcoming product features for the commercial version of [Teleport](https://goteleport.com/), our modern SSH system for clusters.
+
+In these specs, I found an entry about collecting product usage data for a new “pro” level license that was being introduced. This license is for smaller customers and is different from our open source and enterprise offering, which don't have any product usage tracking.
+
+The idea was pretty simple, collect basic information about product usage as they use our licensed product, and in order to protect the privacy of our customers and for potential areas where the data could leak, the data would be cryptographically hashed to anonymize it.
+
+## So why doesn’t sha256 produce anonymous data?
+
+Let's say you use your elite hacking skills, and discover a database with no password accessible to the internet, with an anonymized dataset that looks like this:
+
+| Timestamp        | IP Address | Username                                                         |
+| ---------------- | ---------- | ---------------------------------------------------------------- |
+| 2018-04-15 13:01 | 1.2.3.4    | 45d9908cf9f290f7097bf8152c288055275ebe93f2dc3781c8a1c60a43cd6ae5 |
+| 2018-04-05 08:05 | 5.6.7.8    | e9e326d5f3b4741fe5967b5f9f3997e6275331ba18567ef9ef9e0e3a00e78371 |
+| 2018-04-16 12:27 | 9.1.2.3    | 4135aa9dc1b842a653dea846903ddb95bfb8c5a10c504a7fa16e10bc31d1fdf0 |
+
+Those usernames are all `sha256` hashes, long random strings, we couldn't possibly figure out who those entries belong to. Can we?
+
+Well, let's say you want to see if I'm one of the users, all you have to do is try and calculate the sha256sum of my username.
+
+```
+echo -n knisbet| sha256sum
+45d9908cf9f290f7097bf8152c288055275ebe93f2dc3781c8a1c60a43cd6ae5  -
+```
+
+So while cryptographic hashes have great cryptographic properties, tests against known or easy to guess values like a username, email address, or other guessable information are trivial.
+
+And even big companies are making this mistake, Facebook's has a [feature for businesses to upload their customer lists](https://www.facebook.com/business/help/112061095610075?helpref=faq_content) for ad targeting, that is based on this concept.
+
+## What if we make the hash slow?
+
+What I generally see happen next, amongst the more astute and clever developers, is to treat the data like storing passwords. So we'll make the algorithm slow, and we'll use salts, or a password library, that'll make it anonymous right?
+
+This may not work, either. Using scrypt, bcrypt etc is about encrypting secrets, where the secret is something hard to guess or predict.
+
+But when we're anonymizing data instead of hashing a password, the input to our algorithm isn't ["correct horse battery staple"](https://xkcd.com/936/), a hard to predict random series of words or some other piece of secret data, but a public and easy to guess string like "knisbet" or maybe an email address that's already public.
+
+Even with something like bcrypt at reasonable work factors, a database of 100,000 anonymous users would take less than a day on a single cpu core to test every bcrypted entry for the string "knisbet" and unmask my secret data.
+
+Don't get me wrong, this does make it significantly harder to attack a leaked database to unmask every user, but the resources required to do so or target specific users are within the reach of many adversaries.
+
+## It's even harder than this
+
+Let's say for a moment, that we've solved the problem of the anonymous hash, and through our clever techniques, we've made the anonymous username field completely unbreakable.
+
+Is there any other way we could unmask this dataset?
+
+| Username | Login               | IP Address |
+| -------- | ------------------- | ---------- |
+| 1        | 2018-04-15 13:01:00 | 1.2.3.4    |
+| 2        | 2018-04-05 08:05:27 | 5.6.7.8    |
+| 3        | 2018-04-12 12:27:55 | 9.1.2.3    |
+
+What if we know a little bit of information about the users we want to unmask?
+
+Say I mention on Twitter that on 2018-04-15 around 1 PM there was a network outage and I had to log in and fix it. If there aren't many other records around that time, it's easy to see I'm user 1 in this database.
+
+Let's say you're chatting with Tony and he's been on vacation since April 5th - oops there's another unmasked user, there is a gap in the dates for user 2 that matches that vacation.
+
+And last, say you hack another dataset and you find out that on April 12th, Alex was using the IP address 9.1.2.3, and sure enough, Alex is user 3.
+
+Combining anonymized data that can be correlated to other parts of your data that isn't anonymized, in many cases makes it trivial to unmask users in anonymized data sets. Usually, you only need a [couple points of data with relatively low accuracy](https://news.mit.edu/2013/how-hard-it-de-anonymize-cellphone-data) to unmask a large dataset.
+
+Take a look at what happened in 2014 when the NY City Taxi and Limousine Commission tried to anonymize taxi cab ride data.
+
+## How should we anonymize data then?
+
+The real answer is I don't know. It's entirely dependent on the dataset and how it's intended to be used. As we've seen, it's extremely easy to make mistakes.
+
+At Teleport, we have a pretty narrow scope. Track how many users are using a particular license in a given month. We also have an advantage. The data being collected can be anonymized at the source, before transmission to our servers.
+
+The way we've chosen to anonymize the data is by generating HMAC’s with a secret that's relevant only to the teleport cluster. This means that the algorithm used to compute knisbet -> 45d99... relies on a secret and unpredictable key that lives in our customers network and we don't have access to them. Each cluster also uses its own key, so if there is a leak in the secrets, it limits the potential unmasking to just a single customer.
+
+And most importantly, we only collect enough data to fulfill our stated purpose. The fewer data points that we collect, the less opportunity that someone can correlate the data.
+
+There are a number of ways we can improve this:
+
+- Have the clusters rotate their secrets every month, so the collected data can't be correlated month-to-month.
+- Only store partial hashes, which would make it more difficult to brute force the algorithm.
+
+## Alternative Approach
+
+Instead of running the data you want to protect through an algorithm, you can generate a lookup table of ID numbers or UUID's to replace the text. So `knisbet=1`, `alex=2`, etc and store that in a database in a separate security domain with separate access controls.
+
+This way, you always have to consult the reference and make a trade for real-data to anonymized data. This has the advantage that it can't be broken by the algorithm itself but still has the weakness if you leak your lookup table or include information that can be correlated, the dataset can be trivially unmasked.
+
+<EmailSubscribeViolet />
+
+## Wrapping Up
+
+Anonymizing data is extremely hard and most of us are doing it wrong. To me, it feels like we're back in the era before bcrypt, where everyone was charting their own course on how to store passwords in databases.
+
+I think that as an industry, we need to be aware that cryptography is not anonymity, and there doesn't yet exist a right answer, library, or tool, to simply apply to your anonymization problem (without in-depth knowledge).
+
+Thanks to [lvh](https://twitter.com/lvh) for great feedback that made this article better.
