@@ -1,0 +1,434 @@
+---
+title: On-Prem vs SaaS Information Security Compliance
+description: We review the Vendor Security Alliance's security questionnaire to look at the security
+articleTitle: On-Prem vs SaaS Information Security Compliance
+date: "2017-04-19"
+author: Taylor Wakefield
+tags:
+  - kubernetes
+  - ssh
+  - gravity
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+A few months ago we wrote a blog post [suggesting you may want to reconsider having an on-prem offering for your SaaS
+application](https://goteleport.com/blog/time-to-reconsider-going-onprem/). It received a [fair amount of
+attention](https://news.ycombinator.com/item?id=12697009) so we thought we'd write a follow up post focused on the security implications of
+going on-prem for SaaS vendors. We will use a representative SaaS security compliance questionnaire as a conservative framework for
+evaluating the requirements of delivering an on-prem offering with operational management provided by the vendor (i.e., "Private SaaS").
+
+## Why even consider going on-prem?
+
+A common reason for a purchaser/customer wanting an application on-premises is to have more control over their data security. However, this
+does not absolve the vendor (referred to in the second person in this article) of all security related responsibilities. In practice, it
+creates a partnership dynamic where you and your customer must work together to implement a secure environment for that application. This
+can be complicated but it also creates a deeper relationship that can benefit both parties in the long run.
+
+Of course, the primary advantage of offering your solution on-premises is that there are some customers that will simply refuse to use your
+multi-tenant SaaS, regardless of your security precautions. This is especially true if your application handles sensitive corporate data
+like code or trade secrets or if it touches end users' sensitive, personally identifiable information like health records or financial data.
+
+Thankfully, purchasers are also willing to pay more for the trouble of delivering the application on-premises.
+
+<BlogImage src="./assets/on-prem-vs-saas-revenue.png" />
+
+However, just throwing the code over the fence and leaving the implementation details and operational burden on the customer will usually
+not lead to a good long term outcome. This is why we have been preaching a delivery model where the vendor delivers the application _AND_
+operational support, while the purchaser delivers the infrastructure (which could be their cloud account, colo or their own data center).
+There are a lot of high value prospects that will not or cannot use multi-tenant SaaS but also don't want the burden of running a complex
+application. We believe operational help from the vendor is required to successfully deliver complex, distributed applications on-premises.
+
+We call this model **Private SaaS**. Since Private SaaS is a somewhat atypical offering, that requires the vendor to operationally manage
+the application, we will assume that the vendor has access to the purchaser's infrastructure (at least the infrastructure running the
+application). This assumption puts us somewhere in the middle of the infosec compliance paradigm - between multi-tenant SaaS and installable
+software that the customer's IT department runs. It also means a significant portion of a typical SaaS security compliance questionnaire is
+still applicable.
+
+Enterprise companies that use SaaS have a framework for evaluating the risks of doing so. This framework is usually outlined in the form of
+a security questionnaire that is given to vendors. If you are a SaaS vendor of any appreciable size, you have probably seen these. They are
+usually just different enough, so as to maximize the time required to fill each individual one out.
+
+The [Vendor Security Alliance ("VSA")](https://www.vendorsecurityalliance.org/), which launched in 2016, is doing SaaS companies a great
+service by trying to consolidate all of these different questionnaires into one, agreed upon questionnaire. They have published this
+questionnaire which gives us the opportunity to use it to evaluate how one would deliver the security typically required for SaaS offerings,
+but on-premises.
+
+In some cases, the responsibility shifts to the purchaser for things like perimeter network security. In most cases, the vendor and the
+purchaser must work together to make sure the offering is properly integrated into the purchaser's existing security practices and tooling.
+This is especially true as more companies discount the value of perimeter security and adopt security approaches like [Google's Beyond
+Corp](https://research.google.com/pubs/pub43231.html).
+
+In this post, we will go through the VSA questionnaire and, where applicable, discuss how we address these questions through
+[Gravity](https://goteleport.com/), our platform for delivering on-premises and multi-region applications.
+
+(_Nota Bene - We have paraphrased some of the questions and left some out that we didn't feel were pertinent. You can download the full questionnaire at https://www.vendorsecurityalliance.org/_)
+
+## Summary of the VSA Security Questionnaire
+
+From the [VSA website](https://www.vendorsecurityalliance.org/):
+
+<Quote>
+The Vendor Security Alliance (VSA) is a coalition of companies committed to improving Internet security.
+
+Every day, industries across the globe depend on each other to embrace sound cybersecurity practices: yet in the past companies have not had a standardized way to assess the security of their peers. The VSA was formed to solve these issues and streamline vendor security compliance.
+
+</Quote>
+
+In an initial step towards achieving some standardization of vendor security compliance regimes, the VSA published a questionnaire that software / SaaS purchasers can send to their vendors to assess the security risks of the service.
+
+The questionnaire is broken out into seven main tabs (along with an introduction and definitions tab).
+
+The Introduction Tab outlines the rationale, approach and some recommendations for how one should apply this questionnaire. The main points are here (paraphrased):
+
+- Responses should be analyzed based on the sensitivity of the data involved. For example, using a service for data that is already publically available is much different that using it for customer's medical records.
+- The questionnaire focuses on the service being offered, not the vendor in general, "Only the security policies and controls in the scope of the service under review are relevant."
+- Because it is a general starting point, it's purview includes the use of a multi-tenant SaaS product hosted by the vendor. However, it doesn't specifically say which questions would not apply to a self-hosted version (aka, on-prem). So that will be an exercise left to us in pursuit of our objectives mentioned above.
+
+Now, let's look at the substance of the questionnaire.
+
+## Section 1: Service Overview
+
+As the title implies, these are general questions to frame the rest of the questionnaire.
+
+### Service Orientation
+
+<Quote>
+  - Is your service run from your own (a) data center, (b) the cloud, or (c) deployed-on premises only - Data Centre Location(s) (relative to services provided) 
+  - Which cloud providers do you rely on? 
+  - Have you researched your cloud providers best security practices? 
+  - Which data centers/countries/geographies are you deployed in?
+</Quote>
+
+This section leads with the important question, "where is it running?" Presumably, certain questions will apply or not apply based on your answer here but that is left up to the purchaser's discretion.
+
+We can assume answering the first question "deployed on premises" makes the remaining questions moot and left to the decision of the purchaser.
+
+### Service Scope Question
+
+<Quote>
+  - What technology languages/platforms/stacks/components are utilized in the scope of the application? (AWS? MySQL? Ruby on Rails? Go? Javascript?)
+</Quote>
+Besides just explaining what your service does, there is a specific question about
+your "tech stack"
+
+Again this is to set context for the rest of the questionnaire and a purchaser will want to know about application level details like these no matter where it is deployed.
+
+### Supporting Documentation
+
+<Quote>
+  - Most recent Application Code Review or Penetration Testing Reports (carried out by independent third party) 
+  - PCI, SOC2 type II or ISO27001 certification reports
+</Quote>
+
+Presumably, even if you are going on-prem, having an application code review and penetration testing is helpful. However, if a company values its perimeter network security, perhaps its scope can be reduced.
+
+The second questions asks you to present any third party audit reports and other documentation that keep the security consulting business booming.
+
+There are various standard-setting organizations that have published "best practices" for information security (eg., [ISO](https://www.iso.org/home.html), [IEC](http://www.iec.ch/), ISACA) and there are auditing agencies that will certify that you comply with them (eg., large accounting firms like Accenture or Deloitte). Some vendors may be content that you self-certify to a published standard. Others may want a certification from a recognized auditor.
+
+While not listed in the template here, there may be a purchaser that has other requests because they are subject to government regulation, like the Federal Information Security Management Act (FISMA), Sarbanes Oxley (SOX) or Health Insurance Portability and Accountability Act (HIPAA). For example, a common request from a purchaser that needs to be HIPAA compliant is that you sign a [Business Associate Agreement (BAA)](https://www.hhs.gov/hipaa/for-professionals/covered-entities/sample-business-associate-agreement-provisions/index.html).
+
+Many of these standards require that you implement an Access Control Layer (ACL) that restricts access to certain types of data. Gravity was built with these standards in mind and uses Teleport (which can integrate with existing identity management services) to implement SSH level [Role Based Access Control (RBAC)](/teleport/features/rbac-for-ssh/) that also integrates with Kubernetes labels. This creates an automated way to restrict access based on the workload or data type even if they are ephemeral or dynamic across servers.
+
+## Section 2: Data Protection & Access Controls
+
+### Data Classification
+
+<Quote>
+  - Please upload your data classification matrix including data definition, access restrictions and minimum controls specific for your service
+</Quote>
+
+A data classification matrix is likely necessary regardless of deployment methodology. Access restrictions and minimum controls is dependent on the purchaser's existing access / authentication / authorization practices. In many cases, you will have to work with them to integrate your application into this tooling.
+
+For this reason, we integrate with the typical enterprise identity and AAA systems already in place. There are some good open source tools to help with this like [Redhat's Keycloak](http://www.keycloak.org/) which provides a bridge from LDAP and [CoreOS' Dex](https://github.com/coreos/dex) for OpenID Connect integration.
+
+### Encryption
+
+<Quote>
+  - How do you encrypt customer data?
+</Quote>
+
+Most purchasers will require encryption of sensitive data regardless of where it is located so you will need to show in detail when data is encrypted (both at rest and in transit) and when it is not.
+
+There are a couple strategies you may consider for encrypting data at rest:
+
+- You can offload this to the corporate IT by adding support to a configurable external data source connector, presumably pointing to a on-site maintained data store with a built-in at-rest encryption.
+- You may pre-package your application with a data store with a built-in at-rest encryption.
+
+Many companies are adopting more modern security approaches like [Google's Beyond Corp](https://research.google.com/pubs/pub43231.html), which reduces reliance on perimeter security. So data may need to be encrypted in transit between services, even on-prem. Gravity encrypts all data in transit, including Kubernetes API communications. In addition, we integrate with existing tools to manage secrets like [Hashicorp's Vault](https://www.vaultproject.io/).
+
+### Data Access & Handling
+
+<Quote>
+- Are your employees accessing data handed to you by us on a 'need to know' basis? (privileged access)
+- Do you have capabilities to anonymize data?
+  - If so, how is data anonymization implemented?
+  - If data anonymization is implemented, how is the anonymized data used within your organization?
+- Please describe your general rules management in relation to role provisioning, deprovisioning, and recertification.
+- Which groups of staff (individual contractors and full-time) have access to personal and sensitive data handed to you?
+- Do you keep sensitive data (as defined by your data classification matrix) in hard copy (e.g. paper copies)? If so, please describe.
+- Do you have a procedure for securely destroying hard copy sensitive data?
+- Do you support secure deletion (e.g. degaussing/cryptographic wiping) of archived or backed-up data?
+- Does customer data leave your production systems in any circumstance? If so, please describe.
+</Quote>
+Here are a series of questions that try to assess the risk of unauthorized data access due to poor data management practices.
+
+Given we are assuming that the vendor has access to the application, these questions are still pertinent. The most straightforward way to deal with this is to sandbox sensitive data and use RBAC so that only privileged users can access this data. If any data needs to leave the premises (which reduces the value of an on-prem solution) it should be anonymized. As to the implementation of RBAC, that leads to the next section.
+
+### Authentication
+
+<Quote>
+  - Do you have an internal password policy? 
+  - Do you have complexity or length requirements for passwords? 
+  - How are passwords hashed? 
+  - Do employees/contractors have ability to remotely connect to your production systems? (i.e. VPN) 
+  - Do you require multi-factor authentication (MFA) for employee user authentication to access your network (local or remote)? 
+  - Is MFA required for employees/contractors to log in to production systems? 
+  - Do you require MFA for administration of your service (local or remote)? 
+  - Do you support SSO/SAML for customer access?
+</Quote>
+
+Enterprise purchasers will already have internal guidelines and tools that address these questions. So the vendor must have answers about how they will integrate with these practices. We treat each on-premises deployment as a distributed virtual appliance that is sandboxed from the rest of the purchaser's infrastructure. Then we integrate with the purchaser's existing identity and authentication systems (usually SAML or OIDC).
+
+Remote access to the application is controlled by [Teleport](https://goteleport.com/), which enforces multi-factor authentication, short lived certificates, and access through a bastion that audits and records activity across the system. Of course, the purchaser could access their infrastructure through other means, but we recommend that they use Teleport, as well, for a unified access pattern.
+
+Gravity integrates Teleport natively with Kubernetes RBAC so that operators can easily access dynamic workloads and also automate operational tasks and updates.
+
+### Reporting
+
+<Quote>
+- Which audit trails and logs are kept for systems and applications with access to customer data?
+</Quote>
+
+This question is partially addressed by restricting access through Teleport, which audits and records operational activity across the virtual appliance. In addition, Kubernetes aggregates all logs across the application. These logs can then be shipped to a secure log aggregator of the purchaser's choosing.
+
+Gravity also stores structured data for all operational and security events performed through its interfaces and publishes this history in its UI. This is useful for security audits, root cause analysis and general collaboration.
+
+### Third Party Data Processing
+
+<Quote>
+- Do you use any sub-processors for data processing purposes? If so, please name them.
+- How do your sub-processors comply with your standards in relation to personal data processing?
+</Quote>
+
+Presumably the data is not leaving the premises and so this question can be answered by the purchaser. If it is leaving the premises, then these need to be addressed by the vendor.
+
+### EU Data Processing
+
+<Quote>
+- (Only applicable if your company/data centers are based in the US) For the provision of services, do you process EU citizens' personal data?
+- Are you currently Privacy Shield certified? If so, please link to your certification.
+- Do you plan on being Privacy Shield certified within the next 12 months?
+</Quote>
+This is one of the issues that may preclude European customers from using a SaaS that stores data in the U.S. This deserves a separate blog post but the short version is that the E.U. is more stringent than the U.S. regarding data privacy. So [frameworks get created](https://www.nytimes.com/2016/02/03/technology/us-europe-safe-harbor-data-deal.html?_r=0) and [successfully challenged](https://www.nytimes.com/2015/10/07/technology/european-union-us-data-collection.html), leaving U.S. SaaS companies and their E.U. customers in a state of uncertainty over how they should be conducting business.
+
+This is irrelevant if the application is on-prem and the customer can control where the data resides.
+
+## Section 3. Policies & Standards
+
+
+
+<Quote>
+Management Program
+
+- Do you have a formal Information Security Program (InfoSec SP) in place?
+- Do you review your Information Security Policies at least once a year?
+- Do you have a Information security risk management program (InfoSec RMP)?
+- Do you have management support or a security management forum to evaluate and take action on security risks?
+- Do you have a dedicated information security team? If so, what is the composition and reporting structure?
+
+Policy Execution
+
+- Please ensure your documented information security policy has been uploaded in section in 'Service Overview'
+- Do your information security and privacy policies align with industry standards (ISO-27001, NIST Cyber Security Framework, ISO-22307, CoBIT, etc.)?
+- Do you have a policy exception process?
+- Is a formal disciplinary or sanction policy established for employees who have violated security policies and procedures?
+
+Background Checks
+
+- Are all employment candidates, contractors and involved third parties subject to background verification (as allowed by local laws, regulations, ethics and contractual constraints)?
+
+Confidentiality
+
+- Are all personnel required to sign Confidentiality Agreements to protect customer information, as a condition of employment?
+
+Acceptable use
+
+- Are all personnel required to sign an Acceptable Use Policy? Please attach
+
+Job Changes and Termination
+
+- Are documented procedures followed to govern change in employment and/or termination including for timely revocation of access and return of assets?
+</Quote>
+
+These are mostly operational requirements so they apply to the vendor regardless of where the application is deployed. Some vendors may downplay these requirements, but they address the vector that is the hardest to manage, humans. Many data breaches are due to social engineering or disgrunteld employees so having these controls in place and enforcing them is essential.
+
+If you are a vendor that doesn't have these standards already in place, there is a new service, called [Rippling](https://www.rippling.com/) that may help take care of many of the typical employee onboarding and offboarding tasks needed to comply with these questions.
+
+## Sections 4. Proactive Security
+
+### Vulnerability Management & Patching
+
+<Quote>
+- Network/Host Vulnerability Management
+
+    * Please summarise or attach your network vulnerability management processes and procedures?
+    * What tools do you use for vulnerability management?
+
+- Application Vulnerability Management
+
+    * Please summarise or attach your application vulnerability management processes and procedures?
+    * What tools do you use for application vulnerability management?
+
+- Production Patching
+
+    * How do you regularly evaluate patches and updates for your infrastructure?
+
+- Bug Bounty
+
+    * Do you have an established bug bounty program?
+</Quote>
+
+Since the purchaser controls the infrastructure, they will likely take responsibility for network vulnerability management and making sure the infrastructure is properly patched.
+
+The vendor and the purchaser will need to decide the line where the vendor is responsible for application vulnerabilities. We usually see the purchaser responsible up to the operating system and the vendor responsible above that. This means the vendor needs to have an automated way to deploy application patches and updates, ideally without downtime.
+
+We rely on Kubernetes and its [Replication Controller](https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/) to implement this.
+
+Updates can be shipped through internet and applied by customers automatically
+or installed through physical devices (USB/DVD) for offline servers. In
+addition to that, we give vendors the ability to publish updates to the
+distribution center and then triggers alerts to all deployments that an update
+is available.
+
+### Endpoint Security - End User & Production Server
+
+<Quote>
+- End User
+
+    * Are all endpoint laptops that connect directly to production networks centrally managed?
+    * Describe standard employee issued device security configuration/features. (Login Password, antimalware, Full Disk Encryption, Administrative Privileges, Firewall, Auto-lock, etc.)
+    * Does sensitive or private data ever reside on endpoint devices? How is this policy enforced?
+
+- Production Server
+
+    * How do you limit data exfiltration from production endpoint devices?
+    * What systems do you have in place that mitigate classes of web application vulnerabilities? (e.g.: WAF, proxies, etc)
+    * Do you have breach detection systems and/or anomaly detection with alerting?
+</Quote>
+Restricting remote access through Teleport addresses some of these questions. Only company owned, locked down endpoints should be allowed to access company networks. There should also be a policy that all sensitive data remains on premises.
+
+We aggregate system logs and operational activity across a deployment that can be shipped to the purchaser's existing logging aggregation and monitoring services. Usually, we rely on those services for anomaly detection and alerting.
+
+### Infrastructure Security & Cryptography
+
+<Quote>
+- Configuration Management
+
+    * Are the hosts where the service is running uniformly configured?
+    * Are changes to the production environment reviewed by at least two engineers/operations staff?
+
+- Secrets Management
+
+    * Describe your secrets management strategy:(auth tokens, passwords, API credentials, certificates)
+
+- Logs
+
+    * Are all security events (authentication events, SSH session commands, privilege elevations) in production logged?
+
+- Network Security
+
+    * Is the production network segmented into different zones based on security levels?
+    * What is the process for making changes to network configuration?
+    * Is all network traffic over public networks to the production infrastructure sent over cryptographically sound encrypted connections? (TLS, VPN, IPSEC, etc). If there are plaintext connections, what is sent unencrypted?
+
+- Cryptographic Design
+
+    * Please ensure you uploaded your encryption standard as per 'Data Protection & Access Controls' Tab
+    * What cryptographic frameworks are used to secure data in transit over public networks?
+    * What cryptographic frameworks are used to secure data at rest?
+    * What cryptographic frameworks are used to store passwords?
+    * Are any non-standard cryptographic frameworks/implementations used? If so, have any non-standard cryptographic frameworks been reviewed by an independent 3rd party?
+
+- Key Management
+
+    * How are cryptographic keys(key management system, etc) managed within your system?
+</Quote>
+
+Many of these responsibilities will fall back to the purchaser. However, it is evident that some of this is relevant at the application layer and so the vendor needs to address this. For example, a distributed application will likely be using secrets that should be secure and the application should be sending logs to a secure log aggregation service.
+
+We are big believers in uniformity across hosts. That's why Gravity ships the entire stack and all dependencies (including a local Docker repository) in a single tarball to be deployed on top of the OS.
+
+Some other Infosec precautions we focus on:
+
+- We manage secrets through a combination of Teleport (certificates), Kubernetes secrets and existing encrypted data stores that are likely already present on the customers' infrastructure.
+- As long as users access the infrastructure using Gravity or Teleport all security events are logged and can be shipped to a secure, centralized logging server.
+- All of the Gravity control plane traffic is mutual TLS and we can help our customers implement mutual TLS for their application services.
+
+To reduce the friction during buying/procurement process, you may want to show that your application adheres to open implementations of some of these problems. This is why web have built Gravity on top of Kubernetes and SSH, specifically:
+
+- [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) provide you with ready-to use, well documented and open standard for dealing with secrets within your application.
+- [Kubernetes Config Maps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) allow for open, well-documented and standartized way to provide configuration management and introspection.
+
+Similarly, you can choose the network back-end for Kubernetes which is best suited to the security requirements (like tenant traffic separation) of your enterprise customer.
+
+
+## Section 5. Reactive Security
+
+<Quote>
+- Threat Intelligence
+
+- How do you keep aware of security vulnerabilities and threats that affect your service?
+  - Monitoring
+- How do you log and alert on relevant security events? (this includes the network and application layer)?
+  - Incident Response
+- Do you have a formalized Security Incident Response Program?
+- How is your Incident Response Plan tested? Include cadence.
+  - Incident Communication
+- Do you have formally defined criteria for notifying a client during an incident that might impact the security of their data or systems? What are your SLAs for notification?
+</Quote>
+
+Again, much of the infrastructure related responsibility falls back to the purchaser but the vendor will have responsibility for application layer security. Application monitoring and logging data needs to be stored locally and also shipped to a secure location of the purchaser's choosing. As mentioned above, we leverage Kubernetes for aggregating logs, store them locally and provide an easy way to ship them to a separate service. We also include influxDB by default with every deployment to store time series data for monitoring. Integrations are also available with existing solutions the purchaser may be using for monitoring and alerting
+
+For alerting, we rely on integrating with the purchasers existing systems. Most log aggregation services have detailed alerting logic that we'd be foolish to re-implement.
+
+A proper SLA will be required for providing support response times, as well as incident notifications. The robustness of these SLAs can often be correlated to the price being paid for the application.
+
+<EmailSubscribeViolet />
+
+## Section 6. Software Supply Chain
+
+<Quote>
+- Software Development Lifecycle
+
+    * How do you to ensure code is being developed securely?
+    * Describe how threat modelling incorporated in the design phase of development?
+    * How do you train developers in SSDLC / Secure Coding Practices?
+
+- Deployment Processes
+
+    * Are all code artifacts run through automated validation of production-readiness?
+    * Is a staging/pre-production system used to validate build artifacts before promotion to production?
+
+- Dependency Management
+
+    * Do you maintain a bill of materials for third party libraries or code in your service?
+    * Do you outsource development? (contracted with a 3rd party? open source project inclusion?)
+    * What types of security reviews do you perform on outsourced software?
+</Quote>
+
+It's pretty apparent that these are responsibilities that need to be addressed by the vendor, regardless of where the application is running. We leave this to the vendors existing tooling and operational procedures. We did write a previous post about [keeping track of open source libraries](/blog/keeping-track-of-oss-licenses/) which includes some tools for tracking third party libraries used in the code base.
+
+## Conclusion
+
+The obvious conclusion is that properly answering this questionnaire is going to get expensive no matter how the application is delivered. But hey, that's why enterprise buyers pay the big bucks.
+
+One of the great innovations of SaaS is that it shifts the operational cost of running the application from the purchaser to the vendor. However, this also shifts all of the responsibility for making sure the service is secure. The trade off for using SaaS applications that store sensitive data then becomes - is the cost savings from not having to run the application worth the lack of control over the data security. Security questionnaires attempt to assess this trade off.
+
+For the SaaS vendor, these additional security costs are now borne by them, just like the infrastructure and operational costs. There has been a lot of innovation in helping SaaS companies become more efficient in running their multi-tenant offerings. We are working to lower the cost of running distributed applications on-premises to address situations where it just becomes too expensive or too risky for the purchaser to use the application delivered as a multi-tenant SaaS.

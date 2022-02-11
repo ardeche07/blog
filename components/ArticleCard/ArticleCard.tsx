@@ -8,19 +8,13 @@ import Tags from "components/Tags";
 import Link from "components/Link";
 import { transition } from "components/system";
 import { generateCoverImagePath } from "utils/generate-cover-image-path";
+import { BlogMeta } from "layouts/BlogArticle/types";
 
 const ARTCLE_COVERS_FOLDER = "/blog/covers/";
+
 interface ArticleCardProps {
   meta: {
-    frontmatter: {
-      title: string;
-      description: string;
-      articleTitle: string;
-      date: Date;
-      logo: { image: string; alt: string };
-      author: string;
-      tags: string[];
-    };
+    frontmatter: BlogMeta;
     uri: string;
   };
   needImg?: boolean;

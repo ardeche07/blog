@@ -1,0 +1,99 @@
+---
+title: Teleport 2.0 Release Information
+description: Announcing the official 2.0 version of Teleport
+articleTitle: Teleport 2.0 Released
+date: "2017-04-11"
+author: Taylor Wakefield
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we are officially releasing version 2.0 of [Teleport](https://github.com/gravitational/teleport/releases).
+We'd like to thank the community and our customers for their valuable feedback
+on Teleport. Some quick stats on the [Teleport Github repository](https://github.com/gravitational/teleport) as of 03/30/2017:
+
+- Over 4,100 Github Stars
+- Downloaded over 10,000 times
+- 2,471 commits from 34 contributors
+
+## What is Teleport?
+
+Teleport is a modern SSH server designed for teams managing distributed
+infrastructure. You can read more about Teleport on its
+[website](https://goteleport.com/) or [online documentation](https://goteleport.com/docs/getting-started/).
+
+## Who uses Teleport?
+
+- Managed service providers: ops teams who manage applications and
+  infrastructure for their customers.
+- SaaS companies: teams who have multiple environments distributed across
+  staging/production and geographic dimensions like Teleport for managing trust
+  across all these environments.
+- Software vendors: they like Teleport for providing remote support of their
+  products. Teleport can be used as a "remote control" to assist their
+  customers with any issues of their software installed and running on-premises.
+- Enterprise IT departments: to enforce secure and consistent access patterns
+  across their internal servers and cloud infrastructure.
+
+## 2.0 Release Notes
+
+The new features in Teleport 2.0 are:
+
+- Native support for DynamoDB back-end for storing cluster state.
+- It is now possible to disable Two-Factor Authentication (2FA).
+- Support for Time-based One-time Password Algorithm (TOTP) for Two-Factor Authentication.
+- New and easy to use framework for implementing secret storage plug-ins.
+- Audit log format has been finalized and documented.
+- Experimental simple file-based secret storage back-end.
+
+Additional improvements:
+
+- Improvements to OpenSSH interoperability including:
+  - Host Certificates now contain DNS names as well as Teleport IDs.
+  - Corrected export formats for Certificate Authorities.
+  - `tsh login` and `tsh agent` now support loading keys into external SSH agents.
+  - Improvements and fixes for Ansible integration.
+- Server-side enforceable authentication.
+- Enhanced [OIDC](https://goteleport.com/blog/how-oidc-authentication-works/) functionality to support parsing `UserInfo` for claims information.
+- Friendlier CLI error messages.
+
+### Teleport Enterprise
+
+In addition to these improvements to the open source distribution of Teleport,
+we are releasing a commercial version of Teleport, called Teleport Enterprise.
+This commercial release will include features that make it easier for large organizations to manage Teleport, including:
+
+- Role-based access control (RBAC).
+- Integration with External Identity Providers.
+- SSH agent forwarding
+- Dynamic configuration, which gives you the ability to manage roles and trusted clusters at runtime.
+- 24/7 Commercial Support.
+
+### Upgrading
+
+Teleport 2.0 is meant to be a drop-in replacement for the 1.x series. However, it is always
+recommended to make a backup of the cluster state prior to replacing the
+`teleport` binary with a new version. The cluster state is located in
+`/var/lib/teleport` directory for filesystem-based deployments. Users of the `etcd` backend
+should use `etcdctl backup` command to accomplish this.
+
+### Security Audit Status
+
+We are working with an independent auditor to conduct a security audit of
+Teleport v2.0 and Teleport Enterprise and they will be publishing the resulting
+audit in April 2017. The last audit we conducted was just prior to the release
+of v1.0 so we believe it is prudent to conduct another audit at this time.
+
+<EmailSubscribeViolet />
+
+### More info
+
+For more information about Teleport, you can take a look at the
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[Github repo](https://github.com/gravitational/teleport). It is open sourced so
+feel free to dig in; issues and/or pull requests are welcome. Feel free to
+reach out if you have additional questions: [info@goteleport.com](mailto:info@goteleport.com).

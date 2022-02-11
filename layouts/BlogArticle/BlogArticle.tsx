@@ -20,20 +20,16 @@ import SearchSite from "components/SearchSite";
 import divider from "./assets/divider.png";
 import rss from "./assets/rss.svg";
 import { components } from "./components";
+import { BlogMeta } from "layouts/BlogArticle/types";
+
+interface MetaBlogArticle extends BlogMeta {
+  noindex?: boolean;
+  featuredList?: BlogArticleInfo[];
+  articleTags?: string[];
+}
 
 interface BlogArticleProps {
-  meta: {
-    title: string;
-    description: string;
-    articleTitle: string;
-    date: Date;
-    logo?: { image: Exclude<ImageProps["src"], string>; alt: string };
-    author: string;
-    tags: string[];
-    noindex?: boolean;
-    featuredList?: BlogArticleInfo[];
-    articleTags?: string[];
-  };
+  meta: MetaBlogArticle;
   children: React.ReactNode;
 }
 
@@ -58,7 +54,11 @@ export const BlogArticle = ({
 
   return (
     <>
-      <Head title={title} description={description} noIndex={noindex} />
+      <Head
+        title={title ? title : articleTitle}
+        description={description}
+        noIndex={noindex}
+      />
       <Layout lineHeight="lg" hideWave="true" pt={[6, 11]}>
         <Section py={[6, 11]} bg="flatWhite">
           <Centrator flexDirection="column" textAlign="center">

@@ -1,0 +1,100 @@
+---
+title: Announcing Gravity v4
+description: We are pleased to announce that Gravity v4 is now a long term support release with version 4.44.0 LTS. This release focuses on improved security, usability and stability.
+articleTitle: Announcing Gravity v4
+date: "2017-11-03"
+author: Sasha Klizhentas
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## What is Gravity?
+
+[Gravity](https://goteleport.com/) enables simple provisioning and reliable upgrades across a multitude
+of Kubernetes clusters on any infrastructure. Gravity runs underneath
+Kubernetes and leverages our open source SSH+kubectl gateway,
+[Teleport](https://goteleport.com/), for seamless trust management
+and remote cluster updates across multi-region, behind-firewall environments.
+
+### Why is that useful?
+
+Gravity enables the delivery of complex multi-tier applications into both
+traditional datacenter and public cloud environments. It allows developers to
+leverage the latest generation of cloud-native tooling without having to rip
+out or replace legacy infrastructure.
+
+- Our SaaS customers use Gravity to run multi-tier applications on their
+  customer’s infrastructure. This enables sales into large enterprises that are
+  not comfortable using multi-tenant public clouds due to security compliance
+  or regulatory reasons.
+
+- Our service provider customers use Gravity as a reliable way to create and
+  manage large number of single-tenant Kubernetes clusters across their
+  customer base.
+
+- A variety of other companies use Gravity to deploy and manage their
+  applications across many Kubernetes clusters hosted in different cloud
+  regions. The need for multiple cloud regions may be due to regulatory
+  compliance, data gravity or to reduce latency to edge devices.
+
+You can read more about Gravity in the [docs](https://goteleport.com/gravity/docs/). Now, let’s get to the updates...
+
+## Gravity 4.x Updates
+
+We are pleased to announce that Gravity v4 is now a long term support (“LTS”) release with version 4.44.0 LTS. This release focuses on improved security, usability and stability.
+
+Here are some of the more notable features with Gravity v4:
+
+### Improved upgrade procedures
+
+Gravity 4.x has implemented [production ready upgrades](https://goteleport.com/gravity/docs/cluster/#updating-a-cluster). Admittedly, “production ready” is a loaded term - so what do we mean by this?
+
+We have found that the common practice of self-upgrading Kubernetes (while a nice concept and great when it works) is problematic when things go sideways. The all-or-none self-upgrade methodology makes it difficult to figure out where a failure happened and roll back to a particular step in the upgrade procedure.
+
+Gravity employs a state machine independent from Kubernetes state that uses an “Operation Plan” which defines the upgrade procedures and monitors the progress of each step of the upgrade. If a failure happens, the process can be rolled back to a particular step in the upgrade, regardless of Kubernetes state or etcd state.
+
+Gravity upgrades can be rolled through a manual or automatic process. The new upgrade mechanism allows for the following improvements:
+
+- Manual upgrade mode adds additional fail safe mechanisms in case of failures during upgrades.
+- For manual upgrades, an Operation Plan can be defined to add visibility to the upgrade process.
+- The [separation of workloads during upgrade](https://goteleport.com/gravity/docs/cluster/#separation-of-workloads) (using Node Taints and Tolerations in Kubernetes) allows for more reliable upgrades with complex cluster workloads.
+
+### More fine-grained access controls
+
+Gravity 4.x comes with advanced role based access controls (“RBAC”) across participating clusters. RBAC can be integrated with external identity providers that support [OIDC](https://goteleport.com/blog/how-oidc-authentication-works/) like Okta and Auth0. This allows for [role based control per cluster based on identity metadata](https://goteleport.com/gravity/docs/#controlling-access-to-clusters). All operational activities across the clusters can be linked to the the operator that performed them, which is often a must at security conscious organizations.
+
+### Advanced Cluster Provisioning
+
+Gravity 4.x introduces a CLI and API to [create clusters on AWS](https://goteleport.com/gravity/docs).
+
+In addition, it supports [pluggable provisioning pipelines](https://goteleport.com/gravity/docs) with external provisioning tools, like terraform and cloud formation.
+
+This gives you a powerful provisioning pipeline to spin up up everything from the infrastructure to the application layer in an automated way. We have put together a sample, production ready [AWS provisioning pipeline using Terraform on our Github Repo](https://github.com/gravitational/provisioner).
+
+### Security
+
+Gravity recently went through a series of security audits. The result of those audits is that Gravity now comes with a [hardened set of pod security policies and tuned Kubernetes configurations](https://goteleport.com/gravity/docs/cluster/#securing-a-cluster).
+
+The security auditor, Cure53, has agreed to publish the audit.
+
+### Monitoring and Alerting
+
+The built-in [Gravity 4.x monitoring service](https://goteleport.com/gravity/docs/monitoring/) includes a configurable monitoring and alerting system using Heapster, InfluxDB, Kapacitor, and Grafana. It comes with built-in alerts for typical issues such as disk outages, networking problems and server misconfigurations.
+
+This allows for more scalable and proactive operational management across multiple clusters. In addition, customers can upgrade to [InfluxEnterprise](https://www.influxdata.com/influxenterprise/) or managed [InfluxCloud](https://www.influxdata.com/influxcloud/) for production ready, scalable metrics storage with enterprise-level support.
+
+<EmailSubscribeViolet />
+
+### Upgrade to Kubernetes 1.7.7
+
+Gravity uses upstream Kubernetes. Before we update the version of Kubernetes it uses, we thoroughly test it for reliability and to make sure it plays nice with all of its dependencies. With this release we have upgraded the Kubernetes version it uses to 1.7.7. Kubernetes 1.7 focuses on security, stateful application and extensibilty features
+
+## Conclusion
+
+We have been working with Kubernetes since its inception and couldn’t be happier with the choice of using it as a portable runtime for complex applications. Many of the improvements above were implemented to extend the power of Kubernetes and to serve our own need to scale the operational management of applications across many clusters.
+
+We believe that running applications anywhere should be easier. That's why we also built Teleport - Teleport allows engineers and security professionals to unify access for SSH servers, Kubernetes clusters, web applications, and databases across all environments. Learn more [here](https://goteleport.com/)!

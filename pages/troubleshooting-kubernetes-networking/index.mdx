@@ -1,0 +1,326 @@
+---
+title: Troubleshooting Kubernetes Networking Issues
+description: Part 1 of our series on Troubleshooting Kubernetes focuses on networking.
+articleTitle: Troubleshooting Kubernetes Networking Issues
+date: "2017-10-19"
+author: Sasha Klizhentas
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+This is the first of a series of blog posts on the most common failures we've encountered with [Kubernetes](https://goteleport.com/blog/microservices-containers-kubernetes/) across a variety of deployments.
+
+In this first part of this series, we will focus on [networking](https://goteleport.com/blog/kubernetes-networking-on-bare-metal). We will list the issue we have encountered, include easy ways to troubleshoot/discover it and offer some advice on how to avoid the failures and achieve more robust deployments. Finally, we will list some of the tools that we have found helpful when troubleshooting.
+
+## Traffic forwarding and bridging
+
+Kubernetes supports a variety of [networking plugins](https://kubernetes.io/docs/concepts/cluster-administration/networking/) and each one can fail in its own way.
+
+At its core, Kubernetes relies on the [Netfilter](http://www.netfilter.org/) kernel module to set up low level cluster IP load balancing. This requires two critical modules, IP forwarding and bridging, to be on.
+
+### Kernel IP forwarding
+
+IP forwarding is a kernel setting that allows forwarding of the traffic coming from one interface to be routed to another interface.
+
+This setting is necessary for Linux kernel to route traffic from containers to the outside world.
+
+#### How the failure manifests itself
+
+Sometimes this setting could be reset by a security team running periodic security scans/enforcements on the fleet, or have not been configured to survive a reboot. When this happens networking starts failing.
+
+Pod to service connection times out:
+
+```bash
+* connect to 10.100.225.223 port 5000 failed: Connection timed out
+* Failed to connect to 10.100.225.223 port 5000: Connection timed out
+* Closing connection 0
+curl: (7) Failed to connect to 10.100.225.223 port 5000: Connection timed out
+
+```
+
+Tcpdump could show that lots of repeated SYN packets are sent, but no ACK is received.
+
+#### How to diagnose
+
+```bash
+# check that  ipv4 forwarding is enabled
+sysctl net.ipv4.ip_forward
+# 0 means that forwarding is disabled
+net.ipv4.ip_forward = 0
+```
+
+#### How to fix
+
+```bash
+# this will turn things back on a live server
+sysctl -w net.ipv4.ip_forward=1
+# on Centos this will make the setting apply after reboot
+echo net.ipv4.ip_forward=1 >> /etc/sysconf.d/10-ipv4-forwarding-on.conf
+```
+
+### Bridge-netfilter
+
+The bridge-netfilter setting enables iptables rules to work on Linux bridges just like the ones set up by Docker and Kubernetes.
+
+This setting is necessary for the Linux kernel to be able to perform address translation in packets going to and from hosted containers.
+
+#### How the failure manifests itself
+
+Network requests to services outside the Pod network will start timing out with destination host unreachable or connection refused errors.
+
+#### How to diagnose
+
+```bash
+# check that bridge netfilter is enabled
+sysctl net.bridge.bridge-nf-call-iptables
+
+# 0 means that bridging is disabled
+net.bridge.bridge-nf-call-iptables = 0
+
+```
+
+#### How to fix
+
+```bash
+# Note some distributions may have this compiled with kernel,
+# check with cat /lib/modules/$(uname -r)/modules.builtin | grep netfilter
+modprobe br_netfilter
+# turn the iptables setting on
+sysctl -w net.bridge.bridge-nf-call-iptables=1
+echo net.bridge.bridge-nf-call-iptables=1 >> /etc/sysconf.d/10-bridge-nf-call-iptables.conf
+```
+
+## Firewall rules block overlay network traffic
+
+Kubernetes provides a [variety of networking plugins](https://kubernetes.io/docs/concepts/cluster-administration/networking/) that enable its clustering features while providing [backwards compatible](https://goteleport.com/blog/kubernetes-release-cycle/) support for traditional IP and port based applications.
+
+One of most common on-premises Kubernetes networking setups leverages a VxLAN overlay network, where IP packets are encapsulated in UDP and sent over port 8472.
+
+#### How the failure manifests itself
+
+There is 100% packet loss between pod IPs either with lost packets or destination host unreachable.
+
+```bash
+$ ping 10.244.1.4
+PING 10.244.1.4 (10.244.1.4): 56 data bytes
+^C--- 10.244.1.4 ping statistics ---
+5 packets transmitted, 0 packets received, 100% packet loss
+```
+
+#### How to diagnose
+
+It is better to use the same protocol to transfer the data, as firewall rules can be protocol specific, e.g. could be blocking UDP traffic.
+
+`iperf` could be a good tool for that:
+
+```bash
+#  on the server side
+iperf -s -p 8472 -u
+# on the client side
+iperf -c 172.28.128.103 -u -p 8472 -b 1K
+```
+
+#### How to fix
+
+Update the firewall rule to stop blocking the traffic. Here is some [common iptables advice](https://serverfault.com/questions/696182/debugging-iptables-and-common-firewall-pitfalls).
+
+## AWS source/destination check is turned on
+
+[AWS](https://goteleport.com/blog/aws-vs-colocation/) performs [source destination check](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check) by default. This means that AWS checks if the packets going to the instance have the target address as one of the instance IPs.
+
+Many Kubernetes networking backends use target and source IP addresses that are different from the instance IP addresses to create [Pod overlay networks](https://kubernetes.io/docs/concepts/cluster-administration/networking/#kubernetes-model).
+
+#### How the failure manifests itself
+
+Sometimes this setting could be changed by Infosec setting account-wide policy enforcements on the entire AWS fleet and networking starts failing:
+
+Pod to service connection times out:
+
+```bash
+* connect to 10.100.225.223 port 5000 failed: Connection timed out
+* Failed to connect to 10.100.225.223 port 5000: Connection timed out
+* Closing connection 0
+curl: (7) Failed to connect to 10.100.225.223 port 5000: Connection timed out
+
+```
+
+Tcpdump could show that lots of repeated SYN packets are sent, without a corresponding ACK anywhere in sight.
+
+#### How to diagnose and fix
+
+Turn off source destination check on cluster instances following [this guide](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#change_source_dest_check).
+
+## Pod CIDR conflicts
+
+Kubernetes sets up special overlay network for container to container communication.
+
+With isolated pod network, containers can get unique IPs and avoid port conflicts on a cluster. You can read more about Kubernetes networking model [here](https://kubernetes.io/docs/concepts/cluster-administration/networking/#kubernetes-model).
+
+The problems arise when Pod network subnets start conflicting with host networks.
+
+#### How the failure manifests itself
+
+Pod to pod communication is disrupted with routing problems.
+
+```bash
+$ curl http://172.28.128.132:5000
+curl: (7) Failed to connect to 172.28.128.132 port 5000: No route to host
+```
+
+#### How to diagnose
+
+Start with a quick look at the allocated pod IP addresses:
+
+```bash
+$ kubectl get pods -o wide
+NAME                       READY     STATUS    RESTARTS   AGE       IP               NODE
+netbox-2123814941-f7qfr    1/1       Running   4          21h       172.28.27.2      172.28.128.103
+netbox-2123814941-ncp3q    1/1       Running   4          21h       172.28.21.3      172.28.128.102
+testbox-2460950909-5wdr4   1/1       Running   3          21h       172.28.128.132   172.28.128.101
+```
+
+Compare host IP range with the kubernetes subnets specified in the apiserver:
+
+```bash
+$ ip addr list
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    link/ether 52:54:00:2c:6c:50 brd ff:ff:ff:ff:ff:ff
+    inet 172.28.128.103/24 brd 172.28.128.255 scope global eth1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5054:ff:fe2c:6c50/64 scope link
+       valid_lft forever preferred_lft forever
+
+```
+
+IP address range could be specified in your [CNI plugin](https://kubernetes.io/docs/concepts/cluster-administration/network-plugins/#cni) or [kubenet](https://kubernetes.io/docs/concepts/cluster-administration/network-plugins/#kubenet) pod-cidr parameter.
+
+#### How to fix
+
+Double-check what RFC1918 private network subnets are in use in your network, VLAN or VPC and make certain that there is no overlap.
+
+Once you detect the overlap, update the Pod CIDR to use a range that avoids the conflict.
+
+## Troubleshooting Tools
+
+Here is a list of tools that we found helpful while troubleshooting the issues above.
+
+### tcpdump
+
+Tcpdump is a tool to that captures network traffic and helps you troubleshoot some common networking problems. Here is a quick way to capture traffic on the host to the target container with IP 172.28.21.3.
+
+We are going to join the one container and will be trying to reach out another container:
+
+```bash
+kubectl exec -ti testbox-2460950909-5wdr4 -- /bin/bash
+$ curl http://172.28.21.3:5000
+curl: (7) Failed to connect to 172.28.21.3 port 5000: No route to host
+```
+
+On the host with a container we are going to capture traffic related to container target IP:
+
+```bash
+$ tcpdump -i any host 172.28.21.3
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on any, link-type LINUX_SLL (Linux cooked), capture size 262144 bytes
+20:15:59.903566 IP 172.28.128.132.60358 > 172.28.21.3.5000: Flags [S], seq 3042274422, win 28200, options [mss 1410,sackOK,TS val 10056152 ecr 0,nop,wscale 7], length 0
+20:15:59.903566 IP 172.28.128.132.60358 > 172.28.21.3.5000: Flags [S], seq 3042274422, win 28200, options [mss 1410,sackOK,TS val 10056152 ecr 0,nop,wscale 7], length 0
+20:15:59.905481 ARP, Request who-has 172.28.21.3 tell 10.244.27.0, length 28
+20:16:00.907463 ARP, Request who-has 172.28.21.3 tell 10.244.27.0, length 28
+20:16:01.909440 ARP, Request who-has 172.28.21.3 tell 10.244.27.0, length 28
+20:16:02.911774 IP 172.28.128.132.60358 > 172.28.21.3.5000: Flags [S], seq 3042274422, win 28200, options [mss 1410,sackOK,TS val 10059160 ecr 0,nop,wscale 7], length 0
+20:16:02.911774 IP 172.28.128.132.60358 > 172.28.21.3.5000: Flags [S], seq 3042274422, win 28200, options [mss 1410,sackOK,TS val 10059160 ecr 0,nop,wscale 7], length 0
+```
+
+As you see there is a trouble on the wire as kernel fails to route the packets to the target IP.
+
+Here is a [helpful intro](http://bencane.com/2014/10/13/quick-and-practical-reference-for-tcpdump/) on tcpdump.
+
+### netbox
+
+Having a lightweight container with all the tools packaged inside can be helpful.
+
+```Dockerfile
+FROM library/python:3.3
+
+RUN apt-get update && apt-get -y install iproute2 net-tools ethtool nano
+
+CMD ["/usr/bin/python", "-m", "SimpleHTTPServer", "5000"]
+```
+
+Here is a sample deployment:
+
+```yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    run: netbox
+  name: netbox
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: netbox
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: netbox
+    spec:
+      nodeSelector:
+        type: other
+      containers:
+        - image: quay.io/gravitational/netbox:latest
+          imagePullPolicy: Always
+          name: netbox
+      securityContext:
+        runAsUser: 0
+      terminationGracePeriodSeconds: 30
+```
+
+### Satellite
+
+Some of these common issues are hard to find and troubleshoot on a live cluster with many nodes. To simplify the troubleshooting process, [Gravity](https://goteleport.com/), our distribution of Kubernetes, ships with a
+[gravity status](https://goteleport.com/gravity/docs/cluster/#cluster-status) command that will help diagnose these problems:
+
+```bash
+[root@node-1 vagrant]# gravity status
+Application:		gravity, version 4.40.57
+    Application Status:	active
+Cluster:	dev.test
+    * node-1 (172.28.128.101)
+        Status:	degraded
+        [x]	ipv4 forwarding is off, see https://goteleport.com/gravity/docs/faq/#ipv4-forwarding
+    * node-3 (172.28.128.103)
+        Status:	healthy
+    * node-2 (172.28.128.102)
+        Status:	healthy
+```
+
+Behind the scenes `gravity status` relies on our distributed open source monitoring agent, [Satellite](https://github.com/gravitational/satellite).
+Satellite includes basic health checks and more advanced networking and OS checks we have found useful.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+We have spent many hours troubleshooting these and other issues on enterprise support calls, so hopefully this guide is helpful! While these are some of the more common issues we have come across, it is still far from complete.
+
+You can also check out our [Kubernetes production patterns](https://github.com/gravitational/workshop/blob/master/k8sprod.md) training guide on Github for similar information. Please feel free to suggest edits, add to them or reach out directly to us ([info@goteleport.com](mailto:info@goteleport.com)) - we’d love to compare notes! You can also follow us on Twitter <a href="https://twitter.com/goteleport">@goteleport</a> or sign up below for email updates to this series.
+
+_At Teleport, we specialize in deploying and managing cloud-native applications. This means that it is our job to anticipate everything that can go wrong with complex, multi-tier applications running in hostile environments._
+
+_In order to make these hostile environments a bit more friendly, we leverage Kubernetes as a portable runtime. This has given us a lot of experience with Kubernetes failure modes in a variety of environments - from air-gapped, bare metal servers at multi-national banks to fairly standard AWS VPC environments._
+
+_We have productized our experiences managing cloud-native Kuberenetes applications with [Gravity](https://goteleport.com/) and [Teleport](https://goteleport.com/). Feel free to [reach out to schedule a demo](https://goteleport.com/pricing/)._

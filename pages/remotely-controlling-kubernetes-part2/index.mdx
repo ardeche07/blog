@@ -1,0 +1,206 @@
+---
+title: SSH Kubernetes:\ Permissions and Dynamic Workloads
+description: How we use Teleport to manage Kubernetes clusters across multiple teams, regions or organizations.
+articleTitle: SSH Kubernetes:\ Permissions and Dynamic Workloads
+date: "2017-05-08"
+author: Ev Kontsevoy
+tags:
+  - kubernetes
+  - ssh
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+In the [previous article](https://goteleport.com/blog/remotely-controlling-kubernetes-clusters-ssh-certificates) of this
+series about managing Kubernetes, we explained how SSH clients can be authenticated using SSH certificates as
+opposed to simple public keys or passwords.
+
+In this post, we'll take the next step and use SSH certificates to implement a
+simple and effective role-based access control, where _SSH users are granted
+access NOT to specific servers, but to specific data or workloads._ This style
+of access control is more compatible with the dynamic nature of
+datacenter-level work scheduling.
+
+This blog post will teach you:
+
+- How to configure [Kubernetes](https://kubernetes.io/) users to SSH into servers
+  using Kubernetes labels instead of hostnames or IP addresses.
+- How to restrict SSH permissions based on Kubernetes labels and user identities.
+
+Like this:
+
+```bash
+ssh admin@role=db-master
+```
+
+Where `db-master` is a Kubernetes label dynamically applied to whatever machine is running
+the master PosgtreSQL instance.
+
+## Why SSH into Clusters?
+
+If you believe that you don't need to ever "SSH into a box", perhaps this
+article isn't for you. The promise of simply throwing (scheduling) your code onto an
+intelligent "mainframe" and have it run by itself is appealing, but
+the need to SSH into a machine is still a common requirement, even if just for automation
+tooling.
+
+## Sample Use Case
+
+Suppose you are in charge of a small ops team which is tasked with the job of
+managing a Kubernetes application called "Cookbook". This application consists of
+two types of Kubernetes pods:
+
+- **Worker**: these handle HTTP requests from the clients and provide CRUD
+  access to the database of recipes. They are stateless, numerous, cheap and
+  can be easily moved around.
+
+- **Database**: these pods are responsible for actually storing the recipes,
+  manage backups, restore, etc. Let's say PostgreSQL is used for it.
+
+Your ops team is composed of only two people: Elliot and Darlene. Both are
+capable of administering the workers but only Darlene knows how to manage the
+PostgreSQL database.
+
+Both Darlene and Elliot can assume the role of `worker-admin` but
+only Darlene can assume the role of `dba`. Given his lack of knowledge, perhaps
+you don't even want to let Elliot access servers where "Database" pods are running.
+
+This requires connecting SSH access permissions with Kubernetes. We are using
+[Teleport Enterprise](https://goteleport.com/docs/enterprise/introduction/), the commercial version of our
+[open source SSH server](https://github.com/gravitational/teleport), for this tutorial.
+
+Lets see how can this be done.
+
+## Access Follows Data
+
+First, we need to make sure that Darlene or Elliot lose access to everything
+if they quit the organization. We covered how to do this in the [previous article](https://goteleport.com/blog/remotely-controlling-kubernetes-clusters-ssh-certificates):
+by using auto-expiring certificates.
+
+Wouldn't it be convenient and more secure, if Darlene and Elliot would gain or lose SSH access to a
+server based on where Kubernetes schedules the database to run? This way if a `database` pod is
+scheduled to run on server "A", Darlene gains access to it (but not Elliot) and
+both of them would be able to SSH into any server running a worker
+pod.
+
+The access should be dynamically granted/revoked to servers based on the workloads
+they are running.
+
+For this to work we need the following to happen:
+
+- SSH Certificate Authority (CA) needs to know that Darlene is `dba`.
+- The `dba` role needs to be included in Darlene's certificate.
+- The servers with "database" pods must only trust users with certificates
+  that include `dba` role.
+
+Lets see how this can be done.
+
+## Labels = Access
+
+[Teleport](https://goteleport.com/) supports the ability to
+[apply labels to any server](https://goteleport.com/docs/setup/admin/#labeling-nodes/)
+it's running on, regardless of either a node is managed by Kubernetes or not. Now we need to **expose
+Kubernetes labels to become recognizable as SSH "hostnames".**
+
+For this we'll use a Teleport [label command](https://goteleport.com/docs/setup/admin/#labeling-nodes/).
+A "label command" is a CLI command matched to a label. A Teleport node will execute at a given
+frequency and the standard output of that command will become a value for the label, for example:
+
+```yaml
+# snippet from /etc/teleport.yaml
+ssh_service:
+  commands:
+    # teleport daemon will execute /usr/bin/readrole command every minute and
+    # the output of it will be assigned to role
+    - name: role
+      command: ["/usr/bin/readrole", "--label=role"]
+      period: 1m0s
+```
+
+You will have to implement `readrole` command using a programming language of your choice,
+in this example `readrole` command takes a `--label` argument, queries Kubernetes API for the
+value of `role` label for the node it's running on and prints the output into stdout, like this:
+
+```bash
+# executed on DB master machine:
+$ /usr/bin/readrole --label=role
+db-master
+
+# executed on a regular non-DB machine:
+$ /usr/bin/readrole --label=role
+worker
+```
+
+With `readrole` present and configured to be a Teleport command label, let's check if the
+nodes are correctly reporting their labels into a Teleport cluster:
+
+```bash
+$ tsh ls
+Node Name         Address               Labels
+---------         -------               ------
+worker-1.comp     10.100.2.241:3022     role=worker
+                                        instance-type=c3.xlarge
+                                        public-ipv4=54.165.246.155
+database-2.comp   10.100.2.245:3022     role=db-master
+                                        instance-type=c3.4xlarge
+```
+
+So now you can SSH into a node which has `role=db-master` label:
+
+```bash
+$ tsh ssh root@role=db-master
+```
+
+## Enforcing SSH Restrictions
+
+Now, with Kubernetes labels working as SSH hostnames, how do we make sure that only the
+approved group of users can SSH into the server with `db-master` label?
+
+We need to create a new SSH Role (lets call it "dba") in Teleport. Let's start by creating
+a Teleport Role description and saving it in a YAML file:
+
+```
+# Save it as dba.yaml
+kind: role
+version: v1
+metadata:
+  name: dba
+spec:
+  # Admins can SSH as root into machines
+  logins: [root]
+  # Only admins can SSH into any instances labeled with 'db-maser' role:
+  node_labels:
+    'role': 'db-master'
+```
+
+Add this role to [Teleport Enterprise](https://goteleport.com/docs/enterprise/introduction/):
+
+```bash
+$ tctl upsert -f dba.yaml
+```
+
+And now only SSH users with `dba` role will be able to SSH into servers with `db-master` label,
+exactly what we wanted to accomplish.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+In this post you have learned how to collect Kubernetes labels for your nodes
+and report them into a Teleport Cluster, allowing you to SSH into the nodes
+using their labels instead of host names.
+
+Additionally, you leanred how to restrict SSH access to your servers to
+specific users based on its nodes' Kubernetes labels.
+
+The end setup looks a bit clunky due to the need to implement an external
+label-reporting command but that's because Teleport is implemented without
+hard dependencies on Kubernetes and it's designed to work with any external
+infrastructure labeling scheme (like AWS).
+
+For a more seamless integration, we have a CNCF certified Kubernetes distribution
+called [Gravity](https://goteleport.com/) which tightly integrates
+[Teleport SSH](https://goteleport.com/) underneath Kubernetes, among other things, which you may want to check out.

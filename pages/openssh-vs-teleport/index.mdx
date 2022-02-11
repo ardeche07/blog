@@ -1,0 +1,175 @@
+---
+title: OpenSSH vs SSH for Servers?
+description: We cover the difference between OpenSSH servers and Teleport SSH node service for Teleport clusters.
+articleTitle: OpenSSH vs Teleport SSH for Servers?
+date: "2018-01-11"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+This came up in a recent conversation with a Teleport user:
+
+<Quote>
+  Hey Ev -- If we can simply configure sshd on our Linux machines to trust our
+  Teleport’s Auth Server’s certificate authority, why bother installing the
+  Teleport Node Service on individual nodes? Especially for short-lived cloud
+  instances or immutable OSs like Container Linux. What are you thinking? Why
+  not KISS?
+</Quote>
+
+Yes, existing fleets of OpenSSH servers can be configured to accept SSH
+certificates dynamically issued by a Teleport CA. This makes it easier and
+quicker to adopt Teleport and often is used as the first step.
+
+However, replacing routinely used openssh daemons with Teleport Node Service
+has a few key benefits which we’ll cover in this post. If top-shelf security is
+important to you or your organization, you should consider deploying Teleport
+onto every server. Otherwise, you can continue using Teleport strictly in a
+certificate authority + proxy mode. The benefits of a site-wide Teleport SSH
+deployment include:
+
+1. Built-in Server Authentication;
+2. A more secure configuration for audit and [session recording](https://goteleport.com/features/);
+3. [Role Based Access Control](https://goteleport.com/teleport/features/rbac-for-ssh/); and
+4. Cluster Introspection.
+
+We’ll go into some more detail below.
+
+## Automatic Server Authentication
+
+When was the last time you saw this?
+
+```text
+The authenticity of host '[node.example.com]:22 ([73.231.13.15]:22)' can't be established.
+ECDSA key fingerprint is SHA256:0OB3Z21GUSYDotZoN/uhy/g1kFJSBqUzLoMNSWezMDE
+Do you want to continue?
+```
+
+This is often called [trust on first use](https://en.wikipedia.org/wiki/Trust_on_first_use),
+and it happens because a user’s client computer has never connected to
+node.example.com before. In either case, an attacker can hijack the DNS entry
+for node.example.com and point it to a rogue server for a user to login into.
+
+Why is this a problem? After some thought, something like this will come to mind:
+
+```bash
+$ scp valuable-data.tar.gz node.example.com:/backups/
+```
+
+You may not be doing exactly this, but it illustrates the point that when
+connecting to an SSH node, a user _definitely_ wants to trust it. But it is hard
+to trust a node by looking at its key fingerprint, and managing host signatures
+is just as hard as managing static SSH keys.
+
+Many otherwise reasonable people simply accept unknown host keys and hope for
+the best by adding something like this to their SSH config:
+
+```
+Host *
+   StrictHostKeyChecking no
+   UserKnownHostsFile=/dev/null
+```
+
+Yes it seems insane, but we often see that hack employed inside “secure”
+internal networks. We do not recommend this.
+
+This problem does not exist in a fleet-wide Teleport cluster because:
+
+1. All connections to nodes happen through a Teleport proxy.
+2. Every Teleport node must join the cluster before any connections can be
+   routed to it.
+
+When a Teleport node comes online for the first time, it uses what's called a
+"cluster join token". This token can be either single-use (and it can be
+distributed to new nodes automatically via something like [Amazon KMS](https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html))
+or it can be statically pre-configured. A node uses this token to retrieve its
+own certificate, very much like a regular Teleport user would.
+
+Within a native Teleport node session, during an SSH login, the node presents
+its node certificate and a user presents their user certificate, both of them
+signed by the same Teleport CA, removing the possibility of a rogue node
+getting in the way.
+
+## Cluster Introspection
+
+Unlike OpenSSH, the Teleport SSH daemon periodically (every 5 seconds by
+default) sends a service ping to a Teleport CA. This ping serves two purposes:
+
+1. It notifies the cluster that the node is online. This allows users to see
+   what nodes are available via introspective features like running `tsh ls`
+   (even across different trusted clusters). Many users also like the
+   convenience of being able to eyeball and search their server fleets in
+   Teleport’s web UI.
+
+2. The ping is also used to submit the information about node state to the
+   cluster which can then be used for accessing nodes by dynamic labels. The
+   former is self-explanatory, so let's look into the latter.
+
+Suppose there are two PostgreSQL servers configured in master-slave
+configuration. When a master fails, a slave is usually elected to become a new
+master. Eventually it becomes impossible to know which server is master at any
+given time just by looking at its IP address or a DNS name.
+
+Teleport SSH daemon can be configured to periodically run a script, take the
+output from it and use that output as a label for the node.
+
+This can be nifty for things like this:
+
+```bash
+$ tsh ssh user@label=postgres-master
+```
+
+This command will establish an SSH connection to whichever node happens to be
+the master. In a case when multiple nodes have the same label (like
+"env=staging") one can execute the same command on all of the staging machines via:
+
+```bash
+$ tsh ssh user@env=staging <command>
+```
+
+Obviously there are other ways to do this, but Teleport offers it as a built-in
+convenience.
+
+## Role-Based Access Control
+
+This benefit only applies to users of commercial Teleport editions, but the
+idea is to dynamically restrict SSH permissions to specific user groups
+(roles). Perhaps you only want to allow port forwarding on staging and only to
+the team members who have a special role, etc. Teleport implements RBAC by
+encoding role permissions into SSH certificate metadata. These extended
+certificate attributes cannot be interpreted by an OpenSSH server. Therefore,
+advanced RBAC features are only available if Teleport is deployed onto every
+node in a cluster.
+
+## Other Differences
+
+If SSH session recording is required in combination with OpenSSH servers, the
+recording must take place inside of a Teleport proxy, which means a proxy must
+terminate (decrypt) every SSH connection which comes through it and re-encrypt
+it again when connecting to a destination. We believe this makes the cluster
+less secure.
+
+On the other hand, deploying Teleport onto every server switches the recording
+to destination nodes, which makes every SSH connection end-to-end encrypted. In
+this configuration, connections are impossible to read even if an attacker
+gains physical access to the cluster’s proxy server. (A cluster’s proxy server
+is usually the only node exposed outside of firewalls.)
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Using OpenSSH servers is possible and may be desirable during a transition, but
+there are some tremendous benefits in switching to a full, fleet-wide [Teleport](https://goteleport.com/)
+deployment including:
+
+- Built-in Server Authentication;
+- A more secure configuration for audit and session recording;
+- Role-Based Access Control; and
+- Cluster Introspection
