@@ -1,0 +1,139 @@
+---
+title: Helm support for Gravity 5.5
+description: The 5.5 release entrusts Helm users with a new superpower:\ the ability to build downloadable Kubernetes images using their Helm Charts.
+articleTitle: Gravity 5.5 gives superpowers to Helm:\ package Kubernetes apps as self-contained tarballs
+date: "2019-03-18"
+author: Ev Kontsevoy
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## What's new in this release?
+
+With the release of Gravity v5.5, the [open source](https://github.com/gravitational/gravity)
+image-based Kubernetes packaging solution, we added support for Helm charts.
+This allows developers to use Helm to package entire Kubernetes clusters,
+pre-loaded with applications into downloadable image files. Earlier versions of
+Gravity relied on a proprietary application manifest format. With Helm support,
+developers can leverage their existing tooling and skills.
+
+For those that like to learn by doing, we have prepared a [Quickstart Guide](https://goteleport.com/gravity/docs/quickstart/)
+that runs through how to build a cluster image and install it across multiple
+nodes. Below is a further explanation of Gravity and the how the new features
+in v5.5 work.
+
+## What is Gravity?
+
+<span style={{ textDecoration: "underline" }}>Gravity enables true application portability for complex, cloud-native applications that require multi-node clusters.</span> It is an open source solution for application developers. This release makes it possible
+for organizations to deliver application catalogs across public and private clouds
+to do things like:
+
+- Package multiple cloud-native applications into a Kubernetes cluster and build a dependency-free cluster image from it.
+- Publish cluster images into an application catalog or simply upload them to S3-like cloud storage.
+- The users of cluster images can create full replicas of the original cluster with a few clicks or simple command line installer.
+- Image publishers can remotely manage all cluster replicas, greatly simplifying application and Kubernetes updates across many clusters
+  located in different cloud providers, behind firewalls and even air-gapped environments.
+
+
+## How does building a cluster image work?
+
+Gravity includes a command line package builder, which allows developers to point at their Helm charts and produce a standalone,
+downloadable cluster image file. Such image files have no dependencies and can be used to distribute complex, cloud-native applications to
+end users.
+
+Developers use <code>tele</code>, the Gravity command line tool for building cluster images:
+
+<BlogImage src="./assets/gravity-5-5-tele.png" />
+
+Developers can simply execute:
+
+```
+$ tele build [helm-chart.yaml]
+```
+
+
+
+And the cluster image will be built and saved as .tar file. The resulting image can be quite large because it includes:
+
+1. All container images
+2. All of the Kubernetes binaries (and their dependencies)
+3. Gravity's installer to easily provision new clusters using the image.
+4. Gravity's Kubernetes "hypervisor" used to provide automatic cluster management to reduce operational overhead.
+
+## How does creating a cluster work?
+
+The end users can download a cluster image from either Gravity Enterprise or from another medium, such as cloud storage or even a USB stick
+for air-gapped servers. The cluster image uses a simple archive file format, i.e. it can be extracted and installed by executing a simple
+installer command.
+
+```
+# We are executing this on the node named 'host' with IP address of 10.5.5.28
+# and creating a token for other nodes to join securely.
+
+$ sudo ./gravity install \ \
+        --advertise-addr=10.5.5.28 \ \
+        --token=secret
+```
+
+The built-in installer is capable of provisioning Kubernetes clusters pre-loaded with the applications from a cluster image. Kubernetes
+clusters provisioned by Gravity are managed by a Gravity cluster hypervisor which takes care of etcd and K8s monitoring and management.
+Gravity clusters are highly-available, do not require proactive management and include a [built-in authentication
+gateway](https://goteleport.com/how-it-works/) for both Kubernetes and SSH.
+
+<BlogImage src="./assets/gravity-5-5-install.png" />
+
+
+As the diagram shows, the cluster image file is all you need to create a Kubernetes cluster from scratch. Even access to the Internet is not necessary.
+
+## How do Kubernetes Appliances work?
+
+Below is a diagram of a Kubernetes virtual appliance created from a Gravity image file:
+
+<BlogImage src="./assets/gravity-tar-file.png" />
+
+Each cluster consists of:
+
+- Multi-master Kubernetes configuration managed by Gravity's "Kubernetes hypervisor".
+- The `gravity` hypervisor process (shown in gray above) running on every node as a container which contains and manages all K8s services inside.
+- Embedded Docker registry, managed by Gravity hypervisor.
+- K8s/SSH authentication gateway with easy integration with SAML/[OIDC](https://goteleport.com/blog/how-oidc-authentication-works/) providers for single sign-on (SSO). The gateway supports an outbound tunnel to allow remote management if the appliance is running behind NAT.
+- Detailed audit log for all SSH connections and K8s API calls. Gravity even records all keystrokes and output for interactive sessions, again for both SSH and Kubernetes.
+
+Low-level commands like kubeadm or etcdctl/etcdadm are no longer necessary to manage a cluster. Gravity high-level commands allow users to expand/shrink clusters, perform in-place Kubernetes upgrades or application upgrades using automatic or image-based methods.
+
+## Cluster Image Catalog
+
+Gravity Enterprise includes an application catalog - a place where developers can publish cluster images. Typical use cases for the application catalog include:
+
+- A centralized place to publish pre-configured Kubernetes clusters that are approved by compliance and security teams for production within an organization.
+- A mechanism to distribute cloud-native SaaS applications as downloadable software. A typical scenario would be a SaaS company that offers its solution to be downloaded and installed on the premises of its enterprise customers.
+
+## Multi-cluster authentication gateway
+
+Gravity Enterprise also includes Teleport, privileged access management (PAM) solution which allows developers to:
+
+- Easily authenticate against a single authentication gateway using the command line (CLI) environment or a web GUI.
+- Retrieve automatically expiring credentials for both SSH and Kubernetes API endpoints for all clusters within their organization.
+- Access clusters located behind firewalls or NAT without the need for a VPN.
+
+The centralized application catalog and the central authentication gateway allow organizations to manage access and compliance of their
+Kubernetes deployments across multiple cloud providers and even 3rd party infrastructure, while simultaneously reducing operational overhead
+of running cloud-native applications globally.
+
+<EmailSubscribeViolet />
+
+## How to start using Gravity?
+
+Gravity is open sourced and available under an Apache 2.0 license on [Github](https://github.com/gravitational/gravity). We have prepared a
+[Quickstart Guide](https://goteleport.com/gravity/docs/quickstart/) that runs through most of what we have described above. You can also review the [full
+documentation](https://goteleport.com/gravity/docs/overview/) online and reach out to us through the [Gravity community forum](https://github.com/gravitational/gravity/discussions) with any
+questions.
+
+We believe that running applications anywhere should be easier. That's why we also built Teleport - Teleport allows engineers and security
+professionals to unify access for SSH servers, Kubernetes clusters, web applications, and databases across all environments. Learn more
+[here](https://goteleport.com/)!

@@ -1,0 +1,111 @@
+---
+title: SaaS vs Open Core Software:\ An Introduction
+description: SaaS vs Open Core Software:\ An Introduction
+articleTitle: What next after SaaS? Is a significant alternative for marketing and selling software starting to emerge?
+date: "2019-04-25"
+author: Taylor Wakefield
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+The Open Source business model has traditionally been thought of as losing strategy, with the only commonly referred to success story being
+RedHat. The level of [scrutiny](https://www.heavybit.com/library/video/mysql-ceo-on-2-open-source-business-models/) has
+[increased](https://www.influxdata.com/blog/the-open-source-database-business-model-is-under-siege/) as Infrastructure as a Service (aka,
+IaaS or Cloud) providers, like AWS make billions of dollars by capturing the value that Open Source Software creates. These billions come
+predominantly from SaaS vendors (who in turn are making billions) benefiting from the reduced upfront capital expenses required to build
+their offerings on these IaaS providers. Common sense is that it is foolish to sell software any way other than SaaS.
+
+While this perspective is not without merit, the reality is that there are [many successful Open Source Software
+companies](https://docs.google.com/spreadsheets/d/17nKMpi_Dh5slCqzLSFBoWMxNvWiwt2R-t4e_l7LPLhU/edit#gid=0) and the rate of success is
+growing. It seems that Open Source companies are figuring out how to capture a larger percentage of the value they create. As someone who
+previously co-founded a [SaaS company](https://www.mailgun.com/) and more recently co-founded an [Open Source Software company](https://goteleport.com/), I wanted
+to explore SaaS vs Open Source from a go-to-market perspective to illustrate how the Open Source model can succeed and help confirm that I
+am not just a masochist.
+
+I’ll start with a brief overview of SaaS and how it came to be such a dominant model and touch on how different Open Core models for selling
+Open Source Software may be creating a viable alternative market.
+
+## SaaS Domination
+
+How did SaaS become the dominant way to deliver software? Like most industry-wide shifts, it emerged due to overwhelming frustration with the then-current model - commercial off-the-shelf (COTS) or bespoke software that was run on-premises by in-house IT departments. This model required significant in-house resources to deploy, update and manage installations. It also required a significant upfront capital expenditure for the software license or development costs.
+
+<BlogImage src="./assets/no-more-software.png" />
+
+Perhaps the turning point from on-premises software to SaaS is best represented by Salesforce’s “NO SOFTWARE” logo. Of course, Salesforce
+was and is still software but Marc Benioff’s genius insight was that he could tap into the existing frustration and convince buyers that
+this new model was so different, it should not even be considered software. Presumably, Mr. Benioff had witnessed this frustration first
+hand as a sales person at Oracle, which is why he was so passionate about it.
+
+<Quote>
+Our differentiators were ease of use, a business model of shared risk, and low-risk commitment — everything that software was not.
+
+The End of Software mission and the NO SOFTWARE logo effectively conveyed how we were different. I put the logo on all our communications materials and policed it to make sure no one removed it. (They did so anyway.) I wore a NO SOFTWARE button every day and asked our employees to as well. (They did so, somewhat reluctantly.) It wasn’t just the logo that we used, our gonzo PR strategies (more on those later) were also tactics that served our differentiation strategy.
+
+[Excerpt](https://www.salesforce.com/blog/) from Marc Benioff’s book "[Behind the Cloud.](https://salesforcestore.com/Behind-the-Cloud-P130.aspx)"
+
+</Quote>
+It worked because he was right. The SaaS delivery model was a game changer and the gold rush was on.
+
+SaaS vendors emerged from everywhere - cobbling together open source software, adding business logic code, good UX and hosting their
+versions of existing software solutions. Vendor hosting reduced the buyer’s operational burden of running and it also meant that usage could
+be more easily measured and the cost could be more closely tied to the value being received by the customer. The price could now be easily
+determined based on usage (api-calls, leads created, emails sent, etc.) and charged over time through a subscription model. The customer’s
+risk of a large capital expenditure on software before realizing the value was removed.
+
+Yes, SaaS was successful due to the fact that it solved a lot of problems with the previous model. However, it is not clear if it would have
+become so dominant without another huge development, the proliferation of high quality, open source software. The SaaS model is so lucrative
+because it is able to effectively monetize free open source software. Almost every SaaS stack is full of free open source programming
+languages, libraries, databases, load balancers, web servers, etc. _The last 30 or so years have been a lopsided tale of OSS creating a lot
+of value and SaaS / IaaS capturing most of it._
+
+## Is a new model emerging?
+
+It is now difficult to avoid advice on how to start and operate a SaaS business. There is a huge ecosystem developed around it. Integration
+providers like Segment and Zapier have addressed some of the data silo and inter-SaaS workflow limitations. Analytics companies like
+Mixpanel and marketing platforms like Hubspot allow you to fine-tune your funnel and nurturing of prospects based on usage or website
+interactions. Payment providers like Stripe have reduced the hurdles to start making money and are so invested, they have created [ancillary
+products](https://stripe.com/en-US/atlas) to promote the formation of SaaS companies and published [in-depth
+guides](https://stripe.com/atlas/guides/business-of-saas). If you are raising money for a B2B software company, the presumption is that it
+would be SaaS. It’s difficult to explain any other business model to a typical investor these days.
+
+However, I recently noticed [a post](https://tomtunguz.com/mattermost-series-a/) by Thomas Tunguz (in a blog primarily focused on SaaS, by
+the way) about a company (Mattermost) with a new software delivery model:
+
+<Quote>
+Customers can choose where to host the database, how to secure it, monitor it, ensure it complies with new data privacy regulations, limit access, and service it. They can run it in their cloud, in a VPC or on premises.
+
+Meanwhile, the application is delivered as any other SaaS app. It’s updated just as quickly. Even better when the app is open source. Customers can audit the code, fork it to customize it, and embed it wherever.
+
+</Quote>
+
+For all its benefits, SaaS is not a panacea. The main objection is that because the vendor is hosting the software (which includes the
+data), the users lose control of their data. Mr. Tunguz points out that this new model may deliver the SaaS benefits of reducing the
+operational costs of running the software while the users’ retain control of their data.
+
+It made me think a new software delivery model may be getting traction...one I had [alluded to several years
+ago](https://goteleport.com/blog/time-to-reconsider-going-onprem/)...one that is made possible due to the adoption of new cloud-native technologies like
+containers and schedulers...and one that in many cases removes the traditional distinctions between SaaS and on-premise software.
+
+Joseph Jacks, who is a leading evangelist of this new model (to the point where he is [putting money where his mouth
+is](https://oss.capital/)), believes this this model is so superior it [will eat $500+ billion of SaaS over ~20
+years](https://medium.com/open-consensus/8-oss-will-eat-385-billion-worth-of-saas-over-20-years-ce2078510a4b). This is a bold claim but just
+the fact that more people are talking about an alternative to the traditional SaaS delivery model is exciting (especially to someone who is
+at a company [trying to facilitate this new model](https://goteleport.com/))!
+
+I believe the only way Open Core (aka, Commercial Open Source Software “COSS”) replaces a significant amount of the SaaS market is if the
+operational burden of running the software can be reduced dramatically, given that is the main advantage of SaaS. To replace an existing way
+of doing things the new model has to be at least 10x better. Perhaps some better marketing (and graphic design) would help, too.
+
+<BlogImage src="./assets/no-more-saas.png" />
+
+<EmailSubscribeViolet />
+
+##### In my [next post](https://goteleport.com/blog/open-core-vs-saas-customer-perspective/), we dive deeper into the advantages and disadvantages between SaaS and Open Core from the customer’s perspective. In the [final post of this series](https://goteleport.com/blog/open-core-vs-saas-business-model/), we evaluate which business model is best from the vendor's perspective.

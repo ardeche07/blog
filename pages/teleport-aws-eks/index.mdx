@@ -1,0 +1,117 @@
+---
+title: SSH Kubernetes bastion for AWS EKS
+description: This new release of Teleport brings support for EKS. Now Teleport can act as a single authentication gateway for Kubernetes clusters running on EKS
+articleTitle: SSH Kubernetes bastion for AWS EKS
+date: "2019-04-01"
+author: Ev Kontsevoy
+tags:
+  - ssh
+  - teleport
+  - kubernetes
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we are announcing the release 3.2 of Teleport, the open
+source [privileged access management (PAM) solution](https://goteleport.com/).
+
+## What is Teleport?
+
+Teleport is a modern, cloud-native PAM, designed for distributed teams running
+applications on distributed infrastructure. This means that Teleport users
+can remotely access any servers or VMs of their organization, from any device,
+from any location, regardless with cloud a server is located in, including
+behind-NAT environments, without the need for VPN.
+
+<BlogImage src="./assets/teleport-diagram.png" />
+
+The hallmark features of Teleport are:
+
+- Built-in proxy (sometimes called jump host) with support for SSH and Kubernetes API.
+- Certificate-based SSH authentication with auto-expiring certificates: this
+  removes the need to “manage” SSH keys.
+- Robust audit capabilities including a unified audit log, the session recording & replay.
+- Built-in 2nd-factor authentication.
+- Works with a CLI client and Web UI.
+- Single sign-on (SSO) for SSH and Kubernetes (community supports github SSO; enterprise version supports corporate idenity managers).
+- Role-based access control (RBAC) for SSH (enterprise version only).
+
+Feel free to watch this [high level explainer video](https://goteleport.com/resources/videos/teleport-overview/), [demo
+video](https://goteleport.com/resources/videos/teleport-v3-demo/) or [read the docs](https://goteleport.com/docs/) for more
+information.
+
+## AWS EKS Bastion Host Support
+
+The major new feature of this release is full support for Amazon Elastic
+Container Service for Kubernetes (AWS EKS). Prior to 3.2, Teleport has been
+relying on a [CSR API](https://kubernetes.io/docs/tasks/tls/managing-tls-in-a-cluster/#requesting-a-certificate)
+to issue certificates for Kubernetes users. Unfortunately, EKS never supported CSR.
+
+In this version, we are switching to the [Impersonation API](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#user-impersonation),
+which allows RBAC to be set up in a more fine-grained way allowing Teleport to
+only assume identities with limits, as shown in the example below:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: limited-impersonator
+rules:
+  # Can impersonate the groups "developers" and "admins" only
+  - apiGroups: [""]
+    resources: ["groups"]
+    verbs: ["impersonate"]
+    resourceNames: ["developers", "admins"]
+```
+
+## Why Support Bastions for AWS EKS?
+
+Many of Teleport customers are using Kubernetes across multiple clouds, like AWS
+EKS, Google’s GKE and Microsoft's AKS.
+
+An average organization uses 5 different infrastructure form-factors today, and
+developers need to be productive across all of them. Yet, they face the
+following challenges:
+
+### Identity Fragmentation
+
+Every public cloud provider wants its users to be locked into a provider’s IAM
+when using Kubernetes. Meanwhile, most users are already using and quite happy
+with identity providers of their choice (e.g. Auth0, Okta or NetIQ) and would
+like to continue doing so.
+
+Teleport has been offering an elegant way to provide SSH access across all
+clouds to all approved employees, but with this release, we are finally
+extending these powerful features to all major Kubernetes vendors. This greatly
+reduces the operational overhead of managing access, allows customers to enforce
+compliance using a single pane of glass, and increases visibility into
+distributed infrastructure.
+
+### Compliance-friendly control plane
+
+With many clusters across distributed infrastructure, there is a need to reduce
+the surface area of attack by avoiding exposure of the Kubernetes API directly to the
+internet and aggregating all access through a single highly
+available entry point (aka, a "Bastion" or "Jump Host").
+
+Teleport 3.2 makes it easy to achieve that by connecting all clusters using
+Teleport’s trusted clusters feature.
+
+Also, with the 3.2 release, administrators gain additional controls to terminate
+idle long-running connections to the clusters, a feature required by customers
+going through compliance audits.
+
+<EmailSubscribeViolet />
+
+## Upgrading
+
+Teleport 3.2 is meant to be a drop-in replacement for the 3.x series. (If you're not already using
+Teleport, you can [download the open source edition](https://goteleport.com/teleport/download) or get a demo of [Teleport Enterprise](https://goteleport.com/pricing/)). However, if your Teleport cluster already has Kubernetes integration turned on, you will
+need to update `/etc/teleport.yaml` configuration file for the proxy service:
+
+- `kubeconfig_file` setting has been moved from `auth_service` section under
+  `proxy_service/kubernetes` section.
+
+You can see the full list of changes in the [CHANGELOG](https://github.com/gravitational/teleport/blob/master/CHANGELOG.md).

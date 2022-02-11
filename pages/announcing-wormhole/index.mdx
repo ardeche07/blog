@@ -1,0 +1,101 @@
+---
+title: WireGuard for Kubernetes:\ Introducing Wormhole
+description: We are excited to announce the new open source project:\ Teleport Wormhole, a Kubernetes network plugin that combines the simplicity of flannel with encrypted networking from WireGuard.
+articleTitle: WireGuard for Kubernetes:\ Introducing Wormhole
+date: "2019-04-29"
+author: Kevin Nisbet
+tags:
+  - kubernetes
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Today we're excited to introduce [Wormhole](https://github.com/gravitational/wormhole/), our latest Open Source project. Wormhole is a
+Kubernetes network plugin that combines the simplicity of flannel with encrypted networking from WireGuard.
+
+We created Wormhole to use with [Gravity](https://goteleport.com/), our Kubernetes packaging solution, but Wormhole should be compatible
+with any certified Kubernetes distribution. If you're running Kubernetes in a network you don't fully trust or need to encrypt all pod
+network traffic between hosts for legacy applications or compliance reasons, Wormhole might be for you.
+
+## WireGuard network encryption in a nutshell
+
+Wormhole is a basic CNI plugin for Kubernetes that uses WireGuard for creating a full mesh encrypted network between each host in the
+Kubernetes cluster. The Kubernetes API is used to coordinate key exchange and configuration, allowing Wormhole to configure the encrypted
+mesh network.
+
+<BlogImage src="./assets/wormhole-overlay-network.svg" />
+
+If you'd like to jump right in, check out the [getting started docs](https://github.com/gravitational/wormhole#getting-started) on Github to
+use Wormhole in your cluster.
+
+## Why a new network encryption plugin?
+
+There are a number of fascinating encrypted network plugins already available that cover various features and capabilities that are not
+included in Wormhole. So this begs the question, why introduce another network plugin?
+
+At Teleport, one of the use cases we target with Gravity is packaging applications and the Kubernetes runtime into an installer package that
+can be deployed on any infrastructure. These packaged applications then get installed to a variety of infrastructure environments including
+those that are air-gapped or otherwise isolated, with limited remote access to support.
+
+So, this plugin addresses that use case - when we need to take encrypted networking to a variety of environments with the objective of
+keeping the technology and design as simple as possible.
+
+## Why WireGuard?
+
+Wireguard is an exciting and new lightweight VPN technology that has been getting many accolades and is currently expected to be mainlined
+into the Linux kernel. It’s designed to replace IPsec and OpenVPN for most use cases while being more secure, more performant, and easier to
+use.
+
+WireGuard is the current state of the art in encrypted VPN and light-weight encrypted networking that will work with a wide variety of
+applications and eventually be available in the Linux kernel.
+
+At Teleport, our experience has consistently shown that simpler is better when operating overlay networks in many different clouds and
+on-prem environments. WireGuard is especially appealing as a simple, highly opinionated and highly performant network encryption solution
+that will allow us to troubleshoot in a variety of environments.
+
+The [WireGuard paper](https://www.wireguard.com/papers/wireguard.pdf) provides a detailed explanation of the choices and properties offered
+by Wireguard.
+
+## How does it work?
+
+Wormhole is developed as a CNI network plugin designed specifically to be deployed to Kubernetes clusters as a daemonset. It relies on the
+Kubernetes IPAM controller to assign each node a subnet within the overlay network.
+
+Each node generates a new set of keys on startup, configures its local networking and firewall (iptables) and publishes the public key and
+node status to the Kubernetes API. Shared secrets are also generated for each pair of peers and synchronized through the API.
+
+As peers are detected via the Kubernetes API, WireGuard gets configured on each node, setting up a full mesh network between each node
+within the cluster.
+
+You can learn more about Wormhole’s design and security model in the [spec on
+Github](https://github.com/gravitational/wormhole/blob/master/docs/rfcs/0001-spec.md).
+
+## Current status
+
+This project should currently be considered alpha. It's ready for early adopters to test and find problems. It should be reasonably stable
+in design and upgrade path but hasn't been battle tested in a wide variety of networks and configurations. It also hasn’t undergone a formal
+third-party security review.
+
+## Future work
+
+Adopting WireGuard as an underlying network technology creates exciting opportunities for future development and use cases:
+
+- VPN to the cluster, allowing developers to debug new containers or operators to troubleshoot as if they're on the same network.
+- Attach non-cluster resources, such as a database server, to the overlay network.
+- Creating encrypted overlay networks between Kubernetes clusters running on different networks, clouds, or geographies.
+- Phone home connections where a cluster can tunnel back to a network to access services.
+
+Currently, WireGuard doesn't exist within the Linux kernel on its own and until it gets mainlined and available in common distributions, WireGuard needs to be installed and compiled on the host manually. We would like to make this process smoother -- if anyone has experience delivering kernel modules from within containers supporting multiple distributions, we would really appreciate the help.
+
+<EmailSubscribeViolet />
+
+## How to Contribute
+
+We are always looking for community involvement with our projects. If you have any bug fixes or issues, please feel free to open an issue or
+pull request in the [Github repo](https://github.com/gravitational/wormhole). If you have any more general comments or questions, we have
+created a Wormhole category in our [community forum](https://github.com/gravitational/teleport/discussions/).
+
+Try Gravitational Wormhole today by following our [getting started guide.](https://github.com/gravitational/wormhole#getting-started)

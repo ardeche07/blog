@@ -1,0 +1,152 @@
+---
+title: Open Source Serverless Solutions for Kubernetes
+description: The universe of serverless-wielding software architects and Kubernetes cluster operators has started to collide and, yet again, Google is in the driver's seat. In this article we'll wander down the CNCF's Serverless Landscape in chronological order, quickly discovering that Knative is the sweet mamba jamba of open source lambda competitors.
+articleTitle: Open Source Serverless Solutions for Kubernetes
+date: "2019-02-21"
+author: Abraham Ingersoll
+tags:
+  - kubernetes
+  - programming
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## The 800-pound Lambda vs Open Source Kubernetes Appliances
+
+In a YC Startup School interview late last year, YC Software Engineer, [Kyle Corbitt](https://corbt.com/about/), quizzed Amazon's CTO, [Werner Vogels](https://twitter.com/Werner),
+about containers and Kubernetes.
+
+Visibly bewildered by 44+ minutes live on stage, Werner wandered into the woods of AWS's container offerings, then suddenly pivoted:
+_"The thing with containers is, it almost brings you back to pre-cloud days."_ He pressed, _"even though containers are a great developer abstraction, customers need
+to do a lot of work. Nobody cares about containers running underneath, it's just a tax you have to pay."_
+
+Ouch! Who poured [GPLv3 creamer into his morning coffee](https://www.gnu.org/philosophy/who-does-that-server-really-serve.html)? :-)
+
+<iframe
+  width="560"
+  height="315"
+  src="https://www.youtube.com/embed/adtuntQ8rh4"
+  frameborder="0"
+  allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+  allowfullscreen
+></iframe>
+
+## All Open Source Kubernetes Serverless Roads Lead to Knative
+
+Of course, Werner is talking about his own book here. AWS has half-heartedly committed to Kubernetes as a service not only because it's "Google's Infrastructure For Everyone Else" (GIFEE) but also because they see it as a distraction to the next, more impactful, sticky and easily billable stage, "serverless." So while AWS continues its [Mr. Softy](https://en.wikipedia.org/wiki/Microsoft) strategy of [extend, embrace and extinguish](https://en.wikipedia.org/wiki/Embrace,_extend,_and_extinguish) with Lambda, Google is doubling down on its Kubernetes masterstroke with the upcoming "Knative."
+
+<BlogImage src="./assets/k8s-ninjas-becoming-ckas-becoming-lambdas.png" />
+
+## Serverless on Kubernetes, From The Beginning
+
+Where does one even start with Serverless on Kubernetes? Those playing along in their own datacenters have invariably come across the [CNCF's "Cloud Native" landscape](https://www.cncf.io/blog/2018/03/08/introducing-the-cloud-native-landscape-2-0-interactive-edition/). Besides the "[trail map](https://raw.githubusercontent.com/cncf/trailmap/master/CNCF_TrailMap_latest.pdf)" guiding container-curious pilgrims, there's a [logo soup PDF](https://landscape.cncf.io/images/landscape.png) (and corresponding [single page SPDY/laptop battery benchmarking tool](https://landscape.cncf.io/)), that aims to guide devotees down the [CNCF's "recommended path through the cloud native landscape."](https://raw.githubusercontent.com/cncf/trailmap/master/CNCF_TrailMap_latest.pdf) The CNCF now even sports a "[Serverless Landscape](https://landscape.cncf.io/serverless)." If you dial the dropdown nobs and drill into "installable" platforms that are open source, you'll land on a small handful of serious "Serverless on Kubernetes" contenders.
+
+<BlogImage src="./assets/serverless-on-kubernetes-2019-logos.png" />
+
+Let's skim through each open source serverless offering, starting chronologically based on date of inception.
+
+## Apache OpenWhisk, a Versatile and Industry-Strength Serverless Solution
+
+The first open source serverless platform on the map looks sharp as an incubating ASF project, dripping wet in fresh [IBM Blue](https://www.colourlovers.com/color/466BB0/RGB_IBM_Blue).
+
+| OpenWhisk Stat         | Detail                                                                                                                                                                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inception              | Feb 2016 (First public commit)                                                                                                                                                                                                                                       |
+| Velocity               | 2,300+ commits, 240+ watchers, 3,700+ stars, 700+ forks, 1,200+ slack members (only 160+ in #kubernetes)                                                                                                                                                             |
+| License                | Apache License 2.0                                                                                                                                                                                                                                                   |
+| Status                 | Decent production usage (basis of IBM Cloud Functions, plus an Adobe product)                                                                                                                                                                                        |
+| LOC                    | [~64K lines (platform only), written in Scala](https://github.com/apache/incubator-openwhisk)                                                                                                                                                                        |
+| Primary authors        | Rodric Rabbah, Markus Thömmes, James Dubee, Carlos Santana, Christian Bickel, Perry Cheng. Chetan Mehrotra, Tyson Norris, several being from from IBM and Adobe. (Perry and Rodric have since started a [pure serverless cloud, nimbella.com](https://nimbella.com)) |
+| Install process        | multiple deploy targets including [k8s](https://github.com/apache/incubator-openwhisk-deploy-kube)                                                                                                                                                                   |
+| Key features           | "production ready", industrial design                                                                                                                                                                                                                                |
+| Security/Multi-tenancy | Serious, boiling down to containers (linux cgroups and namespaces)                                                                                                                                                                                                   |
+
+OpenWhisk stands out as the first legit serverless/event-based architecture released as open source by a big vendor. It came out of IBM Research teams based on Yorktown, NY, is written in Scala and looks very, very serious. It even has a project wiki -- hosted on Confluence. It's hard to say precisely how much uptake OpenWhisk has in commercial environments, but it seems like IBM will happily sell you "cloud functions" based on OpenWhisk. It's even been donated to the Apache Foundation. And while it can be used on top of Kubernetes, an original author suggests that it's built for "scale to large deployments, not just tire kicking." Quite interesting, especially if you're a java shop and the thought of using containers or kubernetes APIs (namespaces) as a multi-tenancy boundary gives your CISO nightmares.
+
+## Fission, The First True ~~Scotsman~~ Kubernetes Serverless Platform
+
+Next off on the open source serverless race was the first contender wholly premisesd upon Kubernetes, a project called "Fission" from Platform9.
+
+| Fission Stat           | Detail                                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Inception              | August 2016                                                                                                          |
+| Velocity               | 3,900+ stars, 340+ forks, 140+ watchers, 340+ forks, 800+ slack members                                              |
+| License                | Apache License 2.0                                                                                                   |
+| Status                 | Version 1.0                                                                                                          |
+| LOC                    | [~25K lines, golang](https://github.com/fission/fission)                                                             |
+| Primary authors        | Soam Vasani (VMWare/Platform 9, SF), now Ta-Ching Chen (VMView, Taiwan). Also Vishal Biyani (InfraCloud, Pune India) |
+| Install process        | helm-based w/clean quickstart                                                                                        |
+| Key Features           | Ease of use, commercial support?                                                                                     |
+| Security/Multi-tenancy | soft multi-tenancy at namespace level, slightly looser than K8s itself?                                              |
+
+Fission appears to mostly have been built by a small handful of engineers, who along with Platform9's co-founders, cut their teeth slinging virtualization tech at VMWare. Of the options, Fission has some strong buzzword game and a decidedly painless quickstart installation process. It boasts sub-100ms "cold start" by pre-warming of dynamic loaders, live reload, record/replay, canary deployments and prometheus metrics integration. If notable VMWare alumni powering an OpenStack+K8s startup is your thing, and you can dedicate an [entire cluster to exclusively running Fission workloads](https://youtu.be/3XgBB4mATNM?t=927), this isn't one to miss.
+
+## Kubeless, the Early Pioneer of Using Kubernetes APIs for Serverless
+
+Quick on the heels of Fission came the aptly named "Kubeless," which is notable for being an early visionary along the path toward Kubernetes Custom Resource Definitions. (What's a CRD or CRD+custom controller? A K8s extension mechanism that leverages the base Kubernetes cluster constructs for higher-level features. Or, the thing powering Istio -- besides Envoy.)
+
+| KubelessStat           | Detail                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Inception              | November 2016                                                                                                                                    |
+| Velocity               | 960+ commits, 170+ watchers, 4,000+ stars, 400+ forks, 350+ slack members (#kubeless on K8s Slack)                                               |
+| License                | Apache 2.0                                                                                                                                       |
+| Status                 | runtimes are "stable", but .. maintenance mode? Will someone pick this up?                                                                       |
+| LOC                    | [12K, golang](https://github.com/kubeless/kubeless)                                                                                              |
+| Primary authors        | Tuna Ng (departed, now Lead Blockchain Engineer at TomoChain), Andres Martinez Gotor (Bitnami), Sebastien Goasguen (ex-Bitnami, now TriggerMesh) |
+| Install process        | [YAMLs and curls](https://kubeless.io/docs/quick-start/#installation)                                                                            |
+| Key features           | CLI compliant with AWS Lambda CLI, based on core K8s constructs                                                                                  |
+| Security/Multi-Tenancy | CRD based, so internal auth relies on K8s APIs/namespaces/RBAC. External auth based on HTTP headers.                                             |
+
+What's perplexing about Kubeless is that while [still maintained](https://bitnami.com/news/press-releases/kubeless-1-0-delivers-kubernetes-severless-solution) and with some semblance of end-user interest, its creators have all absconded to other projects. The original lead is now a "[Blockchain Engineer](https://www.linkedin.com/in/ngtuna/)", and another [key leader](https://www.youtube.com/watch?v=oPwohfImjDg&feature=youtu.be&t=490) has founded a new serverless-leaning startup called [TriggerMesh](https://triggermesh.com/) (which itself boasts being the driving force between an interesting [serverless integration within GitLab](https://about.gitlab.com/press/releases/2018-12-11-gitlab-and-triggermesh-announce-gitlab-serverless.html)). It's hard to say where this one is going, but if you're already busy writing your own controllers and swimming in CRDs, Kubeless could be an interesting proposition. What's not to like about 12K lines of golang "meant as a proof of concept of the K8s APIs"?
+
+## OpenFaaS, Simple Serverless on ~~Docker~~ Kubernetes
+
+OpenFaaS is utterly fascinating. It's the only contender boasting a license other than Apache 2.0, it's extremely community-centric, added Kubernetes support in mid-2017 after originally targeting Docker Swarm, and is deliciously lean.
+
+| OpenFaaS Stat          | Detail                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inception              | December 2016                                                                                                                                                                                                                                                                                                                                                                          |
+| Velocity               | 3,850 commits, 450+ watchers, 15K+ stars, 1600+ forks, 1,200+ slack members                                                                                                                                                                                                                                                                                                            |
+| License                | MIT                                                                                                                                                                                                                                                                                                                                                                                    |
+| Status                 | Lots of logos on the [end-user page, including a few notable big names](https://docs.openfaas.com/#users-of-openfaas)                                                                                                                                                                                                                                                                  |
+| LOC                    | [~5K, golang](https://github.com/openfaas/faas), plus more spread out in other repos                                                                                                                                                                                                                                                                                                   |
+| Primary author         | Alex Ellis (10+ years at ADP in the UK, now VMWare), now a long tail of [180+ community contributors](https://docs.openfaas.com/community/)                                                                                                                                                                                                                                            |
+| Install process        | YAML templated with helm                                                                                                                                                                                                                                                                                                                                                               |
+| Key features           | Simplicity! An [AWS-SNS trigger system](https://docs.openfaas.com/reference/triggers/#aws-sns), incoming [Istio integration](https://github.com/stefanprodan/istio-gke), CRD support, a REST API, ARM support (32 and 64-bit), a "[Function+Template Store](https://www.openfaas.com/blog/template-store/)" and an "[OpenFaaS Cloud](https://docs.openfaas.com/openfaas-cloud/intro/)" |
+| Security/Multi-Tenancy | All containers are non-root, including an option for a readonly filesystem. Also sports dedicated namespaces, a malable K8s RBAC role and "on-by-default auth." (+OAuth 2.0 authz with GitLab or GitHub on OpenFaaS Cloud)                                                                                                                                                             |
+
+Besides being the brainchild of a [dedicated single engineer](https://twitter.com/alexellisuk) who has firmly established a surrounding community, OpenFaaS is notable for its simplicity, tight codebase and pitch perfect messaging -- "Serverless Functions Made Simple", "one-click install", "auto-scales as demand increases [including to zero](https://www.openfaas.com/blog/zero-scale/)." Sweet?! Its maintainers added a [Kubernetes intro](https://docs.openfaas.com/deployment/kubernetes/) to the docs in July 2017 and if you're still not a K8s shop, [these claims](https://youtu.be/mPjI34qj5vU?t=1137) may leave a nice halo: "only serverless solution that can integrate natively with both Kubernetes and Docker Swarm", "driven by values", "community-centric", "160+ contributors now vs 40 a year ago." Recently the project's `faas-netes` operator was even re-built almost entirely by Stefan Prodan of Weaveworks, enabling tighter integration with Kubernetes.
+
+One slight hitch -- don't mistakenly count OpenFaaS out based on its "[Docker Captain](https://medium.com/@MarioTheMaker/meeting-working-with-a-docker-captain-66ccae69d9a9)" origins (like your author did!): Mr. Ellis will gingerly set the record straight. And if you tick the box on the [Google Docs survey that gates the OpenFaaS Slack ecosystem](https://docs.openfaas.com/community/), he'll even automatically invite you to a community contributor meeting. Fascinating.
+
+## Knative, aka All Your OSS Serverless (And Ingress) Belong to Us
+
+Last but not least we have Knative. Had you gone in reverse chronological order you would have stopped right here. This is the sweet mamba jamba of anti-lambda competitors. If you weren't paying close attention during [Google Cloud's NEXT](https://cloudplatform.googleblog.com/2018/07/bringing-the-best-of-serverless-to-you.html) conference in the middle of 2018, this was easy to miss. Get with the times! [Knative is coming, and it's dragging Istio along with it](https://twitter.com/dewitt/status/1097704510347038720).
+
+| Knative Stat           | Detail                                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Inception              | Jan 2018                                                                                                                                                                 |
+| Velocity               | 2400+ commits, 183+ watchers, 2100+ stars, 490+ forks, 1,200+ Slack members (notably NOT #knative on K8s Slack -- different ecosystem)                                   |
+| License                | Apache 2.0                                                                                                                                                               |
+| Status                 | v0.4.0 (alpha, beta?)                                                                                                                                                    |
+| LOC                    | [serving: ~87K, eventing ~25K](https://github.com/knative/)                                                                                                              |
+| Primary authors        | Tons of Googlers, "~300 contributors from ~48 diff companies."                                                                                                           |
+| Install process        | A "yeasty" set of Isitio CRDs, then just clean yamls                                                                                                                     |
+| Key features           | Istio, finally a use case! Woot! Seriously -- automatic scale up/down, transparent build, user-space telemetry, revisioning, traffic splitting, etc..                    |
+| Security/Multi-Tenancy | Inherits Istio? Reasonable to expect they get this right                                                                                                                 |
+| Notable                | Google! Solicited T-Mobile to build a store locator prototype on Knative pre-launch. Talk here: [https://youtu.be/qzPG4O-DhYw?t=617](https://youtu.be/qzPG4O-DhYw?t=617) |
+
+Word on the street is that Google has more than 90 engineers dedicated to building Knative, and that it's the basis of deep upcoming "cloud function" integration between GCP and GKE. If you're brave, you can even request to participate in a beta program where getting knative is as simple as clicking a button in the Google Cloud console.
+
+The quotes from those close to the project speak for themselves. Oren Teich, "[All of them are re-platforming onto Knative](https://kubernetespodcast.com/episode/014-knative/)" And a long-time Googler in the [Knative announcement HN thread](https://news.ycombinator.com/item?id=17602377): "These are early days of course, but given that the goal is to codify the commonalities (the 80% we all do roughly the same anyway) and to improve customer workload portability overall, I hope to see new products built using Knative, and existing products re-base on Knative as well." In the same thread, a Senior Software Engineer from Pivotal noted "I think of FaaS as a PaaS with some extra features (scale-to-zero being the most-noticeable)."
+
+<EmailSubscribeViolet />
+
+## Other Open Source Serverless Platforms
+
+Astute observers of the #serverless space will note that there are many others -- [Fn from Oracle](https://github.com/fnproject/fn-helm/), [Riff via Pivotal](https://github.com/projectriff/riff#a-faas-for-kubernetes), [Dispatch from VMWare](https://github.com/vmware/dispatch#architecture), [Galatic Fog](https://github.com/GalacticFog/gestalt-kubernetes-installer), [Nuclio](https://nuclio.io/docs/latest/setup/k8s/getting-started-k8s/), [Virtual Kubelet](https://github.com/virtual-kubelet/virtual-kubelet#how-it-works) (seriously, considered serverless?), [PipelineAI](https://github.com/PipelineAI/pipeline/tree/master/docs/quickstart/kubernetes#install-pipelineai-on-kubernetes), [Nuclio](https://github.com/nuclio/nuclio/blob/master/docs/setup/k8s/getting-started-k8s.md), and probably more. Sorry, TLDR, and at a glance it appears that most of them are quickly getting out of the way of Knative.
+
+What about hosted serverless? [Google Cloud Functions](https://cloud.google.com/functions/docs/concepts/overview), [Huawei FunctionStage](https://youtu.be/Y5yQC_20QlI), [Cloudflare Workers](https://news.ycombinator.com/item?id=17239497), [Azure Functions](https://dvt.name/2018/02/27/microsoft-azure-sucks/), [Serverless(.com)](https://serverless.com/framework/docs/providers/) Sure, go feed that meter while you build real business value. I'm getting back to my YAML.

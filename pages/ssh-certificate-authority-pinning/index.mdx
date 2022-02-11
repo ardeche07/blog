@@ -1,0 +1,122 @@
+---
+title: How to Use Certificate Pinning to Improve UX
+description: An overview of Teleport's SSH certificate authority pinning capability and discussion of how HTTP public key pinning (HPKP) can be used to improve SSH CA user experience.
+articleTitle: How to Use Certificate Pinning to Improve UX
+date: "2019-02-26"
+author: Russell Jones
+tags:
+  - ssh
+  - teleport
+  - programming
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Using HPKP to Bootstrap SSH Trust and Improve User Experience
+
+Kubernetes **`kubeadm`** users might have noticed a familiar flag when adding nodes to a Teleport cluster starting
+in 3.1: **`ca-pin`**. This new ability to pin a Teleport SSH Certificate Authority is used not only to help
+bootstrap trust, but also used to remove the need for out-of-band distribution of cryptographic material to machines running the Teleport
+[SSH & kubectl recording daemon](https://goteleport.com/how-it-works/audit-logging-for-ssh-and-kubernetes/).
+
+```
+$ tctl nodes add
+The invite token: cf24c30b6d9f9c780c219cd5af000856
+This token will expire in 30 minutes
+
+Run this on the new node to join the cluster:
+
+> teleport start \
+   --roles=node \
+   --token=cf24c30b6d9f9c780c219cd5af000856 \
+   --ca-pin=sha256:79a6c30c7e7310b0a66778...f858ab846f7021f1429eb6 \
+   --auth-server=10.12.0.6:3025
+```
+
+_Figure 1: Output of `tctl add nodes` on my machine. Don't hack me._
+
+## The Problem: Bootstrapping Trust to Remediate Trust on First Use
+
+To secure a connection between a client and server, one or both sides need to authenticate each other. For example, when using webmail the
+client (web browser) uses public key cryptography to authenticate the server (Gmail) by validating the x509 certificate presented by the
+server is signed by a trusted party known as a Certificate Authority (CA). The list of authorities to trust is usually bundled into the
+operating system or the web browser itself and is transparent to the user. It's sometimes called a trust store. For the other side of the
+connection, the server validates the client by asking the client to present some kind of secret token, typically a password, that was
+established ahead of a time (typically during registration).
+
+When a Teleport Node asks a Teleport Auth Server to join a Teleport ssh or kubectl cluster, a similar exchange occurs. The big difference is
+that because each Teleport cluster is itself managing a private certificate authority, and furthermore the CA is itself often automatically
+rotated, the private Teleport CA is not in the joining node's operating system trust store. So how does a Teleport ssh daemon verify the
+identity of the Teleport server?
+
+One way is to export the x509 certificate of the CA like in Figure (2) and place it at a well known location on disk. Then the client can
+read it in and use it to validate the certificate presented by the Auth Server. Sophisticated ops teams typically have infrastructure
+in-place to distribute internal certificate authorities to all nodes, but what about someone starting out with Teleport or maybe customers
+that don't have the more sophisticated infrastructure yet. How do they authenticate the connection to the Auth Server?
+
+```
+-----BEGIN CERTIFICATE-----
+MIIDajCCAlKgAwIBAgIRAJexUapk/3wD61fQ9k61kr4wDQYJKoZIhvcNAQELBQAw
+XjEUMBIGA1UEChMLZXhhbXBsZS5jb20xFDASBgNVBAMTC2V4YW1wbGUuY29tMTAw
+LgYDVQQFEycyMDE2MzQxMjAyODI3MDU4NDcyMjA4NDUwOTI2Mjk3ODA5OTI3MDIw
+HhcNMTkwMjAxMjEyMTE0WhcNMjkwMTI5MjEyMTE0WjBeMRQwEgYDVQQKEwtleGFt
+cGxlLmNvbTEUMBIGA1UEAxMLZXhhbXBsZS5jb20xMDAuBgNVBAUTJzIwMTYzNDEy
+MDI4MjcwNTg0NzIyMDg0NTA5MjYyOTc4MDk5MjcwMjCCASIwDQYJKoZIhvcNAQEB
+BQADggEPADCCAQoCggEBANPb4ugZ0Sxd1NJGqy+r/E9elS81J9b+HRefr7vC+vWf
+gUu1u0Q5NFYammkWtOKY48ooX3wNemyN9Ulyo0BLXMabiCJsEuwVJqM5OBCJn076
+xrUbWyh/58jL7ncJ16zfEjelCfXAisSOnOcK26m0q48J/tgCNbrjQ5Q5YIwKgrso
+sNr1kgUyMGdNRNTuPLXgzYqeC8V+2yKlLcZVxERJob3VyvhaNhkuttuCX0svMLrH
+Gvv5IWB4iGqX+Xg4Zaf1uWAyWe+LQdjelPwXXMuO+DBMEnc+wOJsZ+u89ilEWg3r
+mPJdRaTk4ULyUgq4wtR+BkyV0DqkD5JwZlqcl/yhwZMCAwEAAaMjMCEwDgYDVR0P
+AQH/BAQDAgKkMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAAzx
+dFDywO4R8CeQydxyU1YRvII+AdAr7MId7dycwz8ujTNudU56D98zEiXUIvj+ctma
+KhwOltVvkyc6DxNyHR9JDebs09PWYRlZmWw+dbg8ZrfFFC4pcOSQesurqLzb88zR
+ZG4U7HlScy/VY1SeisaiIbprvPUqJ9kaLbELRacSdpmwhSG3Jk2brZIp+i2EScSK
+39GuqCNEUg4yv6W3u+KTwNeCXcgmN3A0s2nqsCCsN03M60bF3fZ0ivchz1D8KoK6
+l9KFvlm5w4GEzoZFmpj7ZzxuCz0y2z6CLD6UuN/3V8DF1x/TvD9ZqKAqsBJouWIh
+AB1snfFguHFd787bfR4=
+-----END CERTIFICATE-----
+```
+
+_Figure 2: The certificate of the CA on my machine._
+
+## The Solution: SSH Certificate Authority Pinning
+
+Inspiration for the solution came in the form of Kubernetes. Users of **`kubeadm`** are probably familiar with the
+
+**`--discovery-token-ca-cert-hash`** flag, which is essentially what Teleport's **`--ca-pin`** flag is.
+
+If you want to go to the source and read more about this, you can read the Kubernetes
+[documentation](https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-join/), [GitHub
+issue](https://github.com/kubernetes/kubernetes/pull/49520), or [design
+document](https://docs.google.com/document/d/1SP4P7LJWSA8vUXj27UvKdVEdhpo5Fp0QHNo4TXvLQbw/edit?ts=5971498a).
+
+If you want a quick rundown, this is how [Teleport's SSH certificate authority
+pinning](https://goteleport.com/docs/setup/admin/#untrusted-auth-servers/) works:
+
+First the Teleport node connects to the Teleport Auth Server over an insecure connection and asks for the public key of the private CA. The
+Teleport node process parses the certificate, then calculates the SHA256 hash of the **`RawSubjectPublicKeyInfo`**
+field which consists of the public key and public key algorithm. If this hash value does not match the value in the
+
+**`--ca-pin`** parameter, Teleport bails out because the connection may be compromised in some manner.
+
+If the hash does match, Teleport attempts to build a fully secured connection the Auth Server using the CA obtained over the insecure
+connection to validate the certificate presented by the Auth Server. If Teleport's node agent can not validate the certificate chain, once
+again Teleport will bail out because the connection may be compromised in some manner. If Teleport can validate the chain, it knows it has
+connected to its legitimate Teleport Auth Server.
+
+<BlogImage src="./assets/ssh-certificate-pinning-sequence-diagram.png" />
+_Figure 3: Visualizing a node joining a cluster._
+
+We're pretty excited about this feature because not only does it hit an important security goal of mutual authentication, it's also
+downright user friendly.
+
+<EmailSubscribeViolet />
+
+## Want to give SSH CA pinning a try?
+
+[Download and install the open source edition of Teleport](https://goteleport.com/docs/getting-started/#quick-start-guide/) or [get started
+here](https://goteleport.com/pricing/). We'd be delighted to hear your feedback.
