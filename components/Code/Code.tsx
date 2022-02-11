@@ -14,6 +14,7 @@ export const Code = ({ children, ...props }: CodeProps) => {
       display="block"
       overflowX="auto"
       m={0}
+      my={3}
       px={3}
       py={2}
       color="#ddd"
