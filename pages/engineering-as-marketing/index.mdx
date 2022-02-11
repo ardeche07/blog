@@ -1,0 +1,255 @@
+---
+title: Engineering as Marketing
+description: In this post we talk about using every day engineering activities to better market our company and our products.
+articleTitle: Engineering as Marketing
+date: "2016-09-21"
+author: Taylor Wakefield
+tags:
+  - company
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+As a startup, it can be difficult to figure out which marketing channel will
+work best for you, since it’s highly dependent on your product, messaging and
+target market. This can be especially true for startups started by technical
+founders, who are generally good at building things, but not so good at
+marketing those things.
+
+At Teleport, we are at the early stages of figuring out our marketing
+strategy. Naturally, we started with a technique that we used successfully
+during our days running [Mailgun](https://www.mailgun.com/) and one that fits
+our current strengths: Engineering as Marketing (a term I first heard from the book
+[Traction](https://www.amazon.com/Traction-Startup-Achieve-Explosive-Customer/dp/1591848369/ref=asap_bc?ie=UTF8)):
+
+<Quote>
+  You (or your team’s) engineering talents can get your startup traction
+  directly by building tools and resources that reach more people. We call this
+  traction channel engineering as marketing: using engineering time to create
+  useful tools like calculators, widgets, and educational micro-sites to get
+  your company in front of potential customers.
+</Quote>
+
+There are a several reasons we started here:
+
+- Our team consists mostly of engineers.
+- It’s a relatively difficult channel to utilize. You need to allocate scarce
+  engineering resources, so fewer people do it and thus it’s more valuable.
+- While very expensive from a time perspective, it is virtually free from a
+  cash outlay perspective (which helps keep burn rates low).
+- It is more authentic and valuable to the recipient. You are actually
+  delivering tangible value along with the messaging.
+- It has the added benefit of helping recruit engineering talent.
+- It establishes trust and brand identity with potential blockers (more on that later).
+- [We’ve done it before](https://www.mailgun.com/email-validation).
+
+## The Flight to Paris
+
+Our "campaign" began when one of the founders found himself on a 12-hour flight
+to Paris.
+
+To pass the time he hacked up a way to share the UNIX terminal on your laptop with
+people you trust via SSH from behind NAT (i.e., in caffes, on a plane, from your
+apartment, etc.) He got off the plane, bought an available domain and we started the "Teleconsole"
+engineering as marketing campaign.
+
+Here is the process we went through and our results.
+
+## What is Teleconsole?
+
+[Teleconsole](https://www.teleconsole.com/) is a dead simple way to share your
+Unix shell with people you trust. It evolved out of a software project we open
+sourced, called [Teleport](https://goteleport.com/), which is an SSH-based system for teams to access
+distributed infrastructure securely and easily.
+
+Teleport itself did pretty well on Hacker News when we open sourced it in late
+March this year.
+
+<BlogImage src="./assets/teleport-hackernews.png" />
+
+And here are the analytics results from the Teleport launch in late March:
+
+<BlogImage src="./assets/teleconsole-analytics.png" />
+
+While Teleport is a useful library, especially for our use cases, we thought we could
+get more external awareness and usage by making it easier to use. Enter Teleconsole,
+which is essentially a hosted, simplified version of Teleport.
+
+## What are good candidates for engineering as marketing projects?
+
+In general, the best engineering as marketing projects are related to your
+primary product or service but do not cannibalize potential future revenue. You
+also want it to be easily consumable and offer immediate, recognizable value.
+
+Teleport takes some investment in learning how it works and you need to host it
+and configure it yourself. While this is ok when we are doing a high touch, top
+down sale as part of our broader offering, that friction reduces the virality
+you would like to see in a marketing campaign.
+
+However, Teleport’s reception on Hacker News did validate that there was
+general interest and a problem to be solved. So it was worth investing
+additional time on it beyond it’s current roadmap. We decided to take the next
+step and make it easier to use for a broader audience. That meant stripping
+down Teleport to its most basic features and hosting it ourselves.
+
+It may sound ironic for a company that preaches the benefits of private
+deployments to publicly host something but, hey, we understand there’s an
+appropriate delivery mechanism for different offerings.
+
+In this case, because we weren’t selling anything, we could lower the
+onboarding friction even further than the typical hosted product and remove the
+requirement to signup or create an account. Just download and go.
+
+We also created a simple landing site.
+We could have just used the [github
+repo](https://github.com/gravitational/teleconsole) but we wanted more data on
+the traffic we received, which is harder to get when linking straight to Github
+(more on that later).
+
+## Giving Product Hunt a try
+
+Given that Teleconsole was more oriented at individual consumers (albeit
+technical ones), we decided to try a distribution channel we hadn’t tried
+before, Product Hunt.
+Our preconceived notion was that Teleconsole would be a bit outside of Product
+Hunt’s sweet spot, but we thought it was worth trying.
+
+The response was more favorable than we had predicted! Teleconsole was on the
+front page for the full day, hovering between 4 and 10 and finally finishing at
+5th.
+
+<BlogImage src="./assets/teleconsole-producthunt.png" />
+
+There wasn’t much engagement in the comments and I have heard of Product Hunt
+driving a lot more traffic for less niche offerings, but overall we were happy
+with the results:
+
+<BlogImage src="./assets/teleconsole-analytics-1.png" />
+
+Note: These results cover launch day, and the 3 days that followed.
+Unfortunately, our Google Analytics account wasn’t configured correctly, so the
+majority of the Product Hunt traffic was bucketed into (direct)/(none).
+
+This was our first time on Product Hunt and we learned some things:
+Product Hunt categorizes the submissions into days.
+
+- Publish shortly after midnight Pacific Time, that’s when the clock starts on
+  a new “day” and the voting begins for that day.
+- Try to find a [reputable Product
+  Hunter](https://www.yvoschaap.com/producthunt/) to post it for you. Product
+  Hunt relies more on curation than Hacker News, which is more democratic.
+- Don’t ask for upvotes directly but let your network know that they might find
+  something interesting on PH if they happen to visit today.
+- The community likes .gif’s
+- Easter eggs help (we used [Mr. Robot](http://www.usanetwork.com/mrrobot) references).
+- Once you post something, the profile URL is automatically generated and the profile cannot be deleted.
+- Product Hunt does a good job of tweeting your submissions status for additional distribution.
+
+## Back to Hacker News
+
+While Product Hunt was fairly successful, it didn’t drive the kind of traffic
+that we had previously experienced from Hacker News. Given it is a fairly
+technical product with a CLI as the primary interface, we figured it is
+probably better suited to the HN community. So we decided to post [Teleconsole
+to Hacker News](https://news.ycombinator.com/item?id=12454742) the next day.
+
+However, someone had already submitted Teleconsole.com and that post didn’t
+receive much interest. Because you can not create a new post on Hacker News
+with the same URL for a period of time, we had to either wait until we could
+post the same url or post the Github repo url. We decided on the latter which
+has it’s advantages and disadvantages.
+
+Overall, Teleconsole got decent results on Hacker News. It didn’t do as well as
+Teleport (183 upvotes vs. 87 upvotes) but it did spend about a quarter of the
+day on the front page.
+
+<BlogImage src="./assets/teleconsole-hackernews.png" />
+
+When we put Teleport on Hacker News we linked to our own domain (rather than
+the Github repo with Teleconsole) and so we noticed some differences. Many of
+these results you would expect and there are other factors at play but here’s
+what we noticed:
+
+- It seemed the initial interest was stronger when linking to the github.com domain in the post.
+- The ratio of views on the linked site to upvotes increases when linking to github.com versus a relatively unknown domain. A theory to explain this is that the community trusts and is more interested in a Github repo than an unknown site.
+- As you would expect, the traffic to our end domains when linking first to Github was much lower.
+- The pace of starring on the repo was much faster when linking directly to the repo.
+
+Here are the traffic results from Github traffic analytics.
+
+<BlogImage src="./assets/teleconsole-github.png" />
+
+Also, the Teleconsole repo is already at 1,000 stars, whereas it took Teleport several months to get to 1,000 stars.
+
+<BlogImage src="./assets/teleconsole-github-stars.png" />
+<BlogImage src="./assets/teleport-github-stars.png" />
+
+The growth in repo stars was strong enough to get us onto the first page of
+Github’s trending lists for both the day and week, further adding to our star
+count.
+
+This was not our first time on the front page of Hacker News but some things to
+keep in mind if you are not familiar with it:
+
+- Read the [guidelines](https://news.ycombinator.com/newsguidelines.html) first.
+- HN has a sophisticated voting ring detection algorithm. You have to post and pray people notice and upvote it. If not, you can post again later but any organized upvoting will likely get a submission flagged.
+- HN is more interested in technical offerings, than PH, which is no surprise to those that have spent time on both sites.
+- HN is averse to overt marketing and likes to get to the technical details, so Github repos do well.
+- There is an extensive network of third party bots retweeting and reposting that kick in depending on your position, so results get amplified the higher you get. Spending a long time at number 1 can lead to mid-to-high five figure visits. [A rough rule of thumb I’ve read is](https://news.ycombinator.com/item?id=600938): “every 10 votes a submission has is worth about 1,000 page views on the linked-to site.”
+- It is good to use [Show HN](https://news.ycombinator.com/showhn.html) in the beginning of your post when you are publishing something that is new and can be easily consumed. It is a good way to set context, it draws interest and there’s a [separate page for Show HN](https://news.ycombinator.com/show).
+- Where you end up on HN is very dependent on what else is posted there and what is happening that day. Generally, stay away from known launch days (like the iPhone7). Most people shy away from the weekends but it can be a good way to sneak into the number 1 spot.
+- You need thick skin. It’s not Reddit level discourse so you probably don’t need the flame suit but there will likely be plenty of constructive criticism. You will also likely find out there are x number of things out there that do the same thing. Be prepared to explain how your thing is different.
+
+<EmailSubscribeViolet />
+
+### Other benefits of engineering as marketing
+
+We generally sell to larger companies and it is a technical, complicated and
+top-down sale. With that in mind, it may seem that spending time launching
+tools targeted at individual use is not an ideal investment of our resources.
+
+However, we have found that upper level management is increasingly asking their
+employees (and especially developers) to weigh in on the types of software and
+tooling they purchase.
+
+Smart organizations realize the risks of buying shelf-ware and employees going
+around proper procurement to get the tools they really want, so they want to
+make sure there is better consensus through the ranks.
+
+This makes it important for us to have brand identity and trust with the entire
+organization, not just the sponsor or economic buyer in the organization.
+Having a developer say, “oh yeah, they built that cool Teleconsole tool”, can
+help turn a blocker into an advocate.
+
+An additional important side benefit is that it helps with recruiting. Of
+course this screenshot is timed optimally, but it’s still nice to see your
+startup’s logo in the company of tech giants :)
+
+<BlogImage src="./assets/github-trending.png" />
+
+### Conclusion
+
+So far we are pretty happy with our foray back into engineering as marketing.
+Using Product Hunt for the first time was a worthwhile learning experience and
+it drove more traffic than we thought it would, given the technical nature of
+the tool.
+
+Product Hunt and Hacker News are two valuable but different distribution
+channels. Hacker News is more democratic, technical and more critical while
+Product Hunt is more consumer oriented and curation based.
+
+Maybe some day we will host large conferences around the world and ply our
+potential customers with plush robes and decadent seafood towers but for now we
+hope they are happy with our humble efforts at improving their lives with our
+free tools.
+
+### Stay in Touch!
+
+Did you like this article? Sign up for our mailing list to get the new articles
+delivered to you automatically. Also feel free to reach out for more inside info
+from the process: [info@goteleport.com](mailto:info@goteleport.com)

@@ -1,0 +1,311 @@
+---
+title: It's time to reconsider going on-prem
+description: Going on-prem can be a handful, especially maintaining those deployments. Here's how we use Kubernetes and our own tooling to help scale those efforts.
+articleTitle: It's time to reconsider going on-prem
+date: "2016-10-12"
+author: Taylor Wakefield
+tags:
+  - kubernetes
+  - gravity
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+There is no doubt that going "on-prem" is a big decision for a SaaS company.
+The prevailing wisdom is to avoid going on-prem or at least wait as long as
+possible. However, the siren song of the enterprise buyer with untold wealth to
+spend on on-prem deployments can be hard to resist.
+
+The adoption of containers and container orchestration tools makes this journey
+more feasible and gives SaaS companies a chance to reap that wealth without
+crashing onto the rocks. There can also be a significant first mover advantage
+in doing so.
+
+## Going Backwards?
+
+There are hardcore camps of "serverless nomads" and "server huggers" out there
+but the majority of us, as usual, lie somewhere in the middle. Some software is
+best delivered via a browser or an API endpoint but this does not universally
+make sense. For example:
+
+- **Common sense**: monitoring systems, and most middleware services do not
+  make sense outside of the customer environment (which does not stop some
+  folks from trying).
+- **Large data volumes**: when your software needs to access pre-existing
+  datasets that are too large to be conveniently uploaded/downloaded to the
+  cloud.
+- **Latency**: delivering database as-a-service only makes sense in sub-5ms
+  range which means you need a point of presence in every major cloud region
+  and datacenter your customers may be, which is almost the same as "going
+  on-prem", except it's your own "prem" you'll be going to.
+- **Security and compliance**: when your code needs to exist and operate in
+  regulated environments that only your customers can provide.
+- **Economies of scale**: some customers have the capacity and ability to
+  acquire and operate compute resources at much cheaper rates than cloud
+  providers offer.
+
+However, the "service" part of SaaS does offer a lot of value, regardless.
+Keeping software up, secure and healthy is difficult (and with the ever
+increasing complexity of software stacks, it continues to get harder). With
+SaaS, the IT department no longer has to do all that work. That burden has
+shifted to folks that now call themselves "Devops". It is pretty clear there is
+demand for this arrangement to continue but it would be great if that level of
+service could also be delivered on the customer's infrastructure when the
+situations listed above apply.
+
+## Defining "on-premises"
+
+There is no denying the mass adoption of "the cloud" and that the traditional
+role of the corporate datacenter is diminishing. However, in that transition
+the lines between "the cloud" and "on-premises" are getting blurred with private
+cloud deployments and hybrid cloud infrastructure.
+
+There's a lot of jargon that gets thrown around so let's try to define some of
+the terminology. In the SaaS context, "on-premises" historically meant deploying
+a separate instance of your SaaS application to your customer's server room or
+data center, behind their firewall. More recently, this term may also include
+deploying to the customer's private cloud at a cloud provider like Amazon Web
+Services or Azure. It may even include a separate, single tenant version of the
+application that is still hosted and managed by the SaaS provider. So for the
+purpose of this post let's give these offerings their own names:
+
+- **On-premises**: Customer's servers, behind Firewall
+- **Private cloud**: Customer's private cloud environment on a cloud provider
+- **Public SaaS**: Traditional multi-tenant SaaS.
+
+## Easy vs Hard
+
+These different types of offerings above were listed in the order of difficulty
+for a SaaS provider to maintain and, generally, in the amount of money a buyer
+is willing to pay for them. So it probably makes sense for a SaaS provider to
+move from the bottom up, gradually taking on the increased level of difficulty.
+However, our initial customers hired us mainly to solve traditional on-premises,
+so we needed to think about how to provide a solution that serves all of these
+deployment strategies.
+
+Not mentioned in the list above is an additional step in the typical SaaS
+company's lifecycle: when a Public SaaS application has to go "multi-DC" or
+"multi-region". This is generally done to reduce latency or make the
+application more highly available. Going multi-DC is a challenge in itself and
+bring many of the same concerns mentioned below.
+
+There's one way to make the problem of going on-premises a lot easier for the
+SaaS company and that is to just throw the code over the wall and let the
+customer operate it. Historically, this is how the problem has traditionally
+been solved, usually using VMs.
+
+While this gets the application "over the fence", it suffers from the
+following, in many cases fatal, problems:
+
+1. You are not providing the "it-just-works" experience that enterprise customers
+   have grown so accustomed to when using SaaS products.
+2. It often requires forking your code into SaaS and on-prem branches, _costing
+   you a fortune in maintenance over the long run_.
+3. This puts additional strain on the support team at the SaaS vendor.
+4. This also requires additional IT resources from the customer.
+
+Our view is that copying the application code on-premises is not the hard part.
+
+<Quote>
+  The hard part about delivering your application into a private infrastructure
+  is not merely deploying it, but keeping it up, healthy and updated.
+</Quote>
+
+In our view "Going on-prem" successfully means operating the application
+(providing the "service") so that, from the customer's perspective, it just
+works. Given that hard problems are the ones worth solving, we tasked ourselves
+with enabling an on-premises offering that can still be operated by the SaaS
+provider similarly to their public SaaS.
+
+We call this concept **"Private SaaS"**.
+
+## Challenges to offering Private SaaS
+
+With some of those definitions out of the way, let's discuss some of common
+problems and how we address them. I'll summarize some the major issues below.
+Many of these issues were raised in a great blog post by John E. Vincent, "[So You Wanna Go On-Prem Do Ya](http://blog.lusis.org/blog/2016/05/15/so-you-wanna-go-onprem-do-ya/)".
+
+The quotes below are concerns he raised in the post. I recommend reading it in
+its entirety.
+
+### Changing focus
+
+Concern number one:
+
+<Quote>
+  When you move to the on-prem world, depending on which type of model you go
+  with - you move from being a SaaS provider into either an ops organization or
+  a helpdesk organization or both. Either you’re spending all your time
+  operating the environments or you’re spending all your time supporting those
+  environments.
+</Quote>
+
+I would argue that this is true of any successful public SaaS application, as
+well. As you get larger and scale your user base, most of your engineering
+resources shift to just keeping the application running. As you go from a
+single master-slave DB to sharded, and then to multi-region, the need for ops
+resources increases further.
+
+However, it is certainly true that private installations can compound these
+issues exponentially, especially if they are substantially different than the
+public SaaS architecture. In order to achieve operational scale, you need to
+abstract away as much "uniqueness" as possible. More on that in a bit.
+
+### Remote Access
+
+Concern number two:
+
+<Quote>
+  You have to have almost zero touch administration of your stack...You MUST be
+  able to reach a greater operational density.
+</Quote>
+
+If you have zero access to the stack, you obviously can not manage the
+application. If your customers insist on this, you need to be very careful on
+the SLA you provide to them.
+
+However, not every customer that wants on-premises is a government agency with
+air gapped servers. In fact, most frequently hire third party contractors and
+have security models in place to develop trust. Some may just want a single
+tenant version deployed on their AWS account versus yours. The key is to use
+tools that fit within their security models. This is the reason that we built
+and open sourced [Teleport](https://goteleport.com/), our SSH based
+access layer.
+
+Teleport was built to provide fast, secure access and also comply with
+enterprise security practices, including:
+
+- Avoiding key distribution and trust on first use by using auto-expiring keys signed by a cluster certificate authority (CA)
+- A single entry point through a bastion
+- Enforcement of 2nd factor authentication
+- Full auditing of all sessions and actions
+
+It also integrates with existing enterprise identity providers and works with
+[OpenSSH](http://www.openssh.com/) so that it can be easily used with existing
+infrastructure.
+
+Getting access to the infrastructure is a pre-requisite to effectively offering
+Private SaaS. Without access, you will need to push a good deal of operational
+work back to the customer and your application will need to be uniquely
+valuable for that to work out in the long term.
+
+### Loss of Flexibility
+
+Scary stuff:
+
+<Quote>
+  Once you decide to go to supporting on-prem...Everyone is overworked trying to
+  keep that snowflake up and running.
+</Quote>
+
+Loss of flexibility is a concern we hear about a lot. Bifurcating your product
+and having multiple installations in different environments will kill your
+operations team and slow down your development. We agree...which is why we
+advocate for creating what we call "bubbles of consistency" around your
+application.
+
+We create this consistency by using containers and [Kubernetes](http://kubernetes.io/)
+for container orchestration. The first step of every engagement we do is to
+port the application to containers and run it using Kubernetes. This way the
+application environment is similar for every installation.
+
+In addition, we validate the infrastructure resources so that the SaaS vendor's
+requirements are met before declaring a successful install to the customer.
+This prevents the end customer from trying to shove everything onto minimal
+resources and then complaining about performance.
+
+Taking this a step further, we advise our customers to use Kubernetes for their
+public SaaS environment, as well. This discipline is necessary to reduce the
+special snowflakes.
+
+Creating this "clean room" environment with Kubernetes also serves to separate
+your application from your customer's other applications. Ideally, they don't
+touch it all. If your customer is messing around with your application's
+dependencies, there is no way to know its state when you push updates and/or
+patches. This greatly increases the odds of them breaking something or you
+breaking something when you release updates.
+
+Some may argue this approach limits server density but this argument may be
+penny wise and pound foolish. We believe it's worth it to sacrifice server
+density in order to improve human operational efficiency. Humans are more
+expensive than machines.
+
+## Persistent Data
+
+Another concern:
+
+<Quote>
+  Databases are where we see the biggest obstacle to scaling on-premises
+  installations.
+</Quote>
+
+True. There are a few complications here:
+
+- Persistent data with containers is hard. There are a few people that are
+  working on it, like [ClusterHQ](https://clusterhq.com/) and
+  [CoreOS](https://coreos.com/blog/torus-distributed-storage-by-coreos.html)
+  but those are still in the early stages and not widely adopted, which leads
+  to the next point.
+- Each customer will likely have their own preferred methodology and tools to
+  deal with persisting data. Some may use NAS devices to do snapshots and
+  backups, some may be using S3, some may be open to using a distributed data
+  store but don't have the expertise to operate it.
+
+You can either force your methodology on the end customer or you can try be
+flexible and accommodate all these different use cases.
+
+You will also see how frequently the end customer will want to use that data
+appliance they just paid a lot of money for - so until there is more consensus,
+this is an area where we believe flexibility is important.
+
+Our secret weapon to tackle this problem for our customers is [Kubernetes](http://k8s.io) (k8s)
+It provides the necessary abstraction layers for:
+
+- Database services.
+- Storage volumes.
+
+Additionally, we have found that Kubernetes abstrations largely work and are
+easy to reason about.
+
+<EmailSubscribeViolet />
+
+## Forking your Codebase
+
+Another commonly stated concern:
+
+<Quote>
+  Our AWS-hosted application is way too "cloudy", we would need to have
+  different code paths for how we deal with provisioning, storage and
+  configuration.
+</Quote>
+
+This concern is listed at the bottom, but not because it's a less important
+one. I kept it for later because now, with the proper context set above, it's easier
+to see how we tackle this problem.
+
+By standardizing your development and your operations on Kubernetes building
+blocks and by adopting a [private cloud friendly Kubernetes
+distribution](https://goteleport.com/) you're reducing the need for
+code forking to a minimum and making your ops procedures uniform and scalable
+across dozens, if not thousands, of deployment regions.
+
+## Conclusion
+
+In the end, successfully going "on-prem" comes down to trying to create as much
+conformity as possible across deployments (including your Public SaaS). It is a
+significant endeavor and one that should not be taken lightly but the increase
+to you top line revenue can be well worth it.
+
+That is why we are so excited to be a part of the "Private SaaS" movement. We
+believe that the SaaS business model is not completely dependent on the SaaS
+vendor having to rent infrastructure (and sharing their revenue with IaaS
+providers). The adoption of containers and cluster-sized operating systems like
+Kubernetes are powerful enablers to help expand SaaS offerings beyond
+`aws-east` ;-)
+
+This was a long post but there is so much more to discuss. Feel free to reach
+out to discuss further [info@goteleport.com](mailto:info@goteleport.com).

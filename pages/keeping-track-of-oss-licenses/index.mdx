@@ -1,0 +1,181 @@
+---
+title: Keeping Track of Open Source Software Licenses
+description: It might be mundane and boring but keeping track of your FOSS license usage can save you from a big headache at the least opportune time.
+articleTitle: Keeping Track of Open Source Software Licenses
+date: "2016-10-18"
+author: Taylor Wakefield
+tags:
+  - programming
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+A few weeks ago we attended a dinner hosted by Lightspeed Ventures for
+technology leaders in the Bay Area. At the event, someone proposed
+that each guest share a simple (but useful) bit of advice for other tech
+companies in the enterprise software space.
+
+One of the wisest bits of advice was:
+
+<Quote>
+  Get your software licenses in order EARLY and save yourself from a world of
+  pain later.
+</Quote>
+
+Indeed. This is a lesson we had also previously learned. In this post
+I'll share our experience heeding this advice with our quickly evolving codebase.
+
+## TLDR;
+
+- "FOSS" is free, but has implicit costs.
+- This "cost" usually comes up at the most critical times, like an acquisition offer or large customer deal.
+- Review all licenses before using - tell your team to do the same.
+- If you have not been actively doing this, [here's a script to scan and categorize them](https://github.com/gravitational/licensinator).
+- If there are any [copyleft licences](https://en.wikipedia.org/wiki/Copyleft), be especially vigilant.
+- Talk to a lawyer to make sure you are not infringing on other's rights.
+
+## Standing on the shoulders of giants
+
+All of us in the software business owe a lot to our predecessors. The amount of
+free and open-source software ("FOSS") code that can be leveraged when building
+a new offering is staggering. From a simplistic (and perhaps cynical)
+perspective, many SaaS products can be thought of as:
+
+`SaaS = dash of business logic code + tons of existing FOSS + ops blood, sweat and tears`
+
+However, while all of that FOSS you are using may be free (monetarily), there
+could be implicit costs. This post will touch on what to watch out for and tips
+for keeping your code base clean, legally.
+
+## Open source != public domain
+
+As a startup, it may be tempting (while you are rapidly moving around, breaking
+things) to pay little heed to the types of FOSS you are using. However, just
+because something is open source does not mean it is free for you to use, willy
+nilly. Those licenses that are included with each FOSS library matter and they
+REALLY matter at the most crucial times...like being acquired or signing a
+large deal.
+
+The likelihood of this becoming a problem is correlated with your success and
+notoriety, so many startups do not focus on this when they are just getting
+started.
+
+But imagine spending several years toiling away at your startup and against all
+odds you build it into something that someone else actually wants to buy...yay!
+Well, the acquirer will do several types of due diligence before writing that
+check, one of which is intellectual property due diligence. As part of that due
+diligence, if they find you are infringing on someone else's rights, they will
+tell you that they can not buy your company while you are doing that. It would
+be a huge bummer to have something as banal as this scuttle the deal.
+
+## IANAL, you should talk to a lawyer
+
+Before we get into it, the first obvious piece of advice is to talk to your
+lawyer (I am not a lawyer). Unfortunately, lawyers can be pretty expensive so
+many people will put it off until it's too late. _Do not do that._ Treat this
+post as some free, amateur advice to help you engage with your lawyer in a more
+educated manner.
+
+I won't go into the intricacies of software licensing but here are a few tips,
+links and tools to help you get started.
+
+## General overview of FOSS
+
+Software licenses evolved out of copyright law and in particular the
+protections that an author has to his or her original works. This incentivizes
+people to spend their precious time creating cool stuff...because then they own
+it. Software is classified under literary works since you are, in fact, writing
+that code. The main protection authors have is that they get to determine how
+they distribute their works to other people and what those other people can do
+with them. The license is the document that tells others what they can do with
+the author’s work.
+
+In the software world, most of the open source licenses you will encounter are
+[Permissive](https://en.wikipedia.org/wiki/Permissive_software_licence) or
+[Protective/Copyleft](https://en.wikipedia.org/wiki/Copyleft).
+
+This is a massive over simplification so here are some resources to learn more:
+
+- [A good trail head for your Wikipedia journey](https://en.wikipedia.org/wiki/Software_license)
+- [An awesome reference of most software licenses and what you need to worry about in plain english](https://tldrlegal.com/)
+- [A list of the most popular software licenses](https://www.blackducksoftware.com/top-open-source-licenses)
+
+Most permissive licenses let you use and redistribute the code freely (with
+some having a requirement that you reference the original copyright). A
+Copyleft license will have additional requirements, a common one being that you
+have to use that same license to distribute what it is included with. For this
+reason, Copyleft licenses are sometimes pejoratively referred to as viral
+licenses since they infect and limit how you can license the resulting code
+base. Out of the top five most popular licenses, the GNU licenses are Copyleft
+licenses.
+
+<BlogImage src="./assets/top-oss-list.png" />
+
+_Source: [BlackDuck](https://www.blackducksoftware.com/top-open-source-licenses)_
+
+The main takeaway is that if you want to sell your software or even open source
+it, you may be infringing on the original author's rights if you have are using
+any software with a Copyleft license.
+
+So, here are some simple ways to help avoid this:
+
+- If you are just getting started, read the license before using that code in
+  your project. As you build your team, make sure it is part of your team's
+  workflow.
+- For existing projects, scan for licenses (including any dependencies those
+  projects use) and review them to make sure you aren't already using a
+  protective license.
+- If there are any Copyleft licenses, you need to further evaluate that you are
+  not violating them. I’d suggest starting with [TLDR
+  Legal](https://tldrlegal.com/) and refer further questions to your lawyer.
+
+## License scanning process
+
+We recently went through this process and wrote a script that scans our github
+repository for license files and categorizes them based on fuzzy matching. This
+substantially reduces the time it takes to review the licenses. [Here's the
+script](https://github.com/gravitational/licensinator) (with a permissive
+license :).
+
+After the initial scan, we manually reviewed them to make sure there were not
+any errors in the matching. For any licenses that were not permissive, we made
+sure we are complying with the terms of the license. Thankfully, there were
+only permissive and weak Copyleft licenses which generally means it is ok if
+you are just linking to them and not modifying them to create derivative works.
+
+The results of the analysis are here:
+
+<BlogImage src="./assets/license-summary.png" />
+
+As you can see, these licenses add up quickly so it’s good to keep an eye on them.
+
+<EmailSubscribeViolet />
+
+## Third party services
+
+There are a number of third party services that will help with this process,
+including traditional vendors like
+[WhiteSource](http://www.whitesourcesoftware.com/) and
+[Blackduck](https://www.blackducksoftware.com/).
+
+Another new and promising entrant to the market, and one I wish I found before
+going through the steps above, is FOSSA. They actually run
+the [TLDR Legal](https://tldrlegal.com/) site and they make it really easy to
+get started. Their product also allows you to create policies and it will
+analyze your repos dynamically, each time you commit. Finally, they have nice
+integrations with issue trackers, like Jira, to check off any issues as you
+resolve them. I went through the same process with their private beta and I was
+really impressed by how much easier it made the process.
+
+## Conclusion
+
+This is not the most exciting side of software but it is something that can
+hurt your business and damage your reputation if you are not careful. You can
+alleviate a lot of anxiety at critical moments by instituting some minor
+controls early in your development process to make sure you are not infringing
+on others' rights.

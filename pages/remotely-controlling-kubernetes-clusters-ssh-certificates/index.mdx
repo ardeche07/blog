@@ -1,0 +1,192 @@
+---
+title: Managing Kubernetes:\ Part I. SSH certificates
+description: Part 1 of the series of articles about managing Kubernetes clusters across multiple teams, regions or organizations.
+articleTitle: Managing Kubernetes:\ Part I. SSH certificates
+date: "2016-10-04"
+author: Ev Kontsevoy
+tags:
+  - kubernetes
+  - ssh
+  - security
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+## Introduction
+
+In this post, we’ll cover how we leverage SSH certificates to access
+remote infrastructure, securely. This should be interesting to you if:
+
+- You are a software company that wants to deploy and remotely update your
+  multi-server app on customer’s infrastructure or across multiple regions.
+- You are a managed service provider (MSP) managing infrastructure for your
+  customers.
+
+The same approach can be used on any clusters of infrastructure - there’s
+nothing specific to Kubernetes (aka, "k8s") here. We hope to inspire readers to
+consider adopting a solid SSH framework for their organization, taking our
+approach of managing k8s clusters for our customers as an example.
+
+_This is part 1 of a multi-part series on how we remotely manage our customers’
+Kubernetes clusters. Internally, we use
+[Teleport](https://goteleport.com/), to automate many of the details
+we will be discussing. Teleport is open sourced and you can find more
+information on its website or Github [repository](https://github.com/gravitational/teleport)._
+
+## Problem: Managing secure access
+
+K8s itself offers a fairly robust (and growing) set of auth methods for the
+users of its API, so the identity management within Kubernetes is not a
+problem.
+
+The problem is what's underneath.
+
+The _infrastructure_ Kubernetes itself runs on must be managed as
+too. We needed a simple and flexible access control layer for the ops
+engineers who manage upgrades and health of k8s clusters. We also needed it
+work across multiple regions owned by different companies. We saw two
+challenges here:
+
+1. How to manage our employees’ identities across many locations and many
+   customers. For example, if one of our engineers is responsible for maintaining
+   a k8s cluster on the AWS accounts of companies A and B, how do we automatically
+   revoke access to the servers owned by companies A and B while (s)he’s on
+   vacation?
+
+2. How to provide unified connectivity to every region, including private data
+   centers or colocation environments behind firewalls.
+
+Let’s start with secure access and identity management.
+
+## Traditional Solution: Using Secure Shell (SSH) keys
+
+SSH is the ubiquitous access layer for managing UNIX servers and the most
+commonly accepted method of SSH authentication involves distributing employees’
+public SSH keys to servers.
+
+In a key-based authentication scenario, a server only trusts clients whose
+public keys it knows ahead of time, most likely because someone pre-loaded them
+into ~/.ssh directories.
+
+<BlogImage src="./assets/ssh-1.png" />
+
+This is not optimal because:
+
+1. Key distribution becomes a burden. It is common to see companies running
+   production servers with obsolete keys or not having a key when someone new
+   joins the team.
+2. Implementing key rotation is not easy, yet everyone knows they need key
+   rotation. How else would you make sure that a former employee’s public key
+   disappears from all the servers it had been previously distributed to?
+3. Restricting employees to groups of servers (or infrastructure regions)
+   becomes complex: you will need an external key-management service.
+4. There is no introspection and no single source of truth: you cannot easily
+   tell who has access to what.
+5. Implementing access-by-schedule or restricting users to specific OS logins
+   (roles) like “root” requires additional complexity.
+
+These problems can be solved by using [certificates](https://en.wikipedia.org/wiki/Public_key_certificate).
+
+## Alternative Solution: Using SSH with certificates
+
+In a certificate-based system, servers do not keep public keys of the trusted
+clients. Instead, they only keep the public key of the Certificate Authority
+(CA) they trust.
+
+In principle, a CA is nothing more than another public/private key pair. But a
+CA has a special magic power: it can “sign” other public keys using its own
+private key. The output of signing is called a certificate.
+
+```text
+Certificate = Client Public Key + CA Signature + Expiration Date + Metadata
+```
+
+It is impossible to change anything inside a certificate. If attackers try to
+swap the public key or the metadata, they’ll invalidate the signature. In turn,
+the signature cannot be forged without knowing the private key of the CA that
+issued the certificate.
+
+An SSH server will accept the certificate only if:
+
+1. It trusts the CA which signed it by validating the signature using the CA’s
+   public key.
+2. The certificate is not expired.
+
+<BlogImage src="./assets/ssh-2.png" />
+
+You can probably see where this is going: the power of granting access has now
+shifted from a server to the certificate authority (CA). Authentication now
+happens in two stages: first, when a client requests a certificate (by having
+its key signed). Second, when the generated certificate is presented to a
+server.
+
+This elegantly solves the problem of key distribution because keys are replaced
+by dynamically issued certificates. This scheme has additional advantages:
+
+- Administration of a certificate-based SSH system is greatly simplified: only
+  the CA needs to know the access policies.
+- You can issue short-lived certificates and enforce access according to a
+  schedule. For example, users automatically lose access when they go on
+  vacation or fall outside of pre-defined time intervals (assigned “shifts”).
+- Auditing becomes much easier to implement.
+- You can configure your servers to trust more than one CA, or perhaps trust
+  them differently: this allows the establishment of trust between teams or
+  server clusters owned by different organizations.
+
+Another interesting feature of certificates is that they can include additional
+metadata acting as instructions for the server: for example, a client can be
+given a certificate which allows him to login as “darlene” but not as “elliot”
+and definitely not as “root”. You can add your own metadata (extensions) for
+policies like enforcing client connections only from a specific IP address.
+
+<EmailSubscribeViolet />
+
+### Example
+
+Here is a sample certificate file which was generated
+for the “vagrant” user of a virtual machine. To explore the contents you can
+use the `ssh-keygen` command:
+
+```text
+$ ssh-keygen -L -f vagrant.cert
+vagrant.cert:
+        Type: ssh-rsa-cert-v01@openssh.com user certificate
+        Public key: RSA-CERT SHA256:n1ieycXqpktoFjk8brvKf+f5/tQblNF88wJBPrmaFe8
+        Signing CA: RSA SHA256:LqeiRCGsf+aGfzPM762vzch7GmEpnatnn+rKOZ6o+FI
+        Key ID: "vagrant"
+        Serial: 0
+        Valid: before 2016-12-31T23:59:59
+        Principals:
+                vagrant
+                elliot
+        Critical Options: (none)
+        Extensions:
+                permit-pty
+```
+
+As you can see, this certificate allows the client to login as either “vagrant”
+or “elliot”. When a client logs in, he can request a PTY (console), but cannot
+do other things, like forward TCP ports...and access is denied completely at
+the end of 2016.
+
+### How does a CA trust clients?
+
+You may be wondering how a certificate authority knows to trust a client and
+issue it certificates. Typically you want the CA to be integrated with an
+existing identity solution within your organization, like Active Directory,
+LDAP or Google Apps.
+
+This way, depending on which group a connecting client belongs to, it can be
+issued a role-defined certificate with flexible permissions, an expiration date
+and custom metadata. That opens up a lot of interesting possibilities!
+
+### To be continued...
+
+In the next post in our series, we’ll take a look at how to integrate
+certificate authorities with existing identities in your organization and how
+to build secure authentication themes that are easy to implement and reason
+about.
+
+Subscribe to email notifications about upcoming posts to stay up-to-date.

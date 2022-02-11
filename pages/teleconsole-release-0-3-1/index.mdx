@@ -1,0 +1,58 @@
+---
+title: Teleconsole 0.3.1 Released
+description: Announcing the release of Teleconsole 0.3.1 with a nice list of improvements. For example you can instantly (and securely!) SSH into a laptop of any Github user who trusts you.
+articleTitle: Teleconsole 0.3.1 Released
+date: "2016-10-01"
+author: Taylor Wakefield
+tags:
+  - ssh
+  - announcements
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+We have received a lot of great feedback since the [Teleconsole
+launch](https://github.com/gravitational/teleconsole/). We pushed a [quick update to
+Github](https://github.com/gravitational/teleconsole/releases/tag/0.3.1) which
+incorporates some of the feedback. This release is a quick response to most
+common complaints and feature requests we've received since the original
+release.
+
+## New Features
+
+- Reduced latency for non-US users: we've added a couple of proxy servers in
+  Europe and Asia.
+- Ability to create sessions shared only with specific SSH keys, including
+  Github usernames. For example: `teleconsole -i torvalds`
+
+Will create a session that only Linus will be able to join ;)
+
+## Bug Fixes
+
+Upon joining a new session, Teleconsole now replays up to 20 most recent
+"drawings" so you get the full context of what you're looking at.
+
+## Known Issues
+
+Cross-compiling for ARM-6 is more trouble than it's worth, from now on ARM
+builds are ARM-7 (Raspberry Pi 3+) but if you have an older ARM-6 based
+appliance, building from source natively on it is trivial.
+
+## Installing
+
+If you haven't tried [Teleconsole](https://github.com/gravitational/teleconsole/) before,
+get it:
+
+```bash
+curl https://www.teleconsole.com/get.sh | sh
+```
+
+And then simply type `teleconsole` in your terminal and follow the instructions.
+
+<EmailSubscribeViolet />
+
+## Stay in touch!
+
+If you like Teleconsole, sign up below for our mailing list to be notified
+on our progress in making it better!

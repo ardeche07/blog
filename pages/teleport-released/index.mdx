@@ -1,0 +1,112 @@
+---
+title: Teleport 1.0 Release Announcement
+description: We are announcing the official 1.0 version of Teleport:\ SSH server with built-in bastion and audit!
+articleTitle: Teleport 1.0 Released
+date: "2016-06-23"
+author: Taylor Wakefield
+tags:
+  - ssh
+  - teleport
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+### Today is a big day!
+
+We are ecstatic to announce the 1.0 release of [Teleport](https://goteleport.com/). For the uninitiated, Teleport is
+modern SSH server designed for clusters of servers and the teams working on
+them. The notion of "cluster" and cluster membership is central to Teleport:
+users can explore the nodes in a cluster, their user permissions are governed
+on a cluster level, etc.
+
+You can think of Teleport as a set of enhancements to SSH, while still being
+backward compatible with OpenSSH. These enhancements include:
+
+- Certificate-based authentication to avoid key distribution headaches.
+- Built-in session recording/replay for sharing knowledge and security audits.
+- Built-in reverse tunneling for connecting to clusters located behind firewalls.
+- 2nd factor authentication and identity integration with Google Apps or any other OAuth2 provider.
+- Real-time session sharing.
+- Dynamic node labeling.
+- Web browser based GUI (in addition to the CLI).
+
+Since we open sourced Teleport in March, the
+[repo](https://github.com/gravitational/teleport) has received over 750 stars
+on Github and has been downloaded or forked over 800 times. A number of
+companies reached out to us helping with finalizing Teleport feature set,
+testing and providing feedback.
+
+The outcome of this process is finally here. Here is what's new in the 1.0 release.
+
+### Security Audit Complete
+
+The biggest news is that we have concluded a security audit of Teleport code
+and penetration testing with a nationally recognized security consulting
+company. We have addressed all of the concerns raised by the audit and we are
+now comfortable recommending Teleport for production use.
+
+### New Functionality
+
+We've also exposed some additional functionality, including:
+
+- [OpenID / OAuth2 integration](https://goteleport.com/docs/) and Google OpenID works out of the box.
+- Multi-cluster connectivity with reverse tunnels for connecting
+  behind-firewall environments ([Trusted
+  Clusters](https://goteleport.com/docs/setup/admin/#trusted-clusters)).
+- Ability to use static tokens to [add nodes to a
+  cluster](https://goteleport.com/docs/setup/admin/#adding-nodes-to-the-cluster/).
+- Ability to [revoke invitations](https://goteleport.com/docs/setup/admin/#revoking-invitations/) to join the cluster.
+- TSH `log out` command, which clears temporary keys.
+- Account locking after a configurable amount of unsuccessful login attempts.
+
+### Who is Teleport For?
+
+Based on the market feedback, we have learned that Teleport's features are
+especially appealing to teams of ops engineers who're responsible for managing
+multiple pockets of infrastructure. Some examples:
+
+- Managed service providers: ops teams who manage applications and
+  infrastructure for their customers.
+- SaaS companies: teams who have multiple environments distributed across
+  staging/production and geographic dimensions like Teleport for managing trust
+  across all these environments.
+- Software vendors: they like Teleport for providing remote support of their
+  products. Teleport can be used as a "remote control" to assist their
+  customers with any issues of their software installed and running on-premises.
+- Anyone else who likes having a beautiful Web UI to access their servers via SSH.
+
+### Demo: SSH behind Firewalls
+
+<iframe
+  width="841"
+  height="473"
+  src="https://www.youtube.com/embed/7eVAC2U8OtM"
+  frameborder="0"
+  allowfullscreen
+></iframe>
+
+### Upgrading from Beta
+
+Teleport YAML configuration format has changed slightly. Also, the format of
+key and session storage has evolved, as well. We recommend beta users to wipe
+out `/var/lib/teleport` directory on servers and `~/.tsh` directory on client
+machines.
+
+Moving forward, we are committed to backwards compatibility with configuration
+files and on-disk data.
+
+<EmailSubscribeViolet />
+
+### More info
+
+For more information about Teleport, you can take a look at the
+[documentation](https://goteleport.com/docs/getting-started/) or the
+[Github repo](https://github.com/gravitational/teleport). It is open sourced so
+feel free to dig in; issues and/or pull requests are welcome. Feel free to
+reach out if you have additional questions: [info@goteleport.com](mailto:info@goteleport.com).
+
+### Stay Updated!
+
+If Teleport seems interesting to you and you'd like to be updated on our progress,
+please sign up for our mailing list below:

@@ -1,0 +1,71 @@
+---
+title: SSH server for clusters and teams
+description: We are excited to announce the new open source project:\ Teleport, which in some cases can be a modern replacement for OpenSSH.
+articleTitle: Teleport:\ SSH server for clusters and teams
+date: "2016-04-12"
+author: Taylor Wakefield
+tags:
+  - ssh
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Our end goal is to help people manage their applications on
+multiple locations. Our flagship product
+[Gravity](https://goteleport.com/) solves two main challenges -
+deploying applications across multiple environments and then once they are
+there, operating and maintaining them. The second challenge requires an access
+layer that is compatible with existing (mostly SSH-based) workflows and
+scalable across multiple clusters of servers and multiple ops teams.
+
+[Teleport](https://goteleport.com/) is that access layer. And today we are excited to announce
+that we are open sourcing this fundamental component of the Gravity platform.
+
+Teleport was built with security and usability across distributed environments
+as the primary design principles. We made Teleport compatible with OpenSSH so
+it works with many existing systems and work flows with minimal changes. Beyond
+traditional SSH, we added features to make it secure and easy to use for teams
+with modern, distributed applications, including:
+
+- Two-factor authentication
+- Short-lived certificates
+- Dynamic labeling for services
+- Multi-user sessions ("hangouts for terminal")
+- The ability to playback sessions
+- Mandatory auditing (every event is recorded and stored)
+- A web-based user interface (in addition to the CLI)
+
+### More Info
+
+You can learn more about Teleport's design and internals at its [landing
+page](https://goteleport.com/) and [Github
+repository](https://github.com/gravitational/teleport). It is not ready for
+production use, yet, but we encourage people to review, play with it and
+provide feedback. We are currently undergoing a security review and will update
+the repo's README.md when we are comfortable recommending it for production
+use.
+
+<EmailSubscribeViolet />
+
+### Contributing
+
+The best way to contribute is to create issues or pull requests on
+[Github](https://github.com/gravitational/teleport), join the
+[Teleport community forum](https://github.com/gravitational/teleport/discussions) or reach out directly to us via
+[info@goteleport.com](mailto:info@goteleport.com).
+
+### Acknowledgments
+
+Finally, we'd like to thank a few people that have helped us with Teleport:
+
+- [LVH](https://www.lvh.io/): Here's his [blog post on Teleport](https://www.lvh.io/posts/introducing-teleport/)
+- [Joe Beda](https://www.eightypercent.net/)
+- [Alexander Lyulkov](https://www.linkedin.com/in/alexander-lyulkov-64241487)
+- [Patrick Algrim](http://www.algrim.co/)
+
+### Stay in Touch!
+
+We are pretty happy with how Teleport solves our problems, but we will be
+looking for more ways to make it better. Take a look and let us know what you
+think, or sign up for the updates below:
