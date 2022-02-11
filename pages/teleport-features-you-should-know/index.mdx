@@ -1,0 +1,84 @@
+---
+title: My Favorite Features in Teleport That I Wish Everyone Knew
+description: This blog talks about 3 little-known features of Teleport including portable credentials, bookmarking session replays, and multiple proxy addresses.
+articleTitle: Three Little-Known Features in Teleport That I Wish Everyone Knew
+date: "2021-12-30"
+author: Steven Martin
+logo:
+  image: ./assets/3-features.png
+  alt: Three Little-Known Features in Teleport
+tags:
+  - teleport
+  - ssh
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+As a solution architect at Teleport, I help potential customers get up and running with Teleport, but I am also a power user myself. In my time here, I have picked a few favorite features to help me be more efficient using Teleport, but they aren't as widely known as they should be. This article hopes to change that and give some love to three little-known features that can enhance your usage of Teleport. I use them every day and hope that after reading this blog, you will too.
+
+## Portable credentials
+
+Do you only use one device to do your job? I don't. I am constantly accessing different machines. That might mean my laptop, a machine that I am not accessing via Teleport, or maybe a machine from which I want to execute an API call to a teleport `ssh` node.
+
+How does this work with Teleport? Simple. The Teleport CLI `tsh ssh` does not have to be limited only to your dev machine. You can issue your own single certificate file to use on multiple machines for SSH and Kubernetes access from one login. On your desktop, Teleport will store your short-lived certificate files under the `~/.tsh` folder. In addition to the command `tsh login --proxy=xyz` add the `-o file.pem` to store the single PEM file.
+
+```bash
+tsh login --proxy=teleport.example.com -o steven.pem
+```
+
+Now that same certificate you use locally can be copied to another machine and used directly as so.
+
+```bash
+tsh ssh -i steven.pem --proxy=teleport.example.com steven@mynode1
+mynode1$
+```
+
+The same time-based and other restrictions apply as this is the same certificate-based approach. For `tsh` you can add the parameter `--ttl=1h` to limit the time of the credentials to an hour vs. the 8 hours your default might be. Any time-based cert is more secure than static keys that do not expire. So you're able to leverage Teleport where you need to — not just your desktop and web console.
+
+## Bookmarking session replays
+
+You've probably heard of Teleport [session recordings](https://goteleport.com/how-it-works/audit-logging-for-ssh-and-kubernetes/). Privileged session recording, or SSH session recording, means recording the user’s actual screen during their SSH session for real-time or later playback (we also [log actions at the sys call level](https://goteleport.com/blog/enhanced-session-recording/) so a user can't mask commands). This is useful for both education/training purposes, or as part of an audit. Well, what if you want to come back to a session you have already watched? Sessions you play within the Teleport web console are bookmarkable, so they are easy to return to and share. When you play a session in Teleport, it uses the URL pattern:
+
+```
+https://<proxy address>/web/cluster/<clustername>/session/<session-id>/player
+```
+
+So if your proxy address is `teleport.example.com`, your clustername `west`, and a session-id `84b8a83e-061b-4388-97f1-c65ccd757618` that equates to:
+
+```
+https://teleport.example.com/web/cluster/west/session/84b8a83e-061b-4388-97f1-c65ccd757618/player
+```
+
+Teleport will enforce role-based access to sessions so you're not leaking sessions by sharing the URL. This URL pattern is helpful when using a SIEM where you can feed the Teleport Audit log to provide direct URLs to session playback.
+
+<BlogImage src="./assets/session-player.png" />
+
+One last tip: the session is replayable from the CLI via `tsh play <sessionid>`.
+
+## Multiple proxy addresses
+
+In addition to having a Fully Qualified Domain Name (FQDN) like `teleport.example.com` you can enable multiple addresses like `internal.example.com`. That’s useful especially for connecting agents through another FQDN rather than authenticating as a different user. Or if you're transitioning from one proxy address to another, you can have both available.
+
+To set multiple addresses, simply have your list of addresses instead of a single address. Note that you'll need TLS certs.
+
+```yaml
+proxy_service:
+  public_addr:
+    - teleport.example.com:443
+    - internal.example.com:443
+  https_keypairs:
+    - key_file: /var/lib/teleport/webproxy_key.pem
+      cert_file: /var/lib/teleport/webproxy_cert.pem
+    - key_file: /var/lib/internal/webproxy_key.pem
+      cert_file: /var/lib/internal/webproxy_cert.pem
+```
+
+One related point here is that public addresses are not required to be available on the internet. Teleport can run seamlessly in private dnses and airgapped environments. The usage of the `public` tag in Teleport configurations as below can lead folks to think that Teleport requires being on the public internet. That's just the address for users and agents to connect to. Use your private DNS and TLS certificates as with any internal solution.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+I hope these little-known features are helpful in enhancing your usage of Teleport. More useful tidbits are available in Teleport docs such as the [CLI reference](https://goteleport.com/docs/setup/reference/cli/) and the [config file reference](https://goteleport.com/docs/setup/reference/config/). You can [download the free OSS version of Teleport here](https://goteleport.com/teleport/download/), join our [community slack](https://join.slack.com/t/goteleport/shared_invite/zt-midnn9bn-AQKcq5NNDs9ojELKlgwJUA), or get involved on [GitHub discussions](https://github.com/gravitational/teleport/discussions).

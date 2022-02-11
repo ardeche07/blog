@@ -1,0 +1,189 @@
+---
+title: Error Handling in Go Programs
+description: We discuss effective ways to handle errors in Go programming language.
+articleTitle: Error Handling in Go Programs
+date: "2015-11-01"
+author: Sasha Klizhentas
+tags:
+  - engineering
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+In this post we're going to share some lessons we've learned while using Go
+in production for several years here at Teleport.
+
+## Intro
+
+Go does not have exceptions, rather error handling is done by checking errors.
+This requires some adjustments in how you deal with errors if you are coming
+from languages that have exceptions as a primary error handling mechanism.
+
+Dave Cheney wrote a [series of
+articles](http://dave.cheney.net/2015/01/26/errors-and-exceptions-redux) going
+deeper into better ways to handle errors in Go, which I highly recommend
+reading.
+
+Here are some tips and solutions that helped me to improve error handling in Go
+applications:
+
+## Avoiding error shadowing
+
+I found it important not to shadow error value by adding additional information
+to it so you [can inspect it
+later](http://dave.cheney.net/2014/12/24/inspecting-errors):
+
+```go
+if err != nil {
+    // trying to add useful information and add context to
+    // the error that occured:
+    return fmt.Errorf("error when processing request %v %v: %v",
+                       req.Method, req.URL, err)
+}
+```
+
+The problem with the approach above is that it shadows the original error by
+creating a new object, so it would be impossible to do advanced handling:
+
+```go
+if os.IsNotExist(err) { // would not work if fmt.Errorf was used
+   // do smart things here
+}
+```
+
+One possible alternative to this is to add logging in the error handling block:
+
+```go
+if err != nil {
+    log.Errorf("error when processing request %v %v: %v", req.Method, req.URL, err)
+    return err
+}
+```
+
+This will definitely help to troubleshoot production applications. When a
+customer pings you about that `500 Bad request` response, you are able to check
+the logs and at the same time you still have an access to the original error.
+
+Unfortunately, using logging in error handlers makes the application code look
+very verbose. It will be filled with endless `log.Errorf` or `log.Infof`
+entries - most likely the same message will be repeated multiple times.
+
+## Getting stack traces back
+
+One thing I miss in exceptions is the useful stack traces that help to
+understand the origins of error and simplify troubleshooting in production.
+
+Go actually has a way to get a full stack trace, and it is used in [standard
+log library](https://golang.org/src/log/log.go?s=8938:8966#L289) to report the
+line and file of the code.
+
+The function [runtime.Caller](https://pkg.go.dev/runtime#Caller/) helps us to
+know exactly which line originated the log message:
+
+```text
+Caller reports file and line number information about function invocations on
+the calling goroutine's stack.
+```
+
+## Putting it all together
+
+Package [trace](https://github.com/gravitational/trace) is an attempt to
+combine all these ideas: avoid excessive logging and preserve the original
+error and its origin for production troubleshooting.
+
+Here's how it works by example. Let us define some errors that are
+application-specific:
+
+```go
+package errors
+import (
+	"fmt"
+	"github.com/gravitational/trace"
+)
+
+// NotFoundError is returned when database storage backend failed
+// to find the object by given id
+type NotFoundError struct {
+	// Traces keeps track of files and lines in code
+	// where trace.Wrap(err) was called, accumulating "stack trace"
+	// and adds some methods for trace.Wrap to use
+	trace.Traces
+	ID       string
+	Message  string
+}
+
+// Error returns error description and some debugging information
+func (n *NotFoundError) Error() string {
+	return fmt.Sprintf(
+		"NotFoundError(%v,id=%v,message=%v)",
+		n.Traces, // this will output the stack traces
+                n.ID, n.Message)
+}
+
+// OrigError tells trace package how to get to the original error, in this case
+// this is the error itself
+func (n *NotFoundError) OrigError() error {
+	return n
+}
+
+// IsNotFound will help us to do error handling by asserting behaviour
+// http://dave.cheney.net/2014/12/24/inspecting-errors
+func (n *NotFoundError) IsNotFound() bool {
+	return true
+}
+```
+
+Our SQL code can now use it like this:
+
+```go
+// somewhere in internals of our SQL handling code
+if err == sql.ErrNoRows {
+	return trace.Wrap(&storage.NotFoundError{
+		Type: "account",
+		ID:   name,
+	})
+}
+```
+
+`trace.Wrap` will see an error that inherits the `trace.Traces` methods, and
+will simply add the trace entry to the error:
+
+```go
+if s, ok := err.(TraceSetter); ok {
+	s.SetTrace(t.Trace)
+	return s
+}
+```
+
+The error handling logic benefits from inspecting the original error and seeing
+the full stack trace with the origins of error:
+
+```text
+error in WithTransaction: [suite.go:173 main.go:12] file 'sqlite.db' is missing
+```
+
+What does `trace` do when it does not see the `TraceSetter` interface (e.g., in
+case of system error)? In this case it simply wraps the error and makes it
+accessible via its `OrigError` method. That's a bit verbose, but sometimes can
+be a good compromise for preserving debugging information and keeping the
+original error intact.
+
+<EmailSubscribeViolet />
+
+## trace.Errorf
+
+Package `trace` has a couple of other useful functions, that can be helpful for
+quick debugging, one of them is `trace.Errorf`:
+
+```go
+// one can use it instead of fmt.Errorf, works the same but preserves
+// line and file where it was called
+return trace.Errorf("some problem occured: %v")
+```
+
+Thanks for reading and hope this was helpful!
+
+We are always looking for better ways to do things at Teleport. Let us
+know how you are handling errors in you Go code, drop us a line at
+`info@goteleport.com` and/or sign up for the updates from our blog below.

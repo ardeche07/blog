@@ -1,0 +1,117 @@
+---
+title: SSH Client Config File Example
+description: This blog post will show you how to use SSH client config files to simplify server management.
+articleTitle: SSH Client Config Files and How to Use Them
+date: "2022-01-06"
+author: Ben O'donnell
+logo:
+  image: ./assets/ssh-config@2x.png
+  alt: SSH Client Config File Example
+tags:
+  - ssh
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+SSH client configuration files allow us to connect to servers with pre-configured commands. This saves typing each SSH command parameter when logging into a remote machine and executing commands on a remote device.
+
+This article will examine secure shell (SSH) client configuration (config) files and their functions. Specifically, we will show an example of an SSH client config file to learn how to use these files before creating an example config file that connects to a fictitious server. Then, we’ll use [Teleport’s tsh client](https://goteleport.com/docs/server-access/guides/tsh/) to communicate with a cluster because of tsh’s ability to consolidate identity-based server access in all environments, meet compliance requirements, and provide visibility into access and behavior.
+
+Let’s dive right in!
+
+## How to Use SSH client config files
+
+To begin, ensure that you have SSH installed on your machine.
+
+Next, create the SSH config file with the following command and save it in your home directory `.ssh` folder.
+
+```
+$ touch /home/yourusername/ .ssh/config
+```
+
+## Creating a connection
+
+Now define multiple entries in the config file. Here is an example file showing numerous hosts:
+
+```
+Host newServer
+  HostName newServer.url
+  User adminuser
+  Port 2222
+  IdentityFile ~/.ssh/id_rsa.key
+
+Host anotherServer.tld
+  HostName anotherServer.url
+  User mary
+  Port 2222
+```
+
+The example file defines two Host entries in the config file and separates them using an empty line. It's worth noting that the configuration file can have many entries. If that is the case, simply use a blank line to separate them.
+
+## Connecting
+
+Use the specified Host identifier and run the following commands to connect to your remote server:
+
+```
+$ ssh newServer
+$ ssh anotherServer.tld
+```
+
+The SSH client parses the config file and compares the defined Host identifier’s values with the provided identifier. If they match, the configuration loads.
+
+Next, let’s see what the various parameters in the config file do.
+
+- `Hostname` specifies the actual hostname. You can also use numeric IP addresses. You can skip this if the `Host identifier` already identifies the hostname you want to connect.
+- `Host` defines the host or hosts to which the configuration section applies. You can use a single asterisk (\*) as a pattern to provide global defaults for all hosts.
+- `Port` is where your remote SSH server is listening for connections. It defines the remote host's connection port number, which is `22` by default.
+- `User` defines the username for the SSH connection.
+- `IdentityFile` specifies the file containing the user’s DSA, ECDSA or DSA authentication identity. For SSH protocol version 1, the default is `~/.ssh/identity`. For version 2, the defaults are `~/.ssh/id_ecdsa` and `~/.ssh/id_rsa`.
+
+The options above describe the basic configuration for an entry in the SSH config file.
+
+## How to Use Teleport’s tsh client with SSH
+
+Teleport’s [`tsh`](https://goteleport.com/docs/setup/reference/cli/#tsh) is fully compatible with existing SSH-based workflows and does not require any additional knowledge. End-users can use this tool to interact with Teleport nodes. Users can interact with current and previous cluster sessions, copy files to and from nodes, and view cluster metadata. If you are new to Teleport, check [how Teleport works](https://goteleport.com/how-it-works/).
+
+A user would typically use `tsh` with SSH like this:
+
+```bash
+# Login into a Teleport cluster. This command retrieves the user's certificates and saves them to the ~/.tsh/teleport.example.com directory.
+$ tsh login --proxy=teleport.example.com
+
+# As usual, SSH into a node
+$ tsh ssh user@node
+
+# `tsh ssh` takes the same arguments as OpenSSH client:
+$ `tsh ssh` -o ForwardAgent=yes user@node
+$ tsh ssh -o AddKeysToAgent=yes user@node
+
+# you can even create a meaningful symlink:
+$ ln -s /path/to/tsh /path/to/ssh
+
+# ... and now your 'ssh' command is calling Teleport's `tsh ssh`
+$ ssh user@host
+
+# This command removes SSH certificates from a user's machine:
+$ tsh logout
+
+```
+
+Also, you can use `tsh` to run a shell or even execute a command on a remote SSH node:
+
+```
+$ tsh ssh [<flags>] <[user@]host> [<command>...]
+```
+
+Where:
+
+- `user` is the login identity to use on the remote host. If the config file does not define `user`, $USER is the default; or, you can set it on the command line with --user. The argument `user` takes precedence when using the flag `--user` with the positional argument `user`.
+- `host` is a `nodename` of a cluster node.
+- `command` is the command to execute on a remote host.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+In summary, SSH config files allow users to connect to servers with pre-configured commands quickly. By creating a local configuration file for SSH, you can make shortcuts for servers you frequently access.

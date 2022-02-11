@@ -1,0 +1,111 @@
+---
+title: Passwordless Remote Access to Windows Servers and Desktops
+description: Learn how Teleport implements an in-browser desktop client and certificate-based authentication that allows passwordless access to Windows Servers and Desktops.
+articleTitle: Passwordless Remote Access to Windows Servers and Desktops
+date: "2021-12-20"
+author: Sakshyam Shah
+logo:
+  image: ./assets/teleport-desktop-access-min.png
+  alt: Passwordless Remote Access to Windows Servers and Desktops
+tags:
+  - windows
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+import Video from "components/Video";
+
+During my time as a penetration tester, I've seen many IT teams storing server catalogs with respective IP addresses and passwords in a sharable Excel sheet. This is more so true in windows server infrastructure as many organizations resort to password-based auth for local and remote access. Of course, security-conscious organizations would use a password vault. But in any case, password storage in any form is often an Achilles heel in infrastructure security. While there are [endless risks](https://goteleport.com/blog/no-passwords/) associated with password-based authentication, passwords also create an operational overhead for system administrators. Maintaining password vaults to share, store, and rotate passwords can lead to infrastructure compromises.
+
+At Teleport, we have been advocating and innovating passwordless infrastructure access workflows from inception. With Teleport 8, we have extended our feature set to support passwordless remote access to Windows desktops and servers with security features such as SSO, RBAC, and certificate-based authentication.
+
+<Quote>
+  Teleport is a unified access plane allowing engineers and security
+  professionals to securely access servers, databases, Kubernetes clusters, and
+  web applications. Find out more on how Teleport works
+  [here](https://goteleport.com/how-it-works/).
+</Quote>
+
+## Windows Remote Desktop Protocol
+
+Just as the GUI is a primary interface for Windows on desktops, the GUI is also preferred for remote access to Windows servers. The most popular and default remote access protocol for Windows is Remote Desktop Protocol (RDP). RDP is a multi-channel communication protocol designed to transfer user input, graphics, and custom data between client and server.
+
+<BlogImage src="./assets/RDP.png" />
+
+To understand how RDP works, consider a scenario where a user is trying to access a remote server. In a nutshell, after successful user authentication, the client and server's display size, language, and hardware configurations are exchanged and negotiated. Next, the graphical display of the remote server is continuously captured and streamed to the user's computer. Finally, the user's input, like keyboard and mouse, is captured and forwarded to the remote server, where the inputs are executed.
+
+## What’s wrong with RDP?
+
+RDP is efficient and probably the fastest GUI-based remote access protocol despite the additional overhead of graphical transports, audio, video, and hardware port redirections. In fact, every remote desktop access solution keeps RDP as a benchmark. The problems, however, are related to the security, and specifically, secure management of remote access via RDP and the attack surface of RDP client and server implementation.
+
+Let's explore a few security shortcomings below:
+
+### Weak access control features
+
+RDP is a remote access protocol, and as such, implementation of modern access control features such as SSO and multi-factor authentication are left to the administrator.
+
+### Trust on first use (TOFU)
+
+By default, the RDP server is configured with a self-signed certificate. During the first RDP connection between client and server, the client needs to trust the server to establish an encrypted connection. Trusting this certificate is like trusting HTTPS warnings in the browser. Trusting certificates issued by unknown issuers poses risks of man-in-the-middle attacks. TOFU practices also build insecure habits amongst users to ignore security warnings.
+
+<BlogImage src="./assets/tofu.png" width="80%" alt="RDP Trust on first use" />
+
+### Wide attack surface
+
+Feature-rich graphical streaming with audio, video, and hardware redirections, fast data transfer, and efficient data consumption — RDP is a complex protocol. The sheer amount of features mean RDP client and server implementations carry a wide attack surface. Further, as a desktop application, RDP clients are prone to malware attacks via desktop compromise and in-memory exploitation.
+
+## How Teleport Desktop Access for Windows works
+
+Users access Windows servers via the Teleport Web UI, which speaks to the access proxy over a WebSocket using [Teleport Desktop Protocol](https://github.com/gravitational/teleport/blob/master/rfd/0037-desktop-access-protocol.md). The Teleport Access Proxy performs necessary RBAC screening and, upon successful request validation, forwards the request to Teleport Windows Desktop Service. The Windows Desktop Service translates the Teleport Desktop Protocol into native Remote Desktop Protocol, generates a short-lived certificate for the user, and authenticates to the remote windows server using a certificate via smart card emulator creating a passwordless experience for the user. No extra software is required!
+
+<BlogImage src="./assets/tdp-arch.png" />
+
+### Teleport Desktop Protocol
+
+In order to reduce the attack surface and allow users to access Windows servers with minimal extra software dependencies, our engineering team decided on a solution that lets users access remote Windows servers from the web browser. But web browsers have different API sets to draw UIs, and HTTP is not designed to stream real-time data; we needed a way to transform native RDP into an HTTP and browser compatible protocol. So to solve this, our team designed a lightweight bi-directional message-oriented protocol, Teleport Desktop Protocol (TDP), that communicates over Websockets and TLS. Graphical displays of the server are converted to PNG frames and sent to the client, which is then rendered in the browser using [canvas API](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API).
+
+<BlogImage src="./assets/TDP.png" />
+
+TDP has a client and server implementation where the server is responsible for transforming to and from native RDP into TDP and sending it to the client. The TDP client is responsible for drawing the canvas based on PNG frames and sending the user's mouse and keyboard to the TDP server.
+
+### In-browser rendering of remote desktop
+
+The Teleport Web UI implements the TDP client. Since the TDP server sends remote displays as PNG frames to the TDP client, the TDP client needs to draw PNGs as an HTML canvas continuously. In addition, the TDP client is also responsible for capturing user inputs such as keyboard and mouse inputs and sending them to the TDP server over a WebSocket.
+
+### Teleport Desktop Service
+
+The two primary functions of the Teleport Desktop Service are conversion to and from native RDP to TDP and handling certificate-based authentication for RDP. The Teleport Desktop Service implements the TDP server, the RDP client, and a smart card emulator for RDP authentication.
+
+### Certificates and smart cards
+
+The authentication layer handled by the Teleport Desktop Service is based on ephemeral certificates that are passed as a smart card via a virtual smart card emulator. In fact, this capability allows Teleport to offer certificate-based access to remote desktops with a full passwordless experience to users.
+
+## Security wins with Teleport Desktop Access
+
+### Certificate-based authentication
+
+While the majority of Linux server management has moved to keys or certificate-based remote access (SSH with certs), the Windows world predominantly uses password-based authentication. Nonetheless, the implementation of certificate-based authentication is also not a simple task. Managing a Certificate Authority and correctly handling certificate issuing is a challenging and sensitive task and may not be operationally feasible for small teams. This is where Teleport's built-in certificate management and authentication system helps migration to better certificate-based authentication methods with the least operational overhead.
+
+### Safety from RDP client exploits
+
+Since Teleport allows desktop access from a web browser, there is no requirement for an additional native RDP client. This eliminates risks from targeted client-side exploits that include memory-based exploitation or compromised hosts.
+
+### Avoid risks of credential phishing
+
+Although Web applications have a safety advantage over regular native desktop applications, web applications also have their own sets of vulnerabilities. One of the significant risks of browser-based remote access solutions is that they are susceptible to credential phishing attacks. Since Teleport Desktop Access offers passwordless access to remote desktops, Teleport for Remote Desktop Access eliminates the risks of credential phishing.
+
+### Streamlined desktop protocol
+
+The advantage of implementing our own desktop protocol means we were able to implement just enough capabilities to support desktop access, discarding all the legacy bloat that existing remote desktop protocols carry. This reduced complexity means a smaller footprint and less attack surface.
+
+<EmailSubscribeViolet />
+
+## Try Teleport Desktop Access today
+
+<Video src="./assets/teleport-desktop-access.mp4" />
+
+Teleport 8 is available from our [download page](https://goteleport.com/teleport/download/). Read the [documentation](https://goteleport.com/docs/desktop-access/introduction/) and watch an [introductory video](https://www.youtube.com/watch?v=n2h0GisWdss) on Desktop Access to get started. Join the [Slack channel](https://goteleport.com/slack) where Teleport users and developers hang out for community support.
+
+Teleport is an open-source project, and everything we design and develop is [discussed in the open](https://github.com/gravitational/teleport/blob/master/rfd/0033-desktop-access.md). If these kinds of problems and solutions sound interesting to you, consider [joining us at Teleport](https://goteleport.com/careers/).
