@@ -1,0 +1,258 @@
+---
+title: Configuring SSH Port Knocking to Hide an SSH Server
+description: This article explores how to change the default SSH port and implement SSH port knocking to hide SSH servers.
+articleTitle: Using SSH Port Knocking to Hide an SSH Server
+date: "2022-02-01"
+author: Hugh Hemsworth
+logo:
+  image: ./assets/hide-your-ssh-server@2x.png
+  alt: Configuring SSH Port Knocking to Hide an SSH Server
+tags:
+  - ssh
+layout: blogArticle
+---
+
+This article will explore methods for “hiding” SSH servers so that the server is harder to discover by malicious users on public networks. We’ll focus on changing the default SSH port and implementing SSH port knocking to make it more difficult for unwanted users to discover or locate the server. This is a technique known as security through obscurity and is fun to implement but it is not wildly practiced as it does not play well with automated SSH access and adds operational complexity of implementation if you have multiple SSH servers.
+
+To follow this tutorial, you need:
+
+- A Linux OS with OpenSSH server. This is the server you want to hide. You will need SSH access to this server with a `sudo` privilege to perform configurations shown in this post.
+- A local machine to access the SSH server.
+
+## Change the default SSH port
+
+Changing the default SSH port is the first step to hide our SSH server. In this case, we’ll assign port `60636`, but you can use any custom port number of your choice. To begin, open your terminal and connect to your server via SSH using this command:
+
+```
+$ ssh -i path-to-identity-file username@SERVER_IP
+```
+
+When you’re on the server, open the SSH config file with the `vi` command in your terminal or with any text editor of your choice:
+
+```
+$ vi /etc/ssh/sshd_config
+```
+
+Now update the default port `22` to `60636`.
+
+```
+# $OpenBSD: sshd_config,v 1.103 2018/04/09 20:41:22 tj Exp $
+# ...
+
+Include /etc/ssh/sshd_config.d/*.conf
+
+#Port 22 # <- Uncomment this line and change the number 22 to 60636
+#AddressFamily any
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+```
+
+Once that’s done, restart the SSH server daemon so that the update is applied to all new incoming SSH connections.
+
+```
+$ systemctl restart sshd.service
+```
+
+The SSH server will now accept new connections on port `60636`, and to connect, you should supply the port number as the following:
+
+```
+$ ssh -i path-to-identity-file username@SERVER_IP -p 60636
+```
+
+Note that if you have configured a firewall on this server, you should also update the rule to allow SSH on port `60636` and block SSH on port `22`.
+
+## Implement port knocking using [knockd](https://linux.die.net/man/1/knockd)
+
+The port knocking technique grants a user access to an SSH server without permanently opening the port. In this technique, an SSH port is disabled by default, and the user needs to initiate the specific knock sequence to open the port. The SSH port is opened only if the user performs a successful sequence. Opening and closing the SSH port is automatically handled by knock programs such as `knockd`.
+
+### Install and configure knockd
+
+To implement port knocking, we’ll install `knockd` on the Linux server. Run the following command to install `knockd`:
+
+```
+$ sudo apt-get install knockd
+```
+
+Then, open the `knockd` configuration file located at `/etc/knockd.conf`:
+
+```
+$ vi /etc/knockd.conf
+[options]
+        UseSyslog
+
+[openSSH]
+        sequence    = 7000,8000,9000
+        seq_timeout = 5
+        command     = /sbin/iptables -A INPUT -s %IP% -p tcp --dport 22 -j ACCEPT
+        tcpflags    = syn
+
+[closeSSH]
+        sequence    = 9000,8000,7000
+        seq_timeout = 5
+        command     = /sbin/iptables -D INPUT -s %IP% -p tcp --dport 22 -j ACCEPT
+        tcpflags    = syn
+```
+
+In the config file, let’s first understand the default config values. In the `[openSSH]` block,
+
+- `sequence` is a collection of port numbers that will be considered as a knock sequence.
+- `seq_timeout` defines how long the sequence will be valid.
+- `command` holds the `iptables` command that adds a rule to allow incoming SSH connection from the specified IP address. This command will be only executed if user initiates a valid knock sequence.
+- `tcpflags` defines the type of TCP packet to be accepted in knock connection. A TCP packet of `SYN` type is assigned in this case.
+
+The main difference between the `[openSSH]` block and the `[closeSSH]` block is that the `[closeSSH]` block has a closing sequence of port numbers and `iptables` command that removes the rule that is inserted in the `[openSSH]` block.
+
+Below is the reference final config file. Notice we’ve changed the open sequence values to `20001`, `20002`, `20003` as the default ones (`7000`,`8000`,`9000`) are well-known values. Similarly, we have also updated the default closing sequence. We also changed the port `22` to `60636` since we updated the SSH port to this value in the prior step. Also, notice that in the `[openSSH]` block, we change the `iptables` command value from `-A` to `-I`, indicating that this `iptables` rule will open the port and will be the first rule to be executed. Lastly, we also increased the timeout value from `5` to `10` because 5 seconds is a small window to initiate SSH connection right after the knock sequence.
+
+```
+[options]
+        UseSyslog
+
+[openSSH]
+        sequence    = 20001,20002,20003
+        seq_timeout = 10
+        command     = /sbin/iptables -I INPUT -s %IP% -p tcp --dport 60636 -j ACCEPT
+        tcpflags    = syn
+
+[closeSSH]
+        sequence    = 20003,20002,20001
+        seq_timeout = 10
+        command     = /sbin/iptables -D INPUT -s %IP% -p tcp --dport 60636 -j ACCEPT
+        tcpflags    = syn
+```
+
+Once that’s done, save the changes and exit the file.
+
+### Configure knockd to listen on specific network interface
+
+We have to specify the name of the network interface in which `knockd` should listen. Here, we use `ip addr` command to check the list of network interfaces associated with the server and pick an interface name we want `knockd` to listen on.
+
+```
+$ ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    ...
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    ...
+3: eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    ...
+```
+
+In this case, `eth0` is the interface which binds to a public IP address. So I will use this interface to configure `knockd`.
+
+Next, edit the `knockd` config file.
+
+```
+$ vi /etc/default/knockd
+"/etc/default/knockd" 8L, 195C                                                                                                                1,1           All
+# control if we start knockd at init or not
+# 1 = start
+# anything else = don't start
+# PLEASE EDIT /etc/knockd.conf BEFORE ENABLING
+START_KNOCKD=1
+
+# command line options
+KNOCKD_OPTS="-i eth0"
+```
+
+Save the changes and exit the file. Start the `knockd` service now:
+
+```
+$ systemctl start knockd
+```
+
+You should also enable the `knockd` service so that it is started next time when the server is started.
+
+```
+$ systemctl enable knockd
+```
+
+### Block port 60636 on firewall
+
+Since we want port `60636` to be open dynamically using `knockd`, we will block access to this port by default. We will use `iptables` command to do this.
+
+First, execute the following command so that it does not break our current active connection:
+
+```
+$ sudo iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+```
+
+Now, execute `iptables` command to block all incoming SSH connection on port `60636` by default:
+
+```
+$ sudo iptables -A INPUT -p tcp --dport 60636 -j REJECT
+```
+
+Now try to connect to SSH server again and you should receive a “Connection refused” response:
+
+```
+$ ssh -i path-to-identity-file username@SERVER_IP -p 60636
+ssh: connect to host SERVER_IP port 60636: Connection refused
+```
+
+Our Linux server is now configured with `knockd`, and SSH port will only be opened to a specific IP which can successfully present a knock sequence.
+
+## How to connect the SSH server?
+
+We have changed the default SSH port and implemented `knockd` to open port `60636` only if the correct knock sequence is provided. Let’s test this now!
+
+Since we have configured `knockd` to listen on `TCP SYN` packet on ports `20001`, `20002`, and `20003` as a knock sequence, we can use any network tool that allows initiating TCP connection to these specific ports. Below, we show how to do it using `knockd` and `telnet`.
+
+### Using knockd
+
+First, install `knockd` on your client machine.
+
+```
+$ sudo apt-get install knockd
+```
+
+Then to perform the knock sequence, we will use the `knock` command as the following:
+
+```
+$ knock -v SERVER_IP 20001 20002 20003 -d 500
+hitting tcp SERVER_IP:20001
+hitting tcp SERVER_IP:20002
+hitting tcp SERVER_IP:20003
+```
+
+You should now be able to connect the Linux server as you would normally access via SSH:
+
+```
+$ ssh -i path-to-identity-file username@SERVER_IP -p 60636
+...
+```
+
+Once you are done with your SSH access, you can initiate a close sequence as:
+
+```
+$ knock -v SERVER_IP 20003 20002 20001 -d 500
+```
+
+If you are curious about what happens in the server during the knock sequence, you can view the `knockd` log in `syslog`, which should look something similar to the following:
+
+```
+$ tail /var/log/syslog
+Jan 28 10:40:57 knock knockd: starting up, listening on eth0
+Jan 28 10:41:30 knock knockd: 3.109.213.30: openSSH: Stage 1
+Jan 28 10:41:31 knock knockd: 3.109.213.30: openSSH: Stage 2
+Jan 28 10:41:31 knock knockd: 3.109.213.30: openSSH: Stage 3
+Jan 28 10:41:31 knock knockd: 3.109.213.30: openSSH: OPEN SESAME
+Jan 28 10:41:31 knock knockd: openSSH: running command: /sbin/iptables -I INPUT -s 3.109.213.30 -p tcp --dport 22 -j ACCEPT
+```
+
+### Using telnet
+
+You can also initiate a knock sequence using `telnet`:
+
+```
+$ telnet 134.209.107.80 20001 # execute this command three times with each individual port number
+Trying 134.209.107.80...
+telnet: Unable to connect to remote host: Connection refused
+```
+
+You will receive “Connection refused” message but that is okay since `telnet` is disabled on that port and we only want to send TCP `SYN` packet which is sent during `telnet` connection. Once you conclude `telnet` command with all three sequence, you should be able to SSH to the server.
+
+## Conclusion
+
+These two methods are the most popular ways to implement security by obscurity. Although this process is fun to implement and see in action, it may not be feasible in production if you have a large number of SSH servers or if you need to automate SSH access. For a similar use case, [Teleport](https://goteleport.com/how-it-works/) offers a reverse tunneling feature that lets you connect to the server without the risks of exposing the port to the public internet.
+
+Teleport allows engineers and security professionals to unify access for SSH servers, Kubernetes clusters, web applications, and databases across all environments. Compared to OpenSSH, Teleport is a secure alternative and offers features such as certificate-based SSH authentication, SSH audit reporting, and SSH role-based access control. Teleport is open source and super easy to get started. [Give it a try](https://goteleport.com/docs/getting-started/linux-server/).
