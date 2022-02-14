@@ -5,9 +5,11 @@
  */
 
 import Blog from "layouts/Blog";
+import { generateCoverImagePath } from "utils/generate-cover-image-path";
 import { getArticlesListAndTags } from "server/pages-helpers";
 
 const ARTICLES_BY_PAGE = 25;
+const ARTICLE_COVERS_FOLDER = "/blog/covers/";
 
 function getArticlesByTag(artList, tag) {
   return artList.filter((art) =>
@@ -30,18 +32,47 @@ function addPaths(articlesList, pathsArray, tag) {
   }
 }
 
-function removeImage(articles, pageNumber) {
-  if (pageNumber === "1") {
-    for (let i = 0; i < articles.length; i++) {
-      if (i > 4) {
-        delete articles[i].frontmatter.logo;
-      }
+/*
+ * write the path to the image, which is in the public folder,
+ * for the first five posts on the home page and on the tags page
+ */
+function createPathToCover(articles, pageNumber) {
+  return articles.map((a, i) => {
+    if (pageNumber === "1" && i < 5 && a.frontmatter.logo) {
+      return {
+        ...a,
+        needCover: true,
+        frontmatter: {
+          ...a.frontmatter,
+          logo: {
+            ...a.frontmatter.logo,
+            image: `${ARTICLE_COVERS_FOLDER}${generateCoverImagePath(
+              articles[i].frontmatter.logo.image,
+              articles[i].uri
+            )}`,
+          },
+        },
+      };
+    } else {
+      return { ...a };
     }
-  } else {
-    articles.forEach((art) => delete art.frontmatter.logo);
-  }
+  });
+}
 
-  return articles;
+/*
+ * remove the logo field from the frontmatter for posts where we don't display the cover
+ */
+function removeImage(articles, pageNumber) {
+  return articles.map((a, i) => {
+    if (i > 4 || pageNumber !== "1") {
+      return {
+        ...a,
+        needCover: false,
+        frontmatter: { ...a.frontmatter, logo: null },
+      };
+    }
+    return { ...a };
+  });
 }
 
 export async function getStaticPaths() {
@@ -79,8 +110,9 @@ export async function getStaticProps({ params }) {
     }
   }
 
-  let articlesWithoutImages = [];
   let articles = [];
+  let articlesWithPathToCover = [];
+  let articlesWithoutLogo = [];
   const initialPageCount = ARTICLES_BY_PAGE * (Number(pageNumber) - 1);
   const finalPageCount = ARTICLES_BY_PAGE * Number(pageNumber);
 
@@ -88,19 +120,19 @@ export async function getStaticProps({ params }) {
     const articlesByFilter = getArticlesByTag(list, tag);
     maxPages = Math.ceil((articlesByFilter.length + 1) / ARTICLES_BY_PAGE);
     articles = articlesByFilter.slice(initialPageCount, finalPageCount);
-    //remove pictures from the frontmatter of all but the first five articles on the first page
-    articlesWithoutImages = removeImage(articles, pageNumber);
+    articlesWithPathToCover = createPathToCover(articles, pageNumber);
+    articlesWithoutLogo = removeImage(articlesWithPathToCover, pageNumber);
   } else {
     articles = list.slice(initialPageCount, finalPageCount);
-    //remove pictures from the frontmatter of all but the first five articles on the first page
-    articlesWithoutImages = removeImage(articles, pageNumber);
+    articlesWithPathToCover = createPathToCover(articles, pageNumber);
+    articlesWithoutLogo = removeImage(articlesWithPathToCover, pageNumber);
   }
 
   return {
     props: {
       tag,
       tags,
-      articles: articlesWithoutImages,
+      articles: articlesWithoutLogo,
       currentPage: pageNumber,
       maxPages,
     },

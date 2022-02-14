@@ -3,7 +3,7 @@ import styled from "styled-components";
 import css from "@styled-system/css";
 import Drift from "components/Drift";
 import { format } from "date-fns";
-import NextImage, { ImageProps } from "next/image";
+import NextImage from "next/image";
 import Box from "components/Box";
 import Flex from "components/Flex";
 import FeaturedArticleCards from "./FeaturedArticleCards";
