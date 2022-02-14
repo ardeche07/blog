@@ -2,32 +2,33 @@ import glob from "glob";
 import { resolve, join } from "path";
 import { writeFileSync } from "fs";
 import { format } from "date-fns";
-import { extensions, getURIFromPath, pagesRoot } from "./pages-helpers";
+import dotEnv from "dotenv";
+import {
+  extensions,
+  getURIFromPath,
+  pagesRoot,
+} from "../.build/server/pages-helpers.mjs";
 
-const host = process.env.NEXT_PUBLIC_HOST as string;
+const SITEMAP_FILE_FOLDER = resolve("./public/");
+
+dotEnv.config();
+
+if (process.env.NODE_ENV === "development") {
+  dotEnv.config({ path: resolve(process.cwd(), ".env.development") });
+} else {
+  dotEnv.config({ path: resolve(process.cwd(), ".env.production") });
+}
+
+const host = process.env.NEXT_PUBLIC_HOST;
 const defaultLastmod = format(new Date(), "yyyy-MM-dd");
 const blogIndex = `${pagesRoot}/[[...path]].jsx`;
-
-interface SitemapPage {
-  loc: string;
-  lastmod?: string;
-  changefreq?:
-    | "always"
-    | "hourly"
-    | "daily"
-    | "weekly"
-    | "monthly"
-    | "yearly"
-    | "never";
-  priority?: number;
-}
 
 const generateSitemapPage = ({
   loc,
   lastmod = defaultLastmod,
   changefreq = "daily",
   priority,
-}: SitemapPage) => {
+}) => {
   return (
     "  <url>\n" +
     `    <loc>${host}${loc}</loc>\n` +
@@ -38,12 +39,7 @@ const generateSitemapPage = ({
   );
 };
 
-interface Sitemap {
-  pages: SitemapPage[];
-  path: string;
-}
-
-const sitemapGenerator = ({ pages, path }: Sitemap) => {
+export const sitemapGenerator = ({ pages, path }) => {
   const sourcemap =
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
@@ -69,7 +65,7 @@ const ignorePages = [
  * We generate blog paths.
  */
 
-const getBlogPaths = () => {
+export const getBlogPaths = () => {
   return glob
     .sync(join(pagesRoot, `**/*.{${extensions.join()}}`))
     .filter(
@@ -83,11 +79,9 @@ const getBlogPaths = () => {
  * Generates sitemap used by search engines.
  */
 
-export const generateSitemap = () => {
-  const blogPages = getBlogPaths().map((loc) => ({ loc }));
+const blogPages = getBlogPaths().map((loc) => ({ loc }));
 
-  sitemapGenerator({
-    pages: [...blogPages],
-    path: resolve("./public", "blog_sitemap.xml"),
-  });
-};
+sitemapGenerator({
+  pages: [...blogPages],
+  path: resolve(SITEMAP_FILE_FOLDER, "sitemap.xml"),
+});

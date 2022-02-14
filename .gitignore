@@ -10,7 +10,7 @@
 # production
 /.build
 /public/rss.xml
-/public/blog_sitemap.xml
+/public/sitemap.xml
 /public/covers
 
 # misc
