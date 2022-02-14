@@ -1,6 +1,7 @@
 /* eslint-env node */
 import bundleAnalyzer from "@next/bundle-analyzer";
 import mdxSiteOptions from "./.build/server/mdx-config-site.mjs";
+import { generateSitemap } from "./.build/server/sitemap.mjs";
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -20,6 +21,9 @@ export default withBundleAnalyzer({
   trailingSlash: true,
   basePath: "/blog",
   webpack: (config, options) => {
+    if (!options.dev) {
+      generateSitemap();
+    }
     // silencing warnings until https://github.com/vercel/next.js/issues/33693 is resolved
     config.infrastructureLogging = {
       level: "error",
