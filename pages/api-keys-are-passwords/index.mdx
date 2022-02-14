@@ -1,12 +1,12 @@
 ---
-title: Are SSH Keys Passwords? Yes, Here’s Why
-description: There is a growing sense that protecting sensitive accounts with passwords is not enough. But SSH keys are passwords too and need to be replaced.
-articleTitle: SSH Keys are Passwords Too
+title: Are API Keys Passwords? Yes, Here’s Why
+description: There is a growing sense that protecting sensitive accounts with passwords is not enough. But API keys are passwords too and need to be replaced.
+articleTitle: API Keys are Passwords Too
 date: "2021-12-29"
 author: Gabrielle Coleman
 logo:
-  image: ./assets/ssh-keys-are-passwords.png
-  alt: Are SSH Keys Passwords? Yes, Here’s Why
+  image: ./assets/api-keys-are-passwords.png
+  alt: Are API Keys Passwords? Yes, Here’s Why
 tags:
   - compliance
   - security
@@ -16,7 +16,7 @@ layout: blogArticle
 import BlogImage from "components/BlogImage";
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
-Use of misused or stolen credentials is the [number one cause of data breaches](https://www.verizon.com/business/resources/reports/dbir/2021/results-and-analysis/). Using `Password123` is worthy of a good laugh, but there are other passwords that are used everyday: SSH keys and other tokens used to access critical infrastructure.
+Use of misused or stolen credentials is the [number one cause of data breaches](https://www.verizon.com/business/resources/reports/dbir/2021/results-and-analysis/). Using `Password123` is worthy of a good laugh, but there are other passwords that are used everyday: API keys and other tokens used to access critical infrastructure.
 
 Teleport recently commissioned a [survey of 1000 IT, DevOps and Security professionals](https://goteleport.com/resources/white-papers/2021-infrastructure-access-report/) and found that passwords are the number one way of managing access to infrastructure.
 
@@ -26,19 +26,20 @@ This is a problem. As our CTO wrote in a blog post recently titled [“It’s Ti
 
 The problem with passwords is that they can be guessed or brute-forced. They can also be stolen or intercepted by hackers before any breach is detected.
 
-SSH keys are really just passwords, because like `password123`, they can be copied and pasted to access a Linux server and by right of having it, you are granted access.
+API keys are really just passwords, because like `password123`, they can be copied and pasted to access a Linux server and by right of having it, you are granted access.
 
-Most people I talk to agree that using SSH keys exactly like passwords is a security problem. But they will suggest that they are not so susceptible to attack because they are using a “secure vault” to protect their SSH keys and other shared credentials. As our CTO recently wrote: “Some types of software promising to replace passwords are more dangerous than they seem, because they give you a false sense of security and reinforce the status quo. If you are using them, you haven’t replaced passwords, but created a treasure chest for hackers. These apps call themselves ‘Password managers’ or ‘Vaults’. I would call them ‘password aggregators’.”
+Most people I talk to agree that using API keys exactly like passwords is a security problem. But they will suggest that they are not so susceptible to attack because they are using a “secure vault” to protect their API keys and other shared credentials. As our CTO recently wrote: “Some types of software promising to replace passwords are more dangerous than they seem, because they give you a false sense of security and reinforce the status quo. If you are using them, you haven’t replaced passwords, but created a treasure chest for hackers. These apps call themselves ‘Password managers’ or ‘Vaults’. I would call them ‘password aggregators’.”
 
 The average [cost of a data breach is about $4 million dollars](https://www.ibm.com/security/data-breach), and it is even higher in regulated markets like health care and financial services. Mega-breaches, defined as breaches of more than 50 million records, cost on average 100x the average breach, or about $400 million. The 2017 [Equifax breach cost $2 billion](https://www.bizjournals.com/atlanta/news/2020/02/13/equifax-says-data-breach-has-cost-it-nearly-2.html).
 
-When you look at the cost of continuing to use SSH keys and other password-like static credentials to access infrastructure, it becomes clear that an alternative is needed.
+When you look at the cost of continuing to use API keys and other password-like static credentials to access infrastructure, it becomes clear that an alternative is needed.
 
 Luckily there is one, and it is not only more secure but also improves developer productivity. I’m talking about identity-based, short-lived certificates. In our survey, the innovative companies who had moved to certificates pointed out their enhanced security, great functionality (e.g. ability to easily deliver fine-grained role-based access controls), and how since they automatically expire, they reduce attack surface in time.
 
 <BlogImage src="./assets/short-lived.png" />
 
 <EmailSubscribeViolet />
+
 Teleport makes it easy to get all the advantages of identity-based, short-lived certificates
 for your entire infrastructure. In the process, your developers are more productive
 and you improve security. Want to learn more about how Teleport allows you to move

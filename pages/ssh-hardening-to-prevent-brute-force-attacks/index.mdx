@@ -1,0 +1,111 @@
+---
+title: "SSH Hardening to Prevent Brute-Force Attacks"
+description: This article explores four ways to harden SSH from brute-force attacks.
+articleTitle: SSH Hardening Tips to Prevent Brute-Force Attacks
+date: "2022-01-14"
+author: Robert Watson
+logo:
+  image: ./assets/brute-force@2x.png
+  alt: SSH Hardening Tips to Prevent Brute-Force Attacks
+tags:
+  - ssh
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+SSH servers are a common target for brute-force attacks. This is even more true if your infrastructure sits behind an SSH bastion because attackers have no choice but to compromise the bastion host either by exploitation or denial of service. In this article, we will list a few controls which will help you harden your SSH servers from brute- force attacks.
+
+## Limit the number of authentication attempts
+
+One of the simplest ways to mitigate brute force attacks is to reduce the number of authentication attempts permitted by a connection. We can do this by reducing the value of the `MaxTries` variable in the `sshd_config` file from its default of **6**.
+
+Before deciding on an appropriate value for `MaxTries`, you should understand what constitutes an authentication attempt. For example, each of the following counts as an attempt to authenticate:
+
+- Validating an SSH key offered by a client
+- Determining if the client can authenticate with Kerberos (GSSAPI) authentication if it is enabled
+- Entering a password once
+
+This list suggests that if you set `MaxTries` to a low number, you could use all of your authentication attempts before being prompted to enter a password. Setting `MaxTries` to **3** is a good starting point.
+
+## Implement brute-force protection such as Fail2ban
+
+There are several possible solutions for protecting against Denial of Service (DoS) and other scripted attacks. A popular solution is DenyHosts, but we prefer [Fail2ban](https://www.fail2ban.org) because of its flexibility.
+
+Fail2ban works using configuration files called jails, each comprising a filter and a set of actions. The filter is a regular expression that searches your server logs for failed login attempts or other suspicious activity. If the filter detects something concerning, it can invoke one or more actions. Potential actions can include blocking a suspicious IP address for a defined period or sending an email notification to your server admin.
+
+Configuring Fail2ban can be a bit fussy, but there are many practical examples in the [documentation](https://www.fail2ban.org/wiki/index.php/Manual) to get you started.
+
+## Use TCP wrappers to limit access to specific hosts
+
+A great way to protect your servers from unauthorized remote access is to define which client machines can connect using SSH explicitly. You can use TCP wrappers for this. TCP wrappers restrict access to TCP services based on criteria such as IP address or hostname. The libwrap library supports TCP wrappers in SSH.
+
+TCP wrappers use the hosts.allow and hosts.deny files to determine if a client has permission to connect to TCP services. If these files are empty or not present, then any client can access the TCP service. After that point, only the firewall can block the client.
+
+The most secure approach is to first deny all hosts in the `/etc/hosts.deny` file:
+
+```
+# hosts.deny
+#
+# This file describes the names of the hosts which are
+# not allowed to use the local INET services, as decided
+# by the '/usr/sbin/tcpd' server.
+ALL: ALL
+```
+
+And then to configure all hosts and domains that can connect to SSH in the `/etc/hosts.allow` file:
+
+```
+# hosts.allow
+#
+# This file describes the names of the hosts which are
+# allowed to use the local INET services, as decided
+# by the '/usr/sbin/tcpd' server.
+ALL: 192.168.64.0/255.255.255.0, 193.76.136.209/255.255.255.240
+```
+
+## Implement two-factor authentication
+
+Nothing beats the simplicity and effectiveness of adding two-factor authentication, and it covers a range of security requirements including prevention from brute-force attacks. Google Authenticator is a widely used two-factor authentication solution. To enforce 2FA on your SSH connections using Google Authenticator, follow these steps.
+
+First, install the Google Authenticator PAM module using your package manager. For example, using apt:
+
+```
+$ sudo apt install libpam-google-authenticator
+```
+
+Then, configure SSH to use the Authenticator by adding the following line to the `/etc/pam.d/sshd` file:
+
+```
+...
+auth required pam_google_authenticator.so
+```
+
+Next, restart the `sshd` service:
+
+```
+$ sudo systemctl restart sshd.service
+```
+
+Then, edit the `sshd_config` file by changing the `ChallengeResponseAuthentication` variable from **no** to **yes**.
+
+```
+Run the google_authenticator command next and respond to the configuration questions as follows:
+Make tokens time-based?                 Yes
+Update the .google_authenticator file?        Yes
+Disallow multiple uses?                 Yes
+Allow extra token before and after current time?    No
+Enable rate-limiting?                     Yes
+```
+
+The command displays a QR code and secret key. You can use either to set up Google Authenticator. Click the plus button in the Google Authenticator app to begin the process.
+
+Now, when you log into SSH, you must submit a password and one-time passcode from Google Authenticator. If you need more help setting up 2FA for SSH, read our tutorial on [setting up 2FA for SSH using Google Authenticator](https://goteleport.com/blog/how-to-setup-ssh-2fa/).
+
+For more advanced two-factor authentication for SSH, check out [Teleport](https://goteleport.com/) which supports U2F and WebAuthn for SSH.
+
+<EmailSubscribeViolet />
+
+## Summary
+
+The four SSH hardening techniques we have introduced should move you significantly further toward ensuring your remote connections’ security. After implementing the strategies in our **[5 best practices for securing SSH](https://goteleport.com/blog/5-ssh-best-practices/)** tutorial and in this deeper dive, you can rest assured that your secure shell access is indeed secure.

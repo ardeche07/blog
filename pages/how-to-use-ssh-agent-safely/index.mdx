@@ -1,0 +1,78 @@
+---
+title: 5 SSH Agent Best Practices
+description: This post explains best practices for using SSH agent safely.
+articleTitle: How to Use SSH Agent Safely
+date: "2022-01-20"
+author: Nicole Chelly
+logo:
+  image: ./assets/ssh-agent@2x.png
+  alt: How to use SSH agent safely
+tags:
+  - ssh
+layout: blogArticle
+---
+
+The SSH agent (`ssh-agent`) is an SSH key manager that stores the SSH key in a process memory so that users can log into SSH servers without having to type the key’s passphrase every time they authenticate with the server. In addition to the key management feature, SSH agent supports agent forwarding, which helps to authenticate with servers that sit behind a [bastion or jump server](https://goteleport.com/blog/do-we-still-need-a-bastion/). As the agent works as a password manager for SSH keys, incorrect usage or faulty configuration can cause security risks.
+
+In this article, we’ll explore how to avoid potential SSH agent pitfalls and recommend best practices to keep your SSH agent secure.
+
+## Security risks of using SSH agent
+
+When you run an SSH agent, it is risky to leave your terminal unattended because anyone with physical access to your terminal can invoke the SSH command and authenticate with the SSH server.
+
+However, the more critical security risk is associated with SSH agent forwarding. When agent forwarding is used to jump between SSH servers, the local SSH agent is forwarded to the jump server. By design, agent forwarding lets you authenticate with the upstream server without copying private keys to the jump server. But it also means that any user with root access to the jump server can access the SSH agent and misuse it to authenticate with SSH servers on your behalf. So it is essential to follow a few best practices to harden usage of SSH agents and minimize the risk of them being compromised.
+
+## 5 tips for safely using SSH agent
+
+Below are 5 SSH agent hardening tips that will help to minimize risks associated with running SSH agent and SSH agent forwarding.
+
+### 1. Set a timeout
+
+We should use the `ssh-add -t` (timeout) argument with the `ssh-add` command to set a timeout when identifying with a private key. When we run the `ssh-add` or the `ssh-agent` command, the process asks for the passphrase of our private key for decryption. Once provided, it stays in memory throughout the active user session. Although this is the intended feature, it poses a security risk because a longer timeout gives an unnecessary time frame for anyone trying to misuse the SSH keys.
+
+By configuring the timeout parameter, we, as Linux admins, can define a period after which the mechanism stops. This period could be a few minutes up to a few hours. Once the session times out, we need to provide the passphrase again for subsequent SSH sessions.
+
+### 2. Remove unused keys
+
+We can use the `ssh-add -D` command to remove private keys from the `ssh-agent` when we no longer need them. The `-D` argument deletes all added keys from the client. There’s also a `-d` parameter (lowercase), which allows us to select individual keys.
+
+Removing unused keys is a good security practice because when the key is no longer present on the local machine, the `ssh-agent` won’t be able to use it. This means it can’t expose any secret information or establish unauthorized SSH sessions on other devices.
+
+### 3. Always exit sessions
+
+When SSH connections are not required, we should terminate the `ssh-agent` to avoid leaving it active with our keys open. As mentioned earlier, since we provide a passphrase during the initial SSH session, the `ssh-agent` won’t ask for it in subsequent sessions. And, when forwarding is enabled, this counts for connections to other remote machines as well.
+
+When an SSH agent is not required, you can kill the active agent with the command `eval "$(ssh-agent -k)"`. You can also update `.logout` or`.bash_logout` files to perform this automatically when your terminal session is closed.
+
+To do this, update the file as follows:
+
+```
+ ~/.logout:
+if ( "$SSH_AGENT_PID" != "" ) then
+        eval `/usr/bin/ssh-agent -k`
+endif
+```
+
+When we launch an `ssh-agent` task, it sets `SSH_AGENT_PID` as a system environment variable. This tiny script checks for the PID and forces a kill action (the `-k` parameter) on the `ssh-agent` task.
+
+### 4. Cautiously use agent forwarding
+
+Never forward your SSH agent on a machine you do not trust. Although the private keys never leave your machine when using the SSH agent, the agent itself is forwarded to the jump server in a forwarding mode. Thus, anyone with root access to that jump server can communicate with the agent, impersonate you as an authentic user, and access any servers where the key is authorized.
+
+### 5. Use ProxyJump instead of agent forwarding
+
+Available since OpenSSH version 7.3, the `ProxyJump` feature lets you jump to different SSH servers without agent forwarding. This is a safer alternative to agent forwarding, and we recommend using it over agent forwarding.
+
+As an example, you can reach an SSH server behind a jump server with the following command:
+
+```
+$ ssh -J <jump server address> <server behind jump host>
+```
+
+## Conclusion
+
+Although SSH agents make it a lot easier to use SSH keys, they pose [risks similar to those that come with password managers](https://goteleport.com/blog/no-passwords/). With that in mind, the article reviewed a few common risks using SSH agents and agent forwarding and discussed some hardening tips to keep them secure.
+
+Although SSH keys are a secure way to authenticate when compared to passwords, a more secure way of authentication is using SSH certificates. SSH certificates help enforce identity-based access and reduce the risks of stolen credentials with short-lived validity.
+
+Learn more about how to implement [certificate-based](https://goteleport.com/how-it-works/certificate-based-authentication-ssh-kubernetes/) access for SSH using an open-source solution called Teleport. Along with SSH, [Teleport](https://goteleport.com/pricing/) also enables certificate-based access for Kubernetes, databases, HTTP applications, and remote desktops.

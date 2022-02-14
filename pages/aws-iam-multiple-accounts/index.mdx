@@ -1,0 +1,98 @@
+---
+title: AWS IAM Access for multiple AWS accounts and products
+description: This article describes how Teleport enables AWS IAM Access Across Multiple AWS Accounts and Products so engineering teams stay productive while their business scales.
+articleTitle: Unifying AWS IAM Access Across Multiple AWS Accounts and Products
+date: "2022-01-26"
+author: Kai Davenport
+logo:
+  image: ./assets/aws-iam-multiple-aws-accounts@2x-min.png
+  alt: Unifying AWS IAM Access Across Multiple AWS Accounts and Products
+tags:
+  - aws
+layout: blogArticle
+---
+
+import Quote from "components/Quote";
+import BlogImage from "components/BlogImage";
+
+AWS Identity and Access Management (IAM) is a keystone to accessing AWS accounts, but as companies grow, it can be difficult to understand and standardize, especially across many AWS accounts. To put some personality into the challenges of managing identity for multiple AWS resources and accounts, I’ll start with a short story about a fictional company that you might recognize as similar to the one you work in today!
+
+ACME Net is growing fast. The engineering team spans 14 teams all working on core services, and there is also a raft of external contractors committing code on a daily basis. The frenetic pace of new features is keeping everyone busy.
+
+The platform runs across a range of AWS services including EC2, S3, RDS and three of the six ways to run containers. The last round of funding was widely publicized and led to a wave of new users and activity across the various products. Hiring has been going very well with tens of new engineers being onboarded each month and generally, all metrics are looking very healthy.
+
+If you were to ask our protagonist how things are going, however, it would sound very different.
+
+She is an engineering manager responsible for managing access to the fleet of AWS services the company relies on. Her constant worry is that someone unintentionally (or worse maliciously) brings the company to its knees because of a badly executed AWS operation.
+
+Being exactly the kind of paranoid person who you want in charge of managing such access comes at a high emotional cost; it turns out today is one of the worst for a while.
+
+## A bad day gone worse
+
+Before most people had even arrived to work, an enthusiastic (but junior) data scientist was clicking around the RDS section of the AWS console. Data scientists are given RDS IAM roles, so they can extract data to analyze from the various MySQL and Postgres instances. Unfortunately, several RDS instances were accidentally deleted, and now the monitoring system and delete protection were making its displeasure known to the SRE’s — who were quite incredulous when they heard the reason that the database servers had gone away.
+
+Thankfully, our protagonist had ensured that all backups were operational and everything was restored within an hour; this was already not a good day and it wasn’t even 9am.
+
+Around 10.30am, reports were coming in of test suites failing in CI. A quick inspection of the logs and everywhere was the same error `warning: EC2 quota exceeded`. Strange — there is ample capacity for EC2 instances to be used in CI — how can that be used up?
+
+It turns out an engineer had configured 1000 instances to be used in a test suite rather than 10 — they claim they did not notice holding down the zero key for a few milliseconds too long. Plans were made to limit the number of instances a test can consume.
+
+After having missed lunch to clean this mess up, the colleagues who normally make fun of our protagonist for worrying all the time about AWS access problems were not saying anything and our protagonist felt slightly vindicated. Then the fear of what might happen next came back, and everything was terrible.
+
+Before 5pm came around — the worst event of the now fateful day — a contractor leaked their AWS access token to a public GitHub repo they contribute to; within minutes hundreds of crypto miners were being installed on EC2 instances. Revoking the contractor’s AWS access token solved this influx of unwelcome EC2 instances, but our protagonist was now exhausted and just wanted to hide in a cupboard.
+
+## Management’s “plan”
+
+Checking her inbox before considering the journey home, she notices an email with the subject line:
+
+<Quote>
+  Can we host the ACME Net platform inside our customers’ AWS accounts?
+</Quote>
+
+Management had decided on a cunning plan: to be able to offer services to more customers, we would run our software on their servers. There was some reasoning about GDPR and data locality that meant this was the only way the company could do things.
+
+After reading this email, our protagonist leans back in her chair slowly absorbing her new reality. After the worst day of AWS-access-related incidents ever, she is now being told this will increase at least tenfold as she will be not only responsible for AWS access across ACME Net but also across many of their clients too!
+
+The room started to spin, the walls closed in, and our protagonist started a cold sweat whilst closing her eyes in a last desperate attempt to remain calm.
+
+## The dream
+
+In an instant, a gentle breeze; laden with honey-suckle; carrying bird-song and sunlight through the slightly open window from a beautiful morning outside.
+
+As happened every morning, she remembered it was a dream. More specifically, a terrible nightmare of a world in which these problems still existed. A world in which [Teleport](https://goteleport.com/) did not exist.
+
+Teleport is a modern, cloud-native access layer for your infrastructure. It allows engineers and security professionals to unify access for SSH servers, Kubernetes clusters, web applications, databases and desktops across all environments.
+
+Our protagonist remembered that the problems she was dreaming about are solved by Teleport because it acts as the gate-keeper to AWS access (both console and CLI) and works with multiple AWS accounts.
+
+In fact, since adopting the [Teleport AWS integration](https://goteleport.com/docs/application-access/guides/aws-console/), there had not been any of the problems from her dream.
+
+## Teleport AWS IAM integration for multiple AWS accounts
+
+Teleport acts as a proxy between the client and the AWS console and CLI.
+
+<BlogImage
+  src="./assets/architecture-for-aws-iam-multiple-accounts.png"
+  alt="architecture for aws iam multiple accounts"
+/>
+
+Teleport makes heavy use of the [Assume Role](https://docs.aws.amazon.com/cli/latest/reference/sts/assume-role.html) feature of AWS, and this in turn means the full power of IAM and AWS roles can be managed by Teleport. Now a team can share a finely crafted IAM Role, but with a complete audit log of who did what with which role.
+
+<BlogImage
+  src="./assets/aws-iam-multiple-accounts.png"
+  alt="aws iam multiple accounts"
+/>
+
+It _unifies_ access to AWS resources and can manage _multiple AWS accounts_, which is our protagonist’s answer to management’s “plan”.
+
+It allows us to easily create read-only views of specific AWS resources — data scientists will never again delete RDS instances when clicking around the console.
+
+It integrates with the AWS CLI. This means that headless CI test runners can be assigned the exact IAM roles for the job and managed from the same place — the Teleport UI.
+
+It creates short-lived granular access to AWS resources. This means it’s much easier to work with external contributors without the overhead of constantly rotating AWS keys.
+
+It keeps a comprehensive audit trail of everything that happened across multiple AWS accounts.
+
+By integrating Teleport with AWS, we can control who _both uses and provisions_ infrastructure with a _unified interface_ across the whole organization.
+
+Make AWS access nightmares a thing of the past. [Try Teleport today](https://goteleport.com/pricing/).

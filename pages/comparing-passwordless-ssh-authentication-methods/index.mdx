@@ -1,0 +1,108 @@
+---
+title: SSH Authentication Methods — Which Is Best?
+description: "This blog post compares four different passwordless authentication methods for SSH: SSH keys, certificates, host-based, and PAM modules."
+articleTitle: Comparing Passwordless SSH Authentication Methods
+date: "2022-02-11"
+author: Sakshyam Shah
+logo:
+  image: ./assets/passwordless@2x.png
+  alt: Passwordless SSH
+tags:
+  - ssh
+layout: blogArticle
+---
+
+There are essentially four ways you can implement passwordless SSH access. SSH certificate-based authentication, SSH key-based authentication, SSH host-based authentication, or using a custom PAM module that supports out-of-band authentication. If you want to live dangerously, there’s also a fifth method of passwordless access — disable authentication at all. But that’s not who you are!
+
+This post will discuss passwordless authentication methods available for SSH access and evaluate the pros and cons of each method. If you are curious about why you should implement passwordless access, our previous blog post on [why you have to get rid of passwords for your infrastructure](https://goteleport.com/blog/no-passwords/) is a good place to start.
+
+Let’s compare the four passwordless SSH authentication methods.
+
+## 1. SSH key authentication
+
+OpenSSH supports key-based authentication, which is based on public-key cryptography. When configured with key-based authentication, users authenticate with their private key, which never leaves the client machine.
+
+### How does SSH key authentication work?
+
+Users create a public-private key pair using `ssh-keygen`. The user’s public key is added to the `authorized_key` file in the server, which associates the user account with the public key. Whenever an SSH access authentication attempt is initiated, the server generates a message (a random number), encrypts the message with the associated public key, and sends this encrypted message to the SSH client. SSH client decrypts the message using the private key, creates the `md5` hash of the message along with the session ID, and sends it to the SSH server. The server verifies the `md5` hash, concluding the authentication process.
+
+If the private key is protected with a passphrase (which you should do), `ssh-agent` can be configured to create a passwordless experience. If you want to learn more, read our blog on [how set up SSH keys](https://goteleport.com/blog/how-to-set-up-ssh-keys/).
+
+**Pros:**
+
+- Easy to set up on both SSH server and SSH client
+- Works best for small numbers of users and servers
+
+**Cons:**
+
+- Hard to implement on a large fleet of SSH servers
+- Key rotation can be a problem
+- Stolen private keys can bite you from a security standpoint for a long time because there is no auto-expiry time for keys, and they work until manually removed from the server
+
+## 2. Certificate-based authentication
+
+SSH certificate-based authentication extends key-based authentication with digital signatures. Instead of key pair validation based on the client’s ability to decrypt the random message, a certificate authority is involved. The user’s authenticity is based on possession of a certificate signed by the trusted certificate authority.
+
+### How does certificate-based authentication work?
+
+First, you will need to set up a certificate authority (CA). The same `ssh-keygen` command can be used to create a CA. In OpenSSH, the CA certificate is just public and private key pairs with additional identity and constraints data. The private key of the CA is used to sign user and host (SSH server) certificates. Once the keys are signed, they are distributed to users and hosts, respectively. The public key of the CA is copied to the SSH server, which is used to verify the user’s certificate.
+
+For each new SSH connection, the SSH client presents the user certificate to the SSH server. The SSH server validates the certificate by checking it against the CA’s public key. Along with the signature validation, the server will also check if the user certificate is not expired and if it violates security constraints. Access is granted upon successful validation of the certificate.
+
+Read our blog post on how to configure [SSH certificates](https://goteleport.com/blog/how-to-ssh-properly/) for more about using certificate-based authentication.
+
+**Pros:**
+
+- Certificates have extra fields to enforce security constraints. This is useful for enforcing role-based access controls.
+- Certificates can be short-lived (with a small validity window or time-to-live/ttl). Short-lived certificates significantly reduce the risks in case they are stolen.
+- No need to copy individual user keys to the SSH server means secure authentication can be easily scaled to thousands of SSH servers.
+
+**Cons:**
+
+- Securely managing a CA is a sensitive and challenging task.
+- Setting up a CA and certificate-based auth can be overkill if you manage just a few handfuls of servers.
+
+## 3. Host-based authentication
+
+SSH host-based authentication is performed at the host level; that is, between the SSH client machine and the SSH server. In contrast, SSH key and certificate-based authentication are performed at the user level.
+
+### How does host-based authentication work?
+
+First, SSH host-based authentication is enabled on both the SSH server and the SSH client (e.g. the user’s machine). Then the SSH host-key pair of the SSH client is created. The host-key pair consists of public and private keys. Lastly, the SSH server is configured to trust the hostname and the public host-key of the SSH client.
+
+The SSH client sends a signature to the SSH server during the authentication process signed using the client private host-key. The server first verifies if the request is being made by the trusted host using the client’s hostname. Finally, the SSH server verifies the signature using the client’s public host-key. Upon successful verification, the user is granted access to the SSH server with no further authentication.
+
+**Pros:**
+
+- If a single user needs to access a fleet of SSH servers with the same SSH key, setting up host-based authentication helps avoid repeated authentication.
+- You can grant root access to the SSH server without sharing the root keys. Both the SSH client and SSH server should be pre-configured with host-based authentication.
+
+**Cons:**
+
+- It becomes problematic to control SSH access based on individual user accounts.
+- Authentication at the user level and identity-based login are generally preferred for security because they help enforce authorization policies such as RBAC. Host-based authentication negates these benefits.
+
+## 4. Using PAM modules and out-of-band authentication
+
+A pluggable authentication module (PAM) is an excellent way to extend authentication methods in UNIX and Linux-based systems. OpenSSH honors the PAM configurations. Depending on the configurations, PAM modules have full control and can completely hijack the authentication process. For example, the popular Google Authenticator adds [TOTP verification to SSH](https://goteleport.com/blog/ssh-2fa-tutorial/) by this method. By writing a custom PAM module, we can invoke an out-of-band authentication process to enable a passwordless experience for users.
+
+### How does using a PAM module work?
+
+First, a PAM module must be registered by updating the `/etc/pam.d/sshd` and `/etc/ssh/sshd_config` file. Once the PAM module is registered, it will be invoked each time during the SSH user authentication process. When a PAM module is invoked, it can create a new out-of-band authentication request and push it to the user’s mobile device, where the user will be challenged with a Face ID or Touch ID. Upon successful out-of-band authentication, the PAM module can return the `PAM_SUCCESS` message, which will bypass the remaining native SSH authentication process, granting SSH access.
+
+**Pros:**
+
+- Can open up passwordless methods beyond keys and certificates.
+
+**Cons:**
+
+- Requires a custom PAM module that supports the out-of-band authentication process.
+- Can introduce security risks because usage of a PAM module and out-of-band authentication increases the attack surface of SSH.
+
+## What is the best passwordless SSH authentication method?
+
+It depends! If we compare security benefits with administrative and operational feasibility, certificate-based authentication wins. Go for certificates when possible! But if your team only manages a handful of SSH servers, the simplicity of SSH key-based authentication may suffice.
+
+### Try OSS Teleport to implement certificate-based SSH access at scale
+
+Teleport offers certificate-based SSH access with additional security features such as RBAC and audit logging that help implement SSH certificate-based authentication at scale without compromising security and compliance. Teleport is open-source and fully compatible with OpenSSH. The built-in CA management features make it easy for even small teams to implement certificate-based authentication. Learn [how Teleport certificate-based authentication works](https://goteleport.com/how-it-works/certificate-based-authentication-ssh-kubernetes/) or [download our community addition](https://goteleport.com/teleport/download/) today.

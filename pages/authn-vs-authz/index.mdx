@@ -1,0 +1,97 @@
+---
+title: Authentication (AuthN) vs. Authorization (AuthZ)
+description: Authentication vs. authorization — what's the difference?
+articleTitle: Authentication (AuthN) vs. Authorization (AuthZ)
+date: "2022-02-10"
+author: Sakshyam Shah
+logo:
+  image: ./assets/authn-vs-authz@2x.png
+  alt: Authentication (AuthN) vs. Authorization (AuthZ)
+tags:
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Often referred to as AuthN (authentication) and AuthZ (authorization) in the modern access control paradigm, both authentication and authorization are a method to control access to resources. These resources can be files, programs, web applications, mobile applications, operating systems, network devices, etc. Let’s explore three common scenarios on how authentication and authorization are involved.
+
+- **Accessing a web application.** Signing in to a web application using a username and password combination or single sign-on (SSO) involves authentication. But the ability to view certain web pages and update application data is subjected to authorization.
+- **Accessing an operating system.** Signing in to a remote Windows desktop using a password involves authentication. But the ability to run commands, view or edit files, execute programs, or update system settings are subjected to authorization.
+- **Accessing a network hardware appliance.** Entering a RADIUS or TACACS password to login into a firewall appliance involves authentication. But the ability to change firewall rules is subjected to authorization.
+
+These are the few sample cases of authentication vs. authorization. Now let’s try to define both in detail.
+
+## What is authentication?
+
+Authentication involves proving a user or a machine’s identity; that is, who they claim to be. It is performed by verifying the shared or pre-negotiated credentials and methods, including passwords, keys, certificates, biometrics, etc. Authentication is and should be a continuous process. Once initial authentication is performed with physical or logical interaction, such as supplying passwords or scanning fingerprints, a unique token is assigned to maintain continuous authentication. This is known as maintaining authenticated sessions. For example, HTTP basic authentication and cookie-based authentication are common methods to maintain authenticated sessions once the initial authentication is validated.
+
+Authentication can be performed using various methods based on secrecy or uniqueness. Below are the three primary methods for authentication.
+
+### Proving something you know
+
+This is the most common form of authentication. Passwords, PINs, lock patterns are examples of something a user or machine knows for authentication. While this is the easiest and most common mode for authentication, it is also the least secure method as [password-based authentication is riddled with security risks such as phishing, brute-force attacks, weak or stolen passwords, etc..](https://goteleport.com/blog/no-passwords/)
+
+### Proving something you have
+
+This method of authentication is a popular choice for second-factor authentication and passwordless authentication. These can be preshared hardware tokens (FIDO U2F tokens, RSA tokens, Yubikey), certificates, mobile devices (SMS/call verification, push approvals, TOTP apps), etc.
+
+### Proving something you are
+
+This method of authentication involves proving who we are — our biological traits. Biometrics authentication is the most common way to use this authentication method. Voice recognition, fingerprint scanners, iris scanners, and face scanners are a few examples. There are also instances of user behavior that can be used for this type of authentication, such as identifying a walking pattern, keyboard typing pattern, etc.
+
+### Single-factor, two-factor, and multi-factor authentication
+
+Single-factor authentication involves only one method of authentication, and this can be any form of something you know, something you have, or something you are.
+
+Two-factor authentication (also called 2FA, TFA, second-factor authentication, or second-step verification) involves exactly two factors of authentication, ideally a combination of something you know with something you have or something you are.
+
+Multi-factor authentication (MFA) may include two or more factors with any available combination between something you know, something you have, and something you are. For security-sensitive systems, MFA may challenge different factors for each sign-in attempt.
+
+### Authentication best practices
+
+Brute-force attacks, phishing and stolen credentials are the most common security threats that affect authentication. Passwordless single sign-on with two-factor authentication is the recommended method of implementing authentication to modern applications and infrastructure.
+
+## What is authorization?
+
+Authorization involves determining if a user or a machine can access data or perform actions in either an authenticated or unauthenticated state. This can be achieved by the combination of access control policies and privileges. Compared to authentication, authorization is a bit more challenging to implement because it involves defining complex chains of multiple rules and policies that need to be securely evaluated to grant and deny actions.
+
+Below are a few popular methods and concepts of implementing authorization policies:
+
+### Mandatory access control
+
+Mandatory access control (MAC) includes defining a set of security policies that permit access only if specific predefined clearance is met. MAC policies are usually defined at the system owner or organizational level to ensure that they cannot be tampered with or overridden by the users. For example, when a MAC policy is applied to a file with a constraint that restricts deletion of that file, MAC prevents even the root users (administrators) from deleting that file.
+
+### Discretionary access control
+
+Discretionary access control (DAC) is generally used to allow data owners who can be regular users or administrators to define authorization policies. DAC is used by teams or individuals responsible for securely sharing data or files with fellow teams or individuals.
+
+### Role-based access control
+
+Role-based access control (RBAC) policies are defined based on users’ roles (job functions) and privileges. RBAC is a popular and probably the most widely used authorization method.
+
+### Attribute-based access control
+
+Attribute-based access control (ABAC) policies are defined around attributes and contextual variables such as roles, privileges, IP address, date, time, actions, devices, etc. In a typical ABAC, you can add more context to RBAC policies to address authorization at a more granular level. ABAC is one of the foundations to implement zero trust policies.
+
+### Key concepts in authorization: privilege, zero-standing privilege, just-in-time access
+
+Privileges are the smallest unit of authorizations and define capabilities for a single action. In contrast, roles are a collection of privileges.
+
+Zero-standing privilege means a user should not have any prior assigned privileges by default and should only be granted certain privileges when required.
+
+Just-in-time access is a mechanism to allow access when required and is used in conjunction with zero-standing privilege.
+
+### Authorization best practices
+
+Privilege escalation, misconfigured access policies, unprotected resources and [insecure direct object reference](https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html#insecure-direct-object-reference-prevention-cheat-sheet) are common security vulnerabilities associated with authorization. Zero trust policies, zero-standing privilege, and just-in-time access via access requests are recommended to implement secure authorization systems.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Authentication involves how to verify a user or machine for access, and authorization involves what they can perform once authenticated. Authentication and authorization are simple in theory yet tough to implement correctly. This is reflected in practice as broken access control is a widely exploited security vulnerability. For optimal security, favor passwordless single sign-on with two-factor authentication and implement zero-trust authorization policies.
+
+## How can Teleport help with authentication and authorization?
+
+Teleport brings passwordless access using certificates, two-factor authentication, RBAC, just-in-time privileges with access requests, and auditing capabilities for SSH and Windows servers, Kubernetes clusters, databases, and internal web applications. Teleport is open source, and you can get started in under 5 minutes. Learn [how Teleport works](https://goteleport.com/how-it-works/) or [try for free](https://goteleport.com/signup/) today.

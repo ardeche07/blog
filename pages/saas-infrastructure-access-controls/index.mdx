@@ -1,0 +1,50 @@
+---
+title: Tips for Moving to a SaaS Model for Hardware and Software Vendors
+description: Moving to a SaaS model can be complicated for hardware and software vendors. Here is what you need to know.
+articleTitle: What You Need to Know About Adding a SaaS Component to Your Hardware or Software Business
+date: "2022-01-11"
+author: Daniel Mercado
+logo:
+  image: ./assets/hardware-to-saas@2x.png
+  alt: Tips for Moving to a SaaS Model for Hardware and Software Vendors
+tags:
+  - compliance
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Many market-leading companies who have dominated their respective sectors with hardware or on-prem/installable software solutions are turning to SaaS offerings to fuel the next phase of their growth. Why? Simple. Market valuations are much higher for SaaS companies than they are for traditional software and hardware companies. The median multiple on earnings for a SaaS company is 12.7x as of Q3 2021 according to venture capitalist Jamin Ball who tracks the [Public Cloud Software (e.g. SaaS) market in an excellent Substack](https://cloudedjudgement.substack.com/p/a-look-back-at-q3-21-public-cloud). If you look at high growth SaaS companies, these multiples increase even further, to 26.6x in Q3 according to Ball. One famous example is [Adobe as written about in this article by McKinsey](https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/hardwares-business-model-shift-finding-a-new-path-forward). “The multimedia-and creativity-software provider increased its share of subscription revenue from 10 percent to 88 percent between 2010 and 2018. During the same period, its price-to-sales multiple increased from 4.1 to 12.2.” The article also cites shifts by HPE with Greenlake, Nutanix, and Palo Alto Networks as companies who have embraced and benefited from a move toward SaaS revenue.
+
+So the case for moving towards a SaaS model, or what might be called a hybrid SaaS model that mixes SaaS-hosted control planes and on-prem hardware and software, is clear. But running a large-scale SaaS offering has challenges that engineering teams at these companies might not have experience with. One obvious example is operating multi-tenant, multi-region deployments necessary to deliver a SaaS solution. Less obvious are things like usage metering and subscription billing that are not typically associated with hardware or software license purchases. Because Teleport works with many of the largest SaaS companies in the world, I want to point out another area that these innovative companies will need to focus on: security and compliance of their infrastructure access controls.
+
+## Access controls to protect customer data need to be much stronger when you are a SaaS provider
+
+A SaaS offering almost always includes hosting customer data, so the controls that need to be put in place to protect it are much higher than when you are shipping a software package to be installed and run on a customer’s premise.
+
+In a [recent survey of 1000 IT, DevOps and security experts,](https://goteleport.com/resources/white-papers/2021-infrastructure-access-report/) it turns out that “83% of respondents cannot guarantee that ex-employees can no longer access their infrastructure.” When that infrastructure is your customer-facing SaaS, that is a big problem. This is particularly tough at the moment for SaaS providers because the Great Resignation is increasing the employee turnover that leads to this insider threat. Besides the reputation risk of a breach due to lost or stolen credentials, the cost of these breaches is [on average $4M](https://www.ibm.com/security/data-breach), but a “mega breach” — defined as having more than 50 million records — goes up to over $400MM. With SaaS, the cost of failure can be very high.
+
+## SOC 2 and FedRamp compliance is table stakes
+
+Even if you have a good process in place to remove access to ex-employees, your customers will still demand that a 3rd party auditor attest to the rigor of your access controls. This most often comes in the form of a SOC 2 audit. Getting a [SOC 2 Type II certification is table stakes if you are selling a SaaS B2B product](https://goteleport.com/blog/soc2-certification-table-stakes-for-b2b-saas/) so your customers can be more comfortable that their data is safe with your organization. As part of this audit, you will have to demonstrate controls that keep customer data safe; for example, session logging and the restriction of sessions to authorized individuals only.
+
+Almost all big customers will ask to see your SOC 2 as part of their vendor selection process. SOC Auditors look at 17 criteria (also known as principles) developed by the Committee of Sponsoring Organizations of the Treadway Commission (COSO). A [significant portion of the SOC 2 audit examines your infrastructure access](https://goteleport.com/how-it-works/soc2-ssh-kubernetes/) and how you are enforcing access controls and auditing of sessions.
+
+To sell to even bigger customers, like the Federal Government, you will need to meet even stronger standards like FedRAMP. There are currently 325 controls to meet FedRAMP Moderate and 421 to meet FedRAMP High. You can find a complete list on the FedRAMP website or take a look at [How-to Guide to FedRAMP Compliance for Software-as-a-Service (SaaS) Providers](https://goteleport.com/resources/white-papers/fedramp-how-to/). Long story short, you need to build access controls into your SaaS product from the beginning or you won’t be able to demonstrate the compliance that your best potential customers are after and your sales will slow.
+
+## Remote support for hardware solutions
+
+Many hardware-first companies like enterprise storage or networking appliances move to a recurring revenue model by combining on-prem hardware and software with a vendor-hosted control plane that includes billing, monitoring, and AI-driven management capabilities. The vendor-hosted control plane is subject to the access controls I mentioned above since it is a SaaS solution. In addition, vendors want to deliver a more SaaS-like experience for their products running in the customer’s data center. This includes managing patches, upgrades, and other hotfixes, which require secure remote access to an environment they do not control. For example, they will have to deal with NAT/firewall rules restricting access to entities outside the corporate network and integrating with other systems, like the customer’s identity-provider. For obvious reasons, this is a very sensitive subject with customers who tend to tightly control access to their environment.
+
+As a vendor, you need to address numerous customer concerns:
+
+- If you are getting access via static credentials (passwords or keys), are they being refreshed / removed when not needed?
+- Are you meeting customer compliance requirements like supervised sessions (aka, “four eyes”) and session recordings?
+- Is authorization being given based on principles of least privilege, and is that tied to the identity of the person accessing the infrastructure?
+- Is every action being audited, and are logs being shipped to the customer SIEM?
+- Is obfuscated remote code execution being detected?
+
+<EmailSubscribeViolet />
+
+Luckily, Teleport has a turnkey solution for all of these requirements and more. We are [used in production by leading SaaS companies](https://goteleport.com/use-cases/saas/) like Snowflake and Carta, as well as companies like Nutanix, VMware, and Elastic who started out as hardware or installable software companies but made the transition to SaaS-based services. If you are going through a similar transition, [please reach out to see how Teleport can help](https://goteleport.com/pricing/).

@@ -1,0 +1,43 @@
+---
+title: Benefits of Identity-Based Access for SSH
+description: Learn why identity-based access for SSH enhances SSH security.
+articleTitle: Identity-Based Access for SSH
+date: "2022-01-18"
+author: Rupert Hogan
+logo:
+  image: ./assets/identity-access-ssh@2x.png
+  alt: Identity-Based Access for SSH
+tags:
+  - ssh
+layout: blogArticle
+---
+
+Lack of access accountability and unmonitored access create a considerable security risk for organizations, and the best way to mitigate this challenge is by implementing identity-based access. The [Computer Security Resource Center run by NIST](https://csrc.nist.gov/glossary/term/identity_based_access_control) defines an “identity-based access control” as an “Access control based on the identity of the user (typically relayed as a characteristic of the process acting on behalf of that user) where access authorizations to specific objects are assigned based on user identity.” Identity-based access entails integrating identity providers with access providers with single sign-on (SSO) features to deliver an efficient and secure access method. The security risks and costs associated with per-account password management, stolen credentials, and security breaches are also addressed with identity-based access.
+
+In this article, we’ll talk about the features and advantages of identity-based access and how it can be used with SSH. We’ll also discuss one open-source solution for managing identity-based access for SSH: [Teleport](https://goteleport.com/).
+
+## Identity-based access for SSH
+
+In the case of SSH, the conventional access method involves sharing `root` credentials amongst various users. With identity-based access for SSH, the user’s identity is not masked behind a shared credential which allows for the enforcement of access control methods such as RBAC (role-based access controls) to be used appropriately. With this setup, audit of the user’s session also becomes a lot easier since the SSH access events can be easily traced back to the user’s organization-wide identity.
+
+Identity-based access using SSO also minimizes theft of login credentials, such as passwords, by allowing users to authenticate once to access several SSH servers. Identity-based access also supports denying users access to SSH servers based on entitlements and location.
+
+## How to achieve identity-based access for SSH
+
+To set up identity-based SSH, you’ll need a few things: an identity provider and something to map users to access roles. [Teleport Server Access](https://goteleport.com/ssh-server-access/) is an open-source option that provides identity-based access for SSH servers. It does this by authenticating the user against an SSO provider and then checking what authorization that user has. A short-lived SSH certificate tied to their identity will be issued to the user. These certificates are fully compatible with OpenSSH, and teams can quickly get access to resources using standard CLI tooling.
+
+Teleport’s certificate-centric design enables identity-based access with features like fine-grained RBAC, per-session MFA (multi-factor authentication), and other modern security best practices for SSH access with minimal configuration.
+
+## Why use Teleport for identity-based SSH access
+
+Teleport offers several significant features that complement identity-based access. Let’s explore a few:
+
+- **[Single sign-on (SSO)](https://goteleport.com/teleport/features/sso-for-ssh/)** is a feature of Teleport and an essential element of identity-based access. It lets users use one set of login credentials for multiple applications, and its ease of use is a significant advantage. For instance, short-lived certificates issued by a SSO provider greatly reduce the attack surface area vs. SSH Public/Private keys, streamline the sign-on process, and lessen the chances of phishing.
+- **[Role-based access control (RBAC)](https://goteleport.com/teleport/features/rbac-for-ssh/)** is the practice of managing privileged access to infrastructure through a central directory of users, roles, and teams. Authorization is granted to groups (or roles) within a company directory. This allows individuals to access secured infrastructure by simply authenticating their identity, usually through a single sign-on (SSO) solution tied to the directory. [Teleport Access Controls](https://goteleport.com/docs/access-controls/introduction/) let your security team manage access to computing infrastructure. RBAC works in conjunction with a single sign-on (SSO) against a central identity provider such as Okta, ADFS, or any other SAML provider.
+- **[Audit logs](https://goteleport.com/how-it-works/audit-logging-for-ssh-and-kubernetes/)** essentially provide an immutable record of creating, modifying, and accessing resources and data. Teleport provides a live view and an audit log for SSH server sessions, filesystem changes, data transfers, command executions, and other security events making it easy to see what’s happening and who is responsible.
+
+## Conclusion
+
+We’ve explored the concept of identity-based access for SSH and how it can be achieved for SSH access. We also covered how one open-source solution, Teleport, provides identity-based access for SSH and acts as an identity-aware, multi-access protocol proxy. If your team is growing, adopting a system for identity-based access for SSH will both improve security and help with onboarding new teammates.
+
+For further reading, learn how Teleport’s [certificate-based auth](https://goteleport.com/how-it-works/certificate-based-authentication-ssh-kubernetes/) enhances identity-based access control for infrastructure access.

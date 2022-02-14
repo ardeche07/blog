@@ -1,0 +1,140 @@
+---
+title: 7 Requirements for a Modern PAM Solution for Cloud-Native Applications
+description: This article describes how Teleport enables AWS IAM Access Across Multiple AWS Accounts and Products so engineering teams stay productive while their business scales.
+articleTitle: What a Modern PAM Solution for Cloud-Native Applications Looks Like
+date: "2022-01-28"
+author: Sakshyam Shah
+logo:
+  image: ./assets/modern-pam@2x.png
+  alt: Modern PAM
+tags:
+  - pam
+layout: blogArticle
+---
+
+import Quote from "components/Quote";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Privileged Access Management (PAM) is a go-to solution to prevent privilege misuse and insider threats, and limit malware propagation. After all, properly protecting and monitoring the keys to the kingdom is always a good practice. Privileged Access Management has been even more critical in recent times. With the advent of the cloud where infrastructure is provisioned with a single API call and authenticated with a single API key, the risk of someone misusing these credentials is far higher. Now adversaries can edit or even delete your entire infrastructure with a single API call. While the concept and strategy of Privileged Access Management remain the same, traditional PAM solutions struggle to adapt to current DevOps operations and, in many cases, disturb engineers’ workflow, slowing them down.
+
+This post highlights the shortcomings of traditional PAM solutions at securing cloud-native applications managed using modern DevOps techniques and proposes how Teleport — a modern PAM solution — can provide the security enterprises need without slowing down their engineering teams.
+
+## Features of PAM solutions
+
+Most Privileged Access Management products originally started as a password vaulting solution. They have evolved long enough to offer a complete privileged account and identity lifecycle management suite. A traditional PAM solution typically features:
+
+- Privileged account lifecycle management
+- Privilege control (just-in-time access, controlled privilege elevation, and delegation management)
+- Endpoint privilege management
+- Privileged session management
+- A password vault
+- Privileged account security (account discovery and behavior analytics)
+
+As shown above, traditional PAM solutions have robust features to manage complete privileged account lifecycle management. Further, many existing solutions are in the process of extending their feature set to work more easily with cloud applications and infrastructure.
+
+## Shortcomings of traditional PAM solutions
+
+Before we discuss what is needed in a modern PAM solution for cloud-native applications, let’s look at why traditional PAM solutions struggle to meet the privileged access management needs of modern infrastructure. Traditional PAM solutions were built at a time when infrastructure was much more static, with fleets of Windows Servers, Remote Desktops, and SSH via Putty, hosted in co-located or on-premises data centers. Additionally, the administrative workflows to manage this infrastructure were primarily GUI-based. A PAM user who needs to access a server will log into the PAM solution, retrieve their credential, then use that credential to log into the server — all manually.
+
+This workflow is no longer useful with modern cloud operations and DevOps practices where most interactions with infrastructure assets are based on API automation and CLI tools, not GUIs. As we will discuss below, the shortcoming of traditional PAM systems is their inability to adapt to current DevOps and cloud-native workflows.
+
+## What modern PAM solutions deliver
+
+Here are 7 features you should look for in a modern PAM solution for cloud-native applications.
+
+### 1. Does not require developers to log into the PAM for each new connection
+
+Accessing the infrastructure necessary to run modern applications requires numerous developer and administrative tools that speak different protocols (e.g. HTTP, SSH, RDP, MongoDB, Postgres, MySQL, Jenkins, GitLab). Most traditional PAM solutions have a loose integration with these tools and protocols and require engineers to separately authenticate to the PAM for each new connection in order to access their resource. Switching tools and context like this slows developers down dramatically because it creates friction.
+
+Let’s look at one simple example: SSHing into a remote server. With a traditional PAM solution, the engineer needs to authenticate with the PAM portal each time they need to retrieve a key to authenticate with SSH. This sounds like a small ask for a security benefit. But if we consider the number of servers and the frequency of remote access for daily administrative tasks, this workflow dramatically slows engineers down because it gets engineers out of “the zone.”
+
+Now, consider the same inefficient workflow for every infrastructure resource an engineer needs access to: a database, a Kubernetes cluster, a monitoring dashboard, a CI/CD environment, a version control system. Each time an engineer needs to access infrastructure, they first need to go to the PAM tool to check out their credentials, and then go to the resource to continue their work. This is a waste of time and when a workflow slows an engineer down, they find workarounds, which in many cases negate the purpose of the PAM in the first place. For example, it is common for engineers using traditional PAM tools to check a private key out of the PAM vault one time, and keep it on a local notes app for easy reuse without logging into the vault each time. While this may be prohibited for certain levels of access by the PAM, with supply chain attacks on the rise, a vulnerability at any point in the system can have far-reaching implications.
+
+For maximum security and efficiency, what you want is a workflow wherein the engineer goes directly to the resource they want to access. Once they are at the resource, they are then challenged for their identity via integration with an IDP provider such as Active Directory or Okta. And once they have authenticated once, they don’t have to do it again until the time-to-live (TTL) on the request expires. This is dramatically simpler, more efficient, and discourages insecure workarounds.
+
+<Quote>
+  **Decision point for modern PAM:** Does a developer have to retrieve
+  credentials from the PAM first, rather than being authenticated at the
+  resource directly?
+</Quote>
+
+### 2. Integrates with the native tools engineers love
+
+Developers gain muscle memory through years of working with preferred tools. When you make them use a different tool to complete the same task, they have to relearn commands that have become second nature, which results in a productivity loss. Unfortunately, this is quite common with traditional PAM portals that are generally limited on features compared to native tooling.
+
+For example, in order to manage privileged access for certain resources, like databases, PAM solutions encourage access via their GUI, instead of via the native database client. This effort to control access hampers the database administrative workflow because the database clients used by PAM providers are not as feature-rich as the database client built by the database or developer tool companies.
+
+The best security solutions are those that bring security to the user’s existing workflow. It’s hard to change users’ habits, and the user will always find a way to trick and bypass the security system. So deep support at the protocol level that allows engineers to use the tools they are already using with a little or no modification is the best way to increase engineers’ productivity and security.
+
+<Quote>
+  **Decision point for modern PAM:** Can developers use the native tools they
+  prefer while still adhering to privilege access controls?
+</Quote>
+
+### 3. Supports infrastructure-as-code management patterns
+
+Infrastructure-as-code, policy-as-code, detection-as-code. These new methods to manage infrastructure remove manual intervention that slows DevOps teams down and reduces security. Being able to configure and maintain infrastructure using a programming language drastically increases the speed of administrative workflows and allows teams to automate security, reducing opportunity for human error. Furthermore, change management is an essential part of infrastructure management. Configuration-as-code allows maintaining deployment state in a version-controlled system which means increased visibility, automated testing, and the ability to easily roll back changes if needed.
+
+Unfortunately, most traditional PAM solutions do not support these modern practices, limiting their use with teams who have embraced the modern infrastructure management ethos.
+
+<Quote>
+  **Decision point for modern PAM:** Does the PAM solution support
+  infrastructure-as-code management patterns?
+</Quote>
+
+### 4. Support for ChatOps
+
+Modern engineering teams use ChatOps platforms such as Slack, Microsoft teams, and Mattermost for communication. With the increase in distributed workforces and remote work, these platforms have become a crucial piece of technology for team collaboration across the entire organization. Since most engineers already use these platforms for day-to-day communication and receiving event alerts, PAM workflows such as just-in-time (JIT) access requests and approval are more efficient if integrated with ChatOps platforms.
+
+This extends to integrations with the rest of the DevOps tool chain. Can filing a Jira ticket kick off a privilege escalation request? Can that privilege escalation request be automatically approved if an SRE is on-call in PagerDuty? A modern PAM has integration points across a range of communications tools to streamline developer workflows without sacrificing security.
+
+<Quote>
+  **Decision point for modern PAM:** Does the PAM solution support ChatOps
+  workflows?
+</Quote>
+
+### 5. Promotes best practices for passwordless authentication
+
+Most of the PAM solutions in the market are built around a core feature: the password manager. Almost all the security controls that protect privileged access (e.g. privilege escalation, just-in-time access) are implemented during the password retrieval process. [Not only are passwords risky, but they also create operational overhead for engineers](https://goteleport.com/blog/no-passwords/). Maintaining password vaults and implementing timely password and key rotation take a significant amount of engineering time.
+
+While the whole security industry is going passwordless due to security concerns, it makes less sense to go for password management solutions that are both risky and create additional operational overhead. Instead, you should expect that privileged access management capabilities are delivered in a passwordless manner.
+
+<Quote>
+  **Decision point for modern PAM:** Does the PAM solution enable my
+  organization to move to passwordless infrastructure access?
+</Quote>
+
+### 6. Native integration for cloud-native solutions such as containers and Kubernetes
+
+A modern PAM solution must be easy to install and manage. That means that your PAM solution should itself be able to be deployed as a container and operated inside a Kubernetes cluster like any other modern application.
+
+Traditional PAM solutions that require heavyweight Windows Servers and that cannot be installed and run in a cloud-native way put an additional burden on operations teams who must maintain traditional server administration practices for the PAM solution, while using modern DevOps practices for applications. If the engineering culture of your organization is to go all-in with cloud-native infrastructure, this is a step backward.
+
+<Quote>
+  **Decision point for modern PAM:** Can I run the PAM software itself as easily
+  as I run any other cloud-native application?
+</Quote>
+
+### 7. Easily support applications running in the cloud as well as on-prem
+
+As we discussed in the introduction, traditional PAM solutions were built at a time when infrastructure was much more static, with fleets of Windows Servers, Remote Desktops, and SSH via Putty, hosted in a co-located or on-premises data center. While modern applications often run in the cloud, or on-prem in dynamic cloud-like environments, many traditional applications still exist. Enterprises need a PAM solution that encourages modern security-best practices like passwordless access, but for all their applications regardless of environment.
+
+<Quote>
+  **Decision point for modern PAM:** Does my PAM solution enable me to manage
+  modern and traditional applications with a single solution regardless of where
+  they run?
+</Quote>
+
+## Modernizing your PAM
+
+Traditional PAM solutions were developed in a corporate IT management era where workflows were very different from today’s fast-paced code-driven IT operations. While they are beginning to deliver features to support privilege management in cloud infrastructure (albeit sometimes with an add-on tool), they struggle to adapt to distributed team workflows and integrate very loosely with modern DevOps tools and cloud-native infrastructure.
+
+At Teleport, we believe that security solutions should adapt to users’ workflow. Forcing engineers to change their workflow slows them down, costing the organizations they work for money. Further, when security controls break engineers’ workflow, they often try to trick and bypass the system, posing more risk to the organization. Finally, the inability of traditional PAM solutions to adapt to modern cloud-native infrastructure and workflow means your engineers will spend administrative time maintaining the traditional PAM solutions instead of using them for secure infrastructure access.
+
+<EmailSubscribeViolet />
+
+## Upgrade your infrastructure access strategy with Teleport
+
+Teleport is a cloud-native PAM solution that unifies access for Linux and Windows servers, Kubernetes clusters, databases, and DevOps applications like CI/CD, version control, and monitoring dashboards. Teleport eliminates the [risks of passwords in infrastructure](https://goteleport.com/blog/no-passwords/) by allowing certificate-based remote access. In addition, it supports configuration via code, integrates well with Kubernetes and cloud-native infrastructure, and supports access workflows from modern ChatOps platforms, making it versatile for modern infrastructure operations.
+
+You need a cloud-native strategy and tools to succeed in cloud-native operations! [Try Teleport today](https://goteleport.com/docs/getting-started/) or [contact us for a demo](https://goteleport.com/signup/enterprise/).

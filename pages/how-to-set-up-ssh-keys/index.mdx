@@ -1,0 +1,161 @@
+---
+title: "Tutorial: How to Set Up SSH Keys"
+description: This blog will walk you through how to set up SSH keys to use for SSH key-based authentication.
+articleTitle: How To Set Up SSH Keys
+date: "2022-02-03"
+author: Sakshyam Shah
+logo:
+  image: ./assets/ssh-key.png
+  alt: How to Set up SSH Keys
+tags:
+  - ssh
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+At Teleport, we advocate SSH certificates over SSH keys and passwords as the best authentication method for SSH. Nothing beats the security and operational flexibility of using certificate-based authentication for a large fleet of SSH servers running on dynamic infrastructure. But in practice, certificate-based authentication is far from the de facto authentication method, and sometimes we may need to use SSH keys. For example, in my daily workflow I use SSH keys when accessing DigitalOcean servers or to check repositories in my GitHub personal account because SSH keys are the default available methods (alongside passwords). So it helps to learn the best way to generate and use SSH keys.
+
+This post is targeted towards individuals who need to generate and manage SSH keys and keep them secure for day-to-day tasks. If you are looking for a way to add SSH key-based authentication in your organization, stop! Certificates provide greater flexibility and security over keys, and open-source Teleport makes it super easy and secure to implement them. [Give it a try](https://goteleport.com/docs/getting-started/).
+
+Now, let’s get to the topic!
+
+## How to generate SSH Keys
+
+The SSH key generation process is handled by the OpenSSH helper program `ssh-keygen`. The types of keys supported by OpenSSH are:
+
+- `dsa`: Key generated with Discrete Logarithm Problem & Modular Exponentiation algorithm.
+- `ecdsa`: Key generated with Elliptic Curve Discrete Logarithm Problem algorithm.
+- `ecdsa-sk`: Same as `ecdsa` but with an option to store the keys in FIDO/U2F devices.
+- `ed25519`: Key generated with Edwards-curve Digital Signature algorithm.
+- `ed25519-sk`: Same as `ed25519` but with an option to store the keys in FIDO/U2F devices.
+- `rsa`: Key generated with Rivest–Shamir–Adleman algorithm.
+
+So what is the recommended SSH key generation algorithm? The two most popular options for key generation are either `rsa` or `ed25519`. The `ed25519` algorithm offers more cryptographically strong keys while `rsa` is the most widely supported algorithm. If you are generating a key for modern SSH servers, go with `ed25519`.
+
+To generate an SSH key of type `ed25519`, we invoke the `ssh-keygen` command with a `-t` flag as follows:
+
+```
+$ ssh-keygen -t ed25519 -C "unique name to identify this key"
+```
+
+The default key size is 256 bits. To use higher bits, you can use the `-b` flag as the following:
+
+```
+$ ssh-keygen -t rsa -b 4096
+```
+
+By default, SSH keys are placed in the `~/.ssh/` directory, but this is optional and you can place them anywhere you want to.
+
+The following is an example of the full steps of the key generation process using type `ed25519`:
+
+```
+$ ssh-keygen -t ed25519 -C "myGithubKey"
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/Users/user/.ssh/id_ed25519): .ssh/githubKey
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in .ssh/githubKey
+Your public key has been saved in .ssh/githubKey.pub
+The key fingerprint is:
+SHA256:yUfqtmsd3aKAHU66vp1p9oQruLbW/fKDN13XOEp9+DA myGithubKey
+The key's randomart image is:
++--[ED25519 256]--+
+|                 |
+|                 |
+|          .      |
+|       .o+       |
+|       *S... o o.|
+|      o.+o. + E +|
+|     o o++.= + B |
+|    + +oB** o   .|
+|   oo+o*BB+o     |
++----[SHA256]-----+
+```
+
+You will receive a public key and a private key. You will only need to upload the public key to the servers you need to access. The private key must be kept securely on your machine.
+
+## Copying your public key to an SSH server
+
+In SSH, key-based authentication is based on asymmetric cryptography, and the authenticity of the user is based on signature validation. First, the server needs to trust the public key. This is done by copying the public key to the server’s `~/.ssh/authorized_keys` file. Then for authentication, the user’s SSH client signs a random message with the private key, which the server verifies using the public key.
+
+To copy the user’s public key to the server, OpenSSH has a built-in helper `ssh-copy-id`. Using the `ssh-copy-id` command, we can easily add the public key to the remote server, automatically copying the key into the `~/.ssh/authorized_keys` file.
+
+The terminal output text should be:
+
+```
+$ ssh-copy-id -i .ssh/githubKey.pub user@server
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: ".ssh/githubKey.pub"
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+
+Number of key(s) added: 1
+
+Now try logging into the machine, with:   "ssh 'user@server"
+and check to make sure that only the key(s) you wanted were added.
+```
+
+For services like GitHub, we need to paste the content of the public key on their website. For this we can use `pbcopy`, `xclip`, or a text editor.
+
+## Using the SSH config file
+
+When you have multiple keys and different usernames for different SSH servers, it can be tedious to enter long SSH commands. The SSH config file `~/.ssh/config` helps to customize and, in some instances, automate the SSH access process. For example, we can predefine a host so that the following SSH command:
+
+```
+$ ssh -i ~/path-to-identity-file-or-private-key user@server1
+```
+
+can be shortened to:
+
+```
+$ ssh server1
+```
+
+To achieve this, we update the config file(`~/.ssh/config`) with the following option:
+
+```
+vi ~/.ssh/config
+
+Host server1
+    User root
+    HostName server@example.com
+    IdentityFile ~/.ssh/githubKey
+```
+
+This is just one example, but you can configure many other options such as the specific encryption algorithms for a given host, configuration of the SSH agent, use of ProxyJump, custom port definition, etc. Basically, every feature supported by the OpenSSH client can be preconfigured using a config file. Read our prior blog on using [ssh client config files](https://goteleport.com/blog/ssh-client-config-file-example/) for more details.
+
+## Working with SSH agents
+
+For security reasons, you should always protect your private keys using a passphrase. This is supported by `ssh-keygen` which asks you for a passphrase during the key generation process. Some users may find a requirement to enter a passphrase annoying. In other situations, a third party program might need to access the keys for automation purposes and a passphrase can be a blocker. To reduce the pain in these scenarios, OpenSSH offers `ssh-agent`, a helper program that automates the key management process and relieves you from entering passphrase every time for SSH access.
+
+To add the private key to SSH agent, first ensure that the `ssh-agent` program is running. You can start the program with the following command:
+
+```
+$ eval `ssh-agent`
+```
+
+Then to add the private key, we use the `ssh-add` helper program with the following command:
+
+```
+$ ssh-add ~/.ssh/githubKey
+```
+
+SSH agents have their fair share of security risks, and I recommend reading our dedicated blog on [how to use SSH agent](https://goteleport.com/blog/how-to-use-ssh-agent-safely/) securely.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+In this post, I have listed a few of the most common tasks related to SSH key management that help in the day-to-day SSH access. Although it will help you get started using SSH key-based access, SSH supports numerous configuration options for keys that we did not discuss. I recommend you read the following man pages related to SSH key management:
+
+- OpenSSH guide on key-based authentication: https://en.wikibooks.org/wiki/OpenSSH/Cookbook/Public_Key_Authentication
+- `ssh-keygen`: https://linux.die.net/man/1/ssh-keygen
+- `ssh-agent`: https://linux.die.net/man/1/ssh-agent
+- `ssh-add`: https://man7.org/linux/man-pages/man1/ssh-add.1.html
+- `ssh_config`: https://linux.die.net/man/5/ssh_config
+
+## Implement certificate-based authentication for your SSH servers
+
+As mentioned earlier, certificate-based authentication provides security and operational flexibility for a large fleet of SSH servers running in a dynamic environment. Learn more about how Teleport helps implement [SSH certificate-based authentication](https://goteleport.com/ssh-server-access/) for your SSH infrastructure.
+
+P.S. Teleport is [free and open-source](https://github.com/gravitational/teleport) and perfectly integrates with existing OpenSSH servers.
