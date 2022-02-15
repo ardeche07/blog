@@ -126,7 +126,8 @@ export const getArticleTags = () => {
     article.frontmatter.tags.forEach((tag) => rawAllTags.add(tag))
   );
 
-  return Array.from(rawAllTags);
+  //make an array from the collection (Set<string>) and sort the tags alphabetically
+  return Array.from(rawAllTags).sort();
 };
 
 export const getArticlesListAndTags = (limit?: number) => {
