@@ -54,7 +54,6 @@ export const sitemapGenerator = ({ pages, path }) => {
  * Docs pages are also filtered here and are added separately later
  * to filter only the current version.
  */
-
 const ignorePages = [
   new RegExp(`^${pagesRoot}/api/.*$`),
   new RegExp(`^${pagesRoot}/_app.(${extensions.join("|")})$`),
@@ -64,21 +63,20 @@ const ignorePages = [
 /*
  * We generate blog paths.
  */
-
 export const getBlogPaths = () => {
-  return glob
+  const paths = glob
     .sync(join(pagesRoot, `**/*.{${extensions.join()}}`))
     .filter(
       (path) =>
         !ignorePages.some((regexp) => regexp.test(path)) && path !== blogIndex
-    )
-    .map((path) => getURIFromPath(path));
+    );
+  paths.unshift(pagesRoot);
+  return paths.map((path) => getURIFromPath(path));
 };
 
 /*
  * Generates sitemap used by search engines.
  */
-
 const blogPages = getBlogPaths().map((loc) => ({ loc }));
 
 sitemapGenerator({
