@@ -50,6 +50,12 @@ Now run one of the following commands:
 - `yarn build-node` – builds configs and plugins for mdx.
 - `yarn extract-article-covers` - copy the image for the last five articles of the main page and the tag pages of the blog into a shared folder. This script will automatically run with the `yarn build` or `yarn dev` commands. To see new post cover in `/blog` or `/blog/tags` root page during development you have to restart development server (`yarn dev`).
 - `yarn generate-rss` – generates rss-feed for blog.
-- `yarn markdown-lint` – lints `*.mdx` files inside `content/**/blog/pages/` folders for syntax errors.
-- `yarn markdown-lint-external-links` – same as `yarn markdown-lint` but checks that external links work. Separate command because of slowness.
-- `yarn markdown-fix` – fixes syntax automatically in `*.mdx` files inside `content/**/blog/pages/`.
+- `yarn generate-sitemap` - generates sitemap for blog.
+
+## Creating a new article
+
+1. Create a new folder in the pages folder. The name of this folder will be part of the uri address for this article. That is, if you named the folder `ssh-config`, the address of this article will be `goteleport.com/blog/ssg-config`.
+2. If you have pictures in your article, then create a new folder inside the folder you created and name it `assets`. Inside it put all the pictures that relate to this article.
+3. For the article itself create a folder (p.1) file `index.mdx`.
+4. At the beginning of the article in the file `index.mdx` must be filled `frontmatter`. These fields are needed for further work and display the new article in the blog.
+5. On the first line of the file `index.mdx` write `---`. This will be the beginning of `frontmatter`. Next, write the following lines:
