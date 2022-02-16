@@ -21,20 +21,14 @@ function BlogIndexPage({
   currentPage,
   maxPages,
 }) {
-  const newArticles = articles.slice(0, 5).map((art, index) => {
-    return (
-      <Box as="li" key={index}>
-        <ArticleCard meta={art} needImg />
-      </Box>
-    );
-  });
-  const restArticles = articles.slice(5).map((art, index) => {
+  const articlesList = articles.map((art, index) => {
     return (
       <Box as="li" key={index}>
         <ArticleCard meta={art} />
       </Box>
     );
   });
+  const additionalArticles = articlesList.slice(5);
   const tagsList = tags.map((tag, index) => {
     return (
       <Box as="li" marginRight={[2, 0]} key={index}>
@@ -71,9 +65,9 @@ function BlogIndexPage({
                 {`Articles ${!!tag ? `by topic ${tag}` : ""}`}
               </StyledTitle>
               <Box as="ul" listStyle="none" mt="3" mb="6">
-                {newArticles}
+                {articlesList.slice(0, 5)}
               </Box>
-              {!!restArticles.length && (
+              {!!additionalArticles.length && (
                 <>
                   {currentPage === "1" && (
                     <StyledTitle as="h2" text="text-xl" mt={["8", "11"]}>
@@ -81,7 +75,7 @@ function BlogIndexPage({
                     </StyledTitle>
                   )}
                   <Box as="ul" listStyle="none" mt="3" mb="6">
-                    {restArticles}
+                    {additionalArticles}
                   </Box>
                 </>
               )}
