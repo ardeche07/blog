@@ -36,7 +36,7 @@ function addPaths(articlesList, pathsArray, tag) {
  * write the path to the image, which is in the public folder,
  * for the first five posts on the home page and on the tags page
  */
-function createPathToCover(articles, pageNumber) {
+function processCover(articles, pageNumber) {
   return articles.map((a, i) => {
     if (pageNumber === "1" && i < 5 && a.frontmatter.logo) {
       return {
@@ -53,23 +53,11 @@ function createPathToCover(articles, pageNumber) {
         },
       };
     } else {
-      return { ...a };
+      /*
+       * remove the logo field from the frontmatter for posts where we don't display the cover
+       */
+      return { ...a, frontmatter: { ...a.frontmatter, logo: null } };
     }
-  });
-}
-
-/*
- * remove the logo field from the frontmatter for posts where we don't display the cover
- */
-function removeImage(articles, pageNumber) {
-  return articles.map((a, i) => {
-    if (i > 4 || pageNumber !== "1") {
-      return {
-        ...a,
-        frontmatter: { ...a.frontmatter, logo: null },
-      };
-    }
-    return { ...a };
   });
 }
 
@@ -110,7 +98,6 @@ export async function getStaticProps({ params }) {
 
   let articles = [];
   let articlesWithPathToCover = [];
-  let articlesWithoutLogo = [];
   const initialPageCount = ARTICLES_BY_PAGE * (Number(pageNumber) - 1);
   const finalPageCount = ARTICLES_BY_PAGE * Number(pageNumber);
 
@@ -118,19 +105,17 @@ export async function getStaticProps({ params }) {
     const articlesByFilter = getArticlesByTag(list, tag);
     maxPages = Math.ceil((articlesByFilter.length + 1) / ARTICLES_BY_PAGE);
     articles = articlesByFilter.slice(initialPageCount, finalPageCount);
-    articlesWithPathToCover = createPathToCover(articles, pageNumber);
-    articlesWithoutLogo = removeImage(articlesWithPathToCover, pageNumber);
+    articlesWithPathToCover = processCover(articles, pageNumber);
   } else {
     articles = list.slice(initialPageCount, finalPageCount);
-    articlesWithPathToCover = createPathToCover(articles, pageNumber);
-    articlesWithoutLogo = removeImage(articlesWithPathToCover, pageNumber);
+    articlesWithPathToCover = processCover(articles, pageNumber);
   }
 
   return {
     props: {
       tag,
       tags,
-      articles: articlesWithoutLogo,
+      articles: articlesWithPathToCover,
       currentPage: pageNumber,
       maxPages,
     },
