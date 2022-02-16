@@ -37,6 +37,7 @@ export default function GridTile({
         backgroundSize="auto 100%"
         backgroundRepeat="no-repeat"
         borderRadius="8px 8px 0 0"
+        backgroundColor="white"
       ></Flex>
 
       {/* bottom half */}
