@@ -41,7 +41,6 @@ function createPathToCover(articles, pageNumber) {
     if (pageNumber === "1" && i < 5 && a.frontmatter.logo) {
       return {
         ...a,
-        needCover: true,
         frontmatter: {
           ...a.frontmatter,
           logo: {
@@ -67,7 +66,6 @@ function removeImage(articles, pageNumber) {
     if (i > 4 || pageNumber !== "1") {
       return {
         ...a,
-        needCover: false,
         frontmatter: { ...a.frontmatter, logo: null },
       };
     }

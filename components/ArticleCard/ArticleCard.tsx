@@ -13,20 +13,17 @@ interface ArticleCardProps {
   meta: {
     frontmatter: BlogMeta;
     uri: string;
-    needCover: boolean;
   };
 }
 
 export default function ArticleCard({ meta }: ArticleCardProps) {
+  const image = meta.frontmatter.logo?.image;
   return (
-    <StyledCard
-      href={meta.uri}
-      flexDirection={meta.needCover ? "row" : "column"}
-    >
-      {!!(meta.needCover && meta.frontmatter.logo?.image) && (
+    <StyledCard href={meta.uri} flexDirection={!!image ? "row" : "column"}>
+      {!!image && (
         <StyledWrapperImage>
           <NextImage
-            src={meta.frontmatter.logo.image}
+            src={image}
             alt="article image"
             layout="fill"
             objectFit="cover"
