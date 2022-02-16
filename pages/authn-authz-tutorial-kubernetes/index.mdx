@@ -1,0 +1,172 @@
+---
+articleTitle: Authentication (AuthN) and Authorization (AuthZ) Tutorial for Kubernetes
+title: "Tutorial: Authentication (AuthN) and Authorization (AuthZ) for Kubernetes"
+description: The difference between who gets to access (AuthN) a Kubernetes cluster and what they can do with those permissions (AuthZ)
+date: "2022-02-15"
+author: Lukonde Mwila
+logo:
+  image: ./assets/authz-authn@2x-min.png
+  alt: "Tutorial: Authentication (AuthN) and Authorization (AuthZ) for Kubernetes"
+tags:
+  - security
+  - kubernetes
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+[Kubernetes](https://kubernetes.io/) is an API-centric orchestration platform. Every request, from the cluster components to users interacting with the system, [has to go through the API server](https://kubernetes.io/docs/tasks/administer-cluster/securing-a-cluster/). The API server is a component [in the control plane](https://kubernetes.io/docs/concepts/overview/components/), and acts as a gatekeeper for the operation requests originating from both inside and outside of the cluster.
+
+These interactions are based on a client-server model with a REST API that exposes various APIs and endpoints to fulfill various CRUD (create, read, update, and delete) operations. Clients can range from software developers and DevOps engineers using the kubectl CLI to cluster nodes. Other control plane components, such as the scheduler and the controllers, are always communicating with the API server, and function as clients when requests are made.
+
+The API server is crucial to the state and behavior of the entire Kubernetes cluster. As a result, all API requests need to be validated to ensure the security of the cluster. This process of validation entails verifying who (in the case of a user) or what (in the case of a pod or machine) is making the request. This is known as _authentication_, or _AuthN_. In addition to this, the API server will need to verify whether the entity making the request has sufficient permissions for the operation. This process is referred to as _authorization_, or _AuthZ_.
+
+This article will define and contrast AuthN and AuthZ, then delve into how they can be used in the context of Kubernetes to secure your cluster and its operations.
+
+## AuthN and AuthZ explained
+
+Though often conflated, AuthN and AuthZ are two different, equally important steps.
+
+### AuthN
+
+Authentication (AuthN) is the process of validating or verifying that a user or entity is who (or what) [they claim to be](https://goteleport.com/blog/authn-vs-authz/). In a security system, authentication must always come before authorization. There are many authentication processes, such as username and password combinations, one-time pins (OTPs), authentication apps with generated security codes, and biometric scans. Authentication can usually be updated by the user, such as changing an email, username, or password that’s used as part of the verification process.
+
+### AuthZ
+
+Authorization (AuthZ) is the step that follows the successful validation of a user or entity. The term authorization is [synonymous with “access control”](https://goteleport.com/docs/access-controls/introduction/). Authorization refers to granting a validated user the appropriate permissions to carry out specific functions based on user rules and their roles in a system. Authorization is determined by permissions set by an administrator, and the user can’t see or adjust these permissions.
+
+## AuthN and AuthZ in Kubernetes
+
+AuthN and AuthZ are the building blocks of your cluster’s security. Let’s take a closer look at how they function specifically within the context of Kubernetes.
+
+### AuthN in Kubernetes
+
+Kubernetes doesn’t have an internal system for storing user accounts, so your cluster assumes that users are created and managed outside of the cluster. This means that in Kubernetes, all incoming client requests have credentials embedded in or attached to them. Those credentials are then passed to an external authentication system that validates the user.
+
+System components, such as kubelets (the Kubernetes node agent), pods, and other components of the control plane (scheduler and controllers) also need to authenticate with the API server. Every Kubernetes object that interacts with the API server gets associated with a service account, which acts as the identity when authenticating with the API server.
+
+Here’s an example of a service account implementation with application pods:
+
+```
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orders-service-account
+  namespace: ecommerce
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders
+  namespace: ecommerce
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: orders
+      role: api
+  template:
+    metadata:
+      labels:
+        app: orders
+        role: api
+    spec:
+      serviceAccountName: orders-service-account
+      containers:
+      - name: orders-container
+        image: lukondefmwila/ecommerce-orders:0.1.0
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+```
+
+There are different [authentication strategies](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) that can be applied in Kubernetes.
+
+- **Static token file:** In this approach, you maintain a static CSV file with the user IDs, names, and tokens, and, optionally, group names. This list of tokens can’t be changed without restarting the cluster’s API server. Static token files use a basic HTTP authentication scheme per [RFC7617](https://datatracker.ietf.org/doc/html/rfc7617). To use this method, you need to specify the `--token-auth-file=SOMEFILE` flag option for the API server to read the bearer token from the CSV file.
+- **X.509 certificates:** In this approach, all users have their own X.509 client certificate, and the cluster API server validates the client certificate using a certificate authority (CA). If a user’s client certificate is successfully verified, the subject’s `commonName` value will be used as the username for the request, and the organizations defined for the subject will be used as groups. Administrators need to manage access to the CA, issue the client certificates, and reissue them when they’re about to expire. The certificates should be securely distributed to the users who will be accessing the cluster. Users can then update their kubeconfig files to make use of the issued certificates. To use this method, you need to pass the `--client-ca-file=SOMEFILE` flag to the API server.
+- **[OpenID Connect](https://openid.net/connect/) (OIDC):** [This is a layer on top of OAuth 2.0](https://www.oreilly.com/library/view/kubernetes-security/9781492039075/) and is supported by providers, such as [AWS](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html), [Salesforce](https://help.salesforce.com/s/articleView?language=en_US&type=5&id=sso_provider_openid_connect.htm), [Google](https://developers.google.com/identity/protocols/oauth2/openid-connect), and [Azure Active Directory](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-protocols-oidc). This protocol has an additional field that returns a JSON Web Token (JWT) called an ID token. For identification, the authenticator uses the ID token as a bearer token.
+- **[Bootstrap tokens:](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/)** This approach is for creating new clusters or joining nodes to existing Kubernetes clusters. These tokens are dynamically created and managed, and stored as secrets in the `kube-system` namespace. The Controller Manager has a controller, known as the TokenCleaner, dedicated to deleting these tokens when they expire.
+
+If you are using `kubeadmin` to bootstrap your cluster, the TokenCleaner will be enabled by default. Alternatively, you can enable it with the following command: `--controllers=*,tokencleaner`.
+
+This approach has been stable since v1.18, and requires you to enable the Bootstrap Token Authenticator with the following flag on the API server:
+
+```
+--enable-bootstrap-token-auth flag on the API Server
+```
+
+### AuthZ in Kubernetes
+
+Authorization in Kubernetes can be accomplished through several modes, which allows you to grant or disallow permissions to clients accessing your cluster.
+
+#### ATTRIBUTE-BASED ACCESS CONTROL
+
+Attribute-based access control (ABAC) is an authorization mode that grants access rights to users by combining the attributes of policies. These policies can use attribute types such as user attributes, resource attributes, objects, and environment attributes.
+
+ABAC is especially useful for applying dynamic business rules to different technology stacks and infrastructure layers. For example, if you need to control access based on network connections or geographic locations, ABAC can be very useful.
+
+To enable this mode of authorization in Kubernetes, you need to provide the flags `--authorization-policy-file=SOME_FILENAME` and `--authorization-mode=ABAC`.
+
+#### NODE AUTHORIZATION
+
+This mode of authorization is a special-purpose authorizer that grants permissions to the kubelet based on the pods that they’re scheduled to spin up. This authorizer grants the kubelet permission to perform certain read, write, and auth-related operations on the API server. In order for this to work, kubelets running on the nodes have to use credentials that identify them as part of the `system:nodes` group. The username will have a format like `system:node:<node-name>`.
+
+You can enable this form of authorization by starting the API Server with `--authorization-mode=Node`.
+
+#### WEBHOOK AUTHORIZATION
+
+This authorization mode allows you to integrate your Kubernetes cluster with external authorizers. When using the Webhook authorizer, Kubernetes will query an external REST service to determine user permissions. This mode requires a configuration file that uses the same file format as the kubeconfig file. This file is used for HTTP configuration, and needs to be specified with the flag, `--authorization-webhook-config-file=SOME_FILENAME`
+
+#### ROLE-BASED ACCESS CONTROLS (RBAC) FOR KUBERNETES
+
+In order to carry out various actions or operations in your Kubernetes cluster, you’ll need to define some rules. Upon the creation of a new cluster, the creator (user or role) will be assigned full administrative privileges. Roles in Kubernetes can be managed through role-based access control (RBAC) authorization. RBAC authorization uses the `rbac.authorization.k8s.io` API group, which consists of API objects listed below.
+
+- **Role:** This object is used to determine which operations can be carried out on which resources in a specific namespace.
+- **ClusterRole:** This object is used to determine which operations can be carried out on which resources anywhere in the cluster.
+- **RoleBinding:** This object is used to determine which users or service accounts are authorized to carry out operations on resources in a given namespace.
+- **ClusterRoleBinding:** This object is used to determine which users or service accounts are authorized to carry out operations on resources anywhere in the cluster.
+
+Below is an example of an RBAC implementation:
+
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: engineer-actions
+  namespace: default
+rules:
+  - apiGroups: [""] # "" indicates the core API group
+    resources: ["pods","services"]
+    verbs: ["get","list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: engineer-performer
+  namespace: default
+subjects:
+- kind: User
+  name: lukas-rbac-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: engineer-actions
+  apiGroup: rbac.authorization.k8s.io
+```
+
+### The importance of AuthN and AuthZ in Kubernetes
+
+In general, these two concepts, AuthN and AuthZ, are the foundation for a good [identity and access management security strategy](https://goteleport.com/blog/secure-infrastructure-access/). This is also true in the context of Kubernetes. AuthN and AuthZ strategies are the building blocks to securing your cluster’s API server and, in turn, the overall state and behavior of the cluster. Whether you have a small team of software developers and Kubernetes operators working on a single application or you are dealing with a complex, multi-tenant model with a host of teams and applications running side by side in a cluster, your AuthN and AuthZ implementations have to be your [first line of defense](https://kubernetes.io/docs/tasks/administer-cluster/securing-a-cluster/).
+
+With AuthN, you can verify the identity of users interacting with the cluster or applications running on nodes within the cluster. This helps ensure that only approved users in an organization or software team can communicate with the Kubernetes cluster via kubectl. Also, all applications (or pods) in the cluster will have to be identified by an associated [service account](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/) before being granted access to execute any operations.
+
+With AuthZ, all validated users, applications, and nodes sending requests to the API server will be limited to performing the actions defined in the permissions for their roles. This mitigates the risks that users might execute operations with serious ramifications, whether accidentally or on purpose.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+
+Kubernetes is a complex platform with a large surface area prone to attack. Securing your cluster starts with ensuring that the main hub — the API server — that all operations go through is locked down with the appropriate measures. These measures fall within two main categories, AuthN and AuthZ. In this post, you learned about what AuthN and AuthZ are, how they differ, why they’re important, and how they can be applied in the context of Kubernetes. To implement best practices on securing AuthN and AuthZ in Kubernetes, read our blog on [Kubernetes API security hardening](https://goteleport.com/blog/kubernetes-api-access-security/).
