@@ -74,7 +74,7 @@ const SubscriptionForm = ({
         </StyledButton>
       </Flex>
       <Box
-        color="gray"
+        color={isViolet ? "white" : "gray"}
         fontSize="text-sm"
         lineHeight="12px"
         textAlign="center"
