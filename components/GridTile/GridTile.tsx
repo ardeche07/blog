@@ -1,9 +1,11 @@
 import styled from "styled-components";
+import NextImage from "next/image";
 import { all, css } from "components/system";
 import Link from "components/Link";
 import Box, { BoxProps } from "components/Box";
 import Flex from "components/Flex";
-import articleImage from "./assets/featured-article.png";
+import { generateCoverImagePath } from "utils/generate-cover-image-path";
+import { ARTICLE_COVERS_FOLDER } from "utils/constants";
 
 /**
  * GridTiles are clickable, have hover functionality, and no "Learn More" button.
@@ -14,6 +16,7 @@ export interface GridTileProps {
   children: React.ReactNode;
   title: string;
   href: string;
+  cover: string;
   bhColor?: string;
 }
 
@@ -22,23 +25,19 @@ export default function GridTile({
   title,
   href,
   bhColor,
+  cover,
   ...props
 }: GridTileProps & BoxProps) {
+  const imagePath = `${ARTICLE_COVERS_FOLDER}${generateCoverImagePath(
+    cover,
+    href
+  )}`;
   return (
     <StyledWrapper href={href} {...props}>
       {/* top half */}
-      <Flex
-        flexDirection="row"
-        pt="120px"
-        pb={3}
-        px={4}
-        backgroundImage={`url("${articleImage}")`}
-        backgroundPosition="center"
-        backgroundSize="auto 100%"
-        backgroundRepeat="no-repeat"
-        borderRadius="8px 8px 0 0"
-        backgroundColor="white"
-      ></Flex>
+      <StyledImageWrapper>
+        <NextImage src={imagePath} width={221} height={136} alt="cover" />
+      </StyledImageWrapper>
 
       {/* bottom half */}
       <Flex
@@ -75,7 +74,9 @@ const StyledWrapper = styled(Link)(
     borderRadius: "md",
     textDecoration: "none",
     boxShadow: "0 1px 4px rgba(0, 0, 0, 0.24)",
-    bg: "white",
+    backgroundColor: "white",
+    backgroundImage:
+      "linear-gradient(180deg, #FFFFFF 50%, #F6F8F9 50%, #F6F8F9 100%)",
     transition: ".3s all",
     "&:hover": {
       transform: "translateY(-2px)",
@@ -83,4 +84,15 @@ const StyledWrapper = styled(Link)(
     },
   }),
   all
+);
+
+const StyledImageWrapper = styled(Flex)(
+  css({
+    flexDirection: "row",
+    py: 3,
+    px: 4,
+    justifyContent: "center",
+    borderRadius: "8px 8px 0 0",
+    backgroundColor: "white",
+  })
 );

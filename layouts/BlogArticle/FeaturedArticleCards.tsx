@@ -6,9 +6,6 @@ import { FeaturedArticleCardsProps } from "./types";
 export default function FeaturedArticleCards({
   articles,
 }: FeaturedArticleCardsProps) {
-  const gradient =
-    "linear-gradient(180deg, #FFFFFF 50%, #F6F8F9 50%, #F6F8F9 100%)";
-
   return (
     <Grid
       mt="5"
@@ -22,8 +19,7 @@ export default function FeaturedArticleCards({
           title={frontmatter.articleTitle}
           href={uri}
           bhColor="page-bg"
-          resourcesCard
-          backgroundImage={gradient}
+          cover={frontmatter.logo.image}
         >
           <Box as="p">By {frontmatter.author}</Box>
         </GridTile>
