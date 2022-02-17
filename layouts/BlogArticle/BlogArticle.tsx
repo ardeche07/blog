@@ -16,10 +16,11 @@ import Tags from "components/Tags";
 import Link from "components/Link";
 import TryTeleport from "components/TryTeleport";
 import SearchSite from "components/SearchSite";
+import ShareButtons from "components/ShareButtons";
+import { BlogMeta } from "layouts/BlogArticle/types";
 import divider from "./assets/divider.png";
 import rss from "./assets/rss.svg";
 import { components } from "./components";
-import { BlogMeta } from "layouts/BlogArticle/types";
 
 interface MetaBlogArticle extends BlogMeta {
   noindex?: boolean;
@@ -111,6 +112,7 @@ export const BlogArticle = ({
         <TryTeleport />
       </Layout>
       <Footer />
+      <ShareButtons />
       <Drift />
     </>
   );
