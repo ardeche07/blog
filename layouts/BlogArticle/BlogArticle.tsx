@@ -95,7 +95,7 @@ export const BlogArticle = ({
           </Centrator>
           <StyledWrapper>
             <MDXProvider components={components}>{children}</MDXProvider>
-            <Tags size="sm" tags={tags} mt={[5, 8]} />
+            <Tags tags={tags} mt={[5, 8]} />
           </StyledWrapper>
         </Section>
         {articlesInfo && (
