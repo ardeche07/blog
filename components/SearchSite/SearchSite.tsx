@@ -126,13 +126,9 @@ export default function SearchSite() {
 
 const StyledWrapperAutocomplete = styled(Box)(
   css({
-    width: "200px",
+    width: "400px",
     height: "40px",
-    alignSelf: "start",
-    flexShrink: 0,
-    order: [1, "unset"],
-    mt: ["-36px", 0],
-    ml: ["auto", 0],
+    mt: 2,
     "& .aa-Form, .aa-DetachedSearchButton": {
       borderRadius: "24px",
       borderColor: "lighter-gray",
@@ -146,7 +142,6 @@ const StyledWrapperAutocomplete = styled(Box)(
     },
 
     "@media(max-width: 560px)": {
-      mt: 2,
       width: "100%",
     },
   })
