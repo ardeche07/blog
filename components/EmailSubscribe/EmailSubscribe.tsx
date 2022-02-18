@@ -92,12 +92,7 @@ const SubscriptionForm = ({
         {!!submitted && <Box color="green">Submitted successfully!</Box>}
         {!!error && <Box color="red">{error}</Box>}
       </Box>
-      <Box
-        id={UID}
-        css={css({
-          ".grecaptcha-badge": { visibility: "hidden" },
-        })}
-      ></Box>
+      <StyledRecaptchaWrapper id={UID}></StyledRecaptchaWrapper>
     </>
   );
 };
@@ -204,4 +199,10 @@ const StyledSection = styled(Section)(
     boxShadow: "0 0 12px rgba(0, 0, 0, 0.32)",
   }),
   all
+);
+
+const StyledRecaptchaWrapper = styled(Box)(
+  css({
+    ".grecaptcha-badge": { visibility: "hidden" },
+  })
 );
