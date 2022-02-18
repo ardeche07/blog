@@ -88,7 +88,7 @@ function BlogIndexPage({
               )}
             </Box>
             <StyledSideWrapper>
-              <SearchSite />
+              <SearchSite smallSize />
               <StyledWrapperTags>
                 <StyledLineTitle as="h2">Articles by topic</StyledLineTitle>
                 <Box

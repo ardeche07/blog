@@ -6,7 +6,7 @@ import styled from "styled-components";
 import css from "@styled-system/css";
 import Box from "components/Box";
 import { debounced } from "server/search-api-helpers";
-import { SearchStyles } from "./SearchStyles";
+import { SearchStyles, SmallSearchStyles } from "./SearchStyles";
 
 export const getSearchResults = async (query: string) => {
   let href = "";
@@ -51,7 +51,12 @@ function Autocomplete(props) {
     };
   }, [props]);
 
-  return <StyledWrapperAutocomplete ref={containerRef} />;
+  return (
+    <StyledWrapperAutocomplete
+      width={props.smallSize ? "200px" : "400px"}
+      ref={containerRef}
+    />
+  );
 }
 
 function ProductItem({ hit }) {
@@ -93,11 +98,15 @@ function ProductItem({ hit }) {
   );
 }
 
-export default function SearchSite() {
+export interface SearchSiteProps {
+  smallSize?: boolean;
+}
+export default function SearchSite({ smallSize }: SearchSiteProps) {
   return (
     <>
-      <SearchStyles />
+      {smallSize ? <SmallSearchStyles /> : <SearchStyles />}
       <Autocomplete
+        smallSize={smallSize}
         openOnFocus={false}
         placeholder="Search Blog"
         getSources={({ query }) => {
@@ -126,7 +135,6 @@ export default function SearchSite() {
 
 const StyledWrapperAutocomplete = styled(Box)(
   css({
-    width: "400px",
     height: "40px",
     mt: 2,
     "& .aa-Form, .aa-DetachedSearchButton": {

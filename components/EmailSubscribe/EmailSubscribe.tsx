@@ -120,7 +120,7 @@ export function EmailSubscribe({ ...props }: FlexProps) {
       <Flex
         ml={[0, 4]}
         mt={[2, 0]}
-        minHeight="40px"
+        minHeight={["68px", "78px"]}
         minWidth={["auto", "500px"]}
         flexDirection="column"
         justifyContent="center"
@@ -220,5 +220,6 @@ const StyledSubmittedText = styled(Box)(
   css({
     fontSize: "header-4",
     lineHeight: "lg",
+    minHeight: ["68px", "78px"],
   })
 );
