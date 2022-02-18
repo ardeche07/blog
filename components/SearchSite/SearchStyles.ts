@@ -1,23 +1,30 @@
-import { createGlobalStyle } from "styled-components";
+import { createGlobalStyle, css } from "styled-components";
 
-export const SearchStyles = createGlobalStyle`
-.aa-Panel {
+const commonStyles = css`
   width: 600px !important;
-  left: 50% !important;
-  transform: translateX(-50%);
 
   & .aa-Item + .aa-Item {
     margin-top: 8px;
   }
 
   & .found-part {
-    background-color: #D2DBDF;
-    color: #651FFF;
+    background-color: #d2dbdf;
+    color: #651fff;
   }
 
-  @media(max-width: 680px) {
+  @media (max-width: 680px) {
     width: auto !important;
     left: 0 !important;
+  }
+`;
+
+export const SearchStyles = createGlobalStyle`
+.aa-Panel {
+  ${commonStyles}
+  left: 50% !important;
+  transform: translateX(-50%);
+
+  @media(max-width: 680px) {
     transform: translateX(0);
   }
 }
@@ -25,21 +32,7 @@ export const SearchStyles = createGlobalStyle`
 
 export const SmallSearchStyles = createGlobalStyle`
 .aa-Panel {
-  width: 600px !important;
+  ${commonStyles}
   left: initial !important;
-
-  & .aa-Item + .aa-Item {
-    margin-top: 8px;
-  }
-
-  & .found-part {
-    background-color: #D2DBDF;
-    color: #651FFF;
-  }
-
-  @media(max-width: 680px) {
-    width: auto !important;
-    left: 0 !important;
-  }
 }
 `;
