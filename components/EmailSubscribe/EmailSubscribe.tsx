@@ -38,7 +38,11 @@ const SubscriptionForm = ({
   const wrapperProps = isViolet ? labelObject : undefined;
 
   return disabled ? null : !!submitted ? (
-    <StyledSubmittedText as="p" color={isViolet ? "white" : "darkest"}>
+    <StyledSubmittedText
+      as="p"
+      color={isViolet ? "white" : "darkest"}
+      mt={isViolet ? 4 : 0}
+    >
       Thanks! You have successfully signed up for the Teleport newsletter.
     </StyledSubmittedText>
   ) : (
