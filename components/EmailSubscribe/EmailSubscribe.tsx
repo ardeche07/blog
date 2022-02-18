@@ -37,7 +37,11 @@ const SubscriptionForm = ({
   const WrapperInput = isViolet ? Box : Fragment;
   const wrapperProps = isViolet ? labelObject : undefined;
 
-  return disabled ? null : (
+  return disabled ? null : !!submitted ? (
+    <StyledSubmittedText as="p" color={isViolet ? "white" : "darkest"}>
+      Thanks! You have successfully signed up for the Teleport newsletter.
+    </StyledSubmittedText>
+  ) : (
     <>
       <Flex
         as="form"
@@ -89,7 +93,6 @@ const SubscriptionForm = ({
             <RecaptchaTOC />
           </Box>
         )}
-        {!!submitted && <Box color="green">Submitted successfully!</Box>}
         {!!error && <Box color="red">{error}</Box>}
       </Box>
       <StyledRecaptchaWrapper id={UID}></StyledRecaptchaWrapper>
@@ -110,14 +113,16 @@ export function EmailSubscribe({ ...props }: FlexProps) {
       <Box as="p" text={["text-xl", "header-4"]} color="darkest">
         Get the latest product updates and engineering blog posts
       </Box>
-      <Box
+      <Flex
         ml={[0, 4]}
         mt={[2, 0]}
         minHeight="40px"
         minWidth={["auto", "500px"]}
+        flexDirection="column"
+        justifyContent="center"
       >
         <SubscriptionForm />
-      </Box>
+      </Flex>
     </Flex>
   );
 }
@@ -204,5 +209,12 @@ const StyledSection = styled(Section)(
 const StyledRecaptchaWrapper = styled(Box)(
   css({
     ".grecaptcha-badge": { visibility: "hidden" },
+  })
+);
+
+const StyledSubmittedText = styled(Box)(
+  css({
+    fontSize: "header-4",
+    lineHeight: "lg",
   })
 );
