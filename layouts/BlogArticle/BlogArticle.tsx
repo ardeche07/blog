@@ -5,7 +5,6 @@ import Drift from "components/Drift";
 import { format } from "date-fns";
 import NextImage from "next/image";
 import Box from "components/Box";
-import Flex from "components/Flex";
 import FeaturedArticleCards from "./FeaturedArticleCards";
 import type { BlogArticle as BlogArticleInfo } from "./types";
 import Footer from "components/Footer";
@@ -17,10 +16,11 @@ import Tags from "components/Tags";
 import Link from "components/Link";
 import TryTeleport from "components/TryTeleport";
 import SearchSite from "components/SearchSite";
+import ShareButtons from "components/ShareButtons";
+import { BlogMeta } from "layouts/BlogArticle/types";
 import divider from "./assets/divider.png";
 import rss from "./assets/rss.svg";
 import { components } from "./components";
-import { BlogMeta } from "layouts/BlogArticle/types";
 
 interface MetaBlogArticle extends BlogMeta {
   noindex?: boolean;
@@ -61,19 +61,16 @@ export const BlogArticle = ({
       />
       <Layout lineHeight="lg" hideWave="true" pt={[6, 11]}>
         <Section py={[6, 11]} bg="flatWhite">
-          <Centrator flexDirection="column" textAlign="center">
-            <Link href="/rss.xml" aria-label="rss feed" alignSelf="center">
+          <Centrator
+            flexDirection="column"
+            textAlign="center"
+            alignItems="center"
+          >
+            <Link href="/rss.xml" aria-label="rss feed">
               <StyledIconRSS />
             </Link>
-            <Flex justifyContent="space-between" flexWrap={["wrap", "unset"]}>
-              <Box
-                width="200px"
-                flexShrink={0}
-                display={["none", "block"]}
-              ></Box>
-              <StyledTitle as="h1">{articleTitle}</StyledTitle>
-              <SearchSite />
-            </Flex>
+            <SearchSite />
+            <StyledTitle as="h1">{articleTitle}</StyledTitle>
             <Box
               as="p"
               textTransform="uppercase"
@@ -95,7 +92,7 @@ export const BlogArticle = ({
           </Centrator>
           <StyledWrapper>
             <MDXProvider components={components}>{children}</MDXProvider>
-            <Tags size="sm" tags={tags} mt={[5, 8]} />
+            <Tags tags={tags} mt={[5, 8]} />
           </StyledWrapper>
         </Section>
         {articlesInfo && (
@@ -115,6 +112,7 @@ export const BlogArticle = ({
         <TryTeleport />
       </Layout>
       <Footer />
+      <ShareButtons />
       <Drift />
     </>
   );
@@ -147,9 +145,8 @@ const StyledTitle = styled(Box)(
     fontSize: ["header-2", "header-1"],
     lineHeight: ["xl", "xxl"],
     px: 3,
-    width: ["100%", "auto"],
-    order: [2, "unset"],
-    mt: [3, 0],
+    width: "100%",
+    mt: [3, 4],
   })
 );
 

@@ -5,11 +5,11 @@
  */
 
 import Blog from "layouts/Blog";
-import { generateCoverImagePath } from "utils/generate-cover-image-path";
 import { getArticlesListAndTags } from "server/pages-helpers";
+import { generateCoverImagePath } from "utils/generate-cover-image-path";
+import { ARTICLE_COVERS_FOLDER } from "utils/constants";
 
 const ARTICLES_BY_PAGE = 25;
-const ARTICLE_COVERS_FOLDER = "/blog/covers/";
 
 function getArticlesByTag(artList, tag) {
   return artList.filter((art) =>

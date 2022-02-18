@@ -37,7 +37,15 @@ const SubscriptionForm = ({
   const WrapperInput = isViolet ? Box : Fragment;
   const wrapperProps = isViolet ? labelObject : undefined;
 
-  return disabled ? null : (
+  return disabled ? null : !!submitted ? (
+    <StyledSubmittedText
+      as="p"
+      color={isViolet ? "white" : "darkest"}
+      mt={isViolet ? 4 : 0}
+    >
+      Thanks! You have successfully signed up for the Teleport newsletter.
+    </StyledSubmittedText>
+  ) : (
     <>
       <Flex
         as="form"
@@ -74,7 +82,7 @@ const SubscriptionForm = ({
         </StyledButton>
       </Flex>
       <Box
-        color="gray"
+        color={isViolet ? "white" : "gray"}
         fontSize="text-sm"
         lineHeight="12px"
         textAlign="center"
@@ -89,15 +97,9 @@ const SubscriptionForm = ({
             <RecaptchaTOC />
           </Box>
         )}
-        {!!submitted && <Box color="green">Submitted successfully!</Box>}
         {!!error && <Box color="red">{error}</Box>}
       </Box>
-      <Box
-        id={UID}
-        css={css({
-          ".grecaptcha-badge": { visibility: "hidden" },
-        })}
-      ></Box>
+      <StyledRecaptchaWrapper id={UID}></StyledRecaptchaWrapper>
     </>
   );
 };
@@ -115,14 +117,16 @@ export function EmailSubscribe({ ...props }: FlexProps) {
       <Box as="p" text={["text-xl", "header-4"]} color="darkest">
         Get the latest product updates and engineering blog posts
       </Box>
-      <Box
+      <Flex
         ml={[0, 4]}
         mt={[2, 0]}
-        minHeight="40px"
+        minHeight={["68px", "78px"]}
         minWidth={["auto", "500px"]}
+        flexDirection="column"
+        justifyContent="center"
       >
         <SubscriptionForm />
-      </Box>
+      </Flex>
     </Flex>
   );
 }
@@ -204,4 +208,18 @@ const StyledSection = styled(Section)(
     boxShadow: "0 0 12px rgba(0, 0, 0, 0.32)",
   }),
   all
+);
+
+const StyledRecaptchaWrapper = styled(Box)(
+  css({
+    ".grecaptcha-badge": { visibility: "hidden" },
+  })
+);
+
+const StyledSubmittedText = styled(Box)(
+  css({
+    fontSize: "header-4",
+    lineHeight: "lg",
+    minHeight: ["68px", "78px"],
+  })
 );

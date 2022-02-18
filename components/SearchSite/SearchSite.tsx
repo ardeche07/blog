@@ -6,7 +6,7 @@ import styled from "styled-components";
 import css from "@styled-system/css";
 import Box from "components/Box";
 import { debounced } from "server/search-api-helpers";
-import { SearchStyles } from "./SearchStyles";
+import { SearchStyles, SmallSearchStyles } from "./SearchStyles";
 
 export const getSearchResults = async (query: string) => {
   let href = "";
@@ -51,7 +51,12 @@ function Autocomplete(props) {
     };
   }, [props]);
 
-  return <StyledWrapperAutocomplete ref={containerRef} />;
+  return (
+    <StyledWrapperAutocomplete
+      width={props.smallSize ? "200px" : "400px"}
+      ref={containerRef}
+    />
+  );
 }
 
 function ProductItem({ hit }) {
@@ -93,13 +98,17 @@ function ProductItem({ hit }) {
   );
 }
 
-export default function SearchSite() {
+export interface SearchSiteProps {
+  smallSize?: boolean;
+}
+export default function SearchSite({ smallSize }: SearchSiteProps) {
   return (
     <>
-      <SearchStyles />
+      {smallSize ? <SmallSearchStyles /> : <SearchStyles />}
       <Autocomplete
+        smallSize={smallSize}
         openOnFocus={false}
-        placeholder="Search Teleport"
+        placeholder="Search Blog"
         getSources={({ query }) => {
           return debounced([
             {
@@ -126,13 +135,8 @@ export default function SearchSite() {
 
 const StyledWrapperAutocomplete = styled(Box)(
   css({
-    width: "200px",
     height: "40px",
-    alignSelf: "start",
-    flexShrink: 0,
-    order: [1, "unset"],
-    mt: ["-36px", 0],
-    ml: ["auto", 0],
+    mt: 2,
     "& .aa-Form, .aa-DetachedSearchButton": {
       borderRadius: "24px",
       borderColor: "lighter-gray",
@@ -146,7 +150,6 @@ const StyledWrapperAutocomplete = styled(Box)(
     },
 
     "@media(max-width: 560px)": {
-      mt: 2,
       width: "100%",
     },
   })
