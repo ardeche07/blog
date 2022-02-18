@@ -99,7 +99,7 @@ export default function SearchSite() {
       <SearchStyles />
       <Autocomplete
         openOnFocus={false}
-        placeholder="Search Teleport"
+        placeholder="Search Blog"
         getSources={({ query }) => {
           return debounced([
             {
