@@ -13,7 +13,7 @@ export default withBundleAnalyzer({
     disableStaticImages: true,
     path: "/blog/_next/image",
   },
-  experimental: {
+  compiler: {
     // ssr and displayName are configured by default
     styledComponents: true,
   },
