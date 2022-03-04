@@ -7,7 +7,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 export default withBundleAnalyzer({
-  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx", "yaml"],
+  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
   outputFileTracing: false,
   images: {
     disableStaticImages: true,

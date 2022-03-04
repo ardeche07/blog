@@ -14,7 +14,5 @@ function isCompanies(maybeCompanies: unknown): maybeCompanies is CompanyData[] {
     throw new Error("company:data is not a list");
   }
 
-  // we should add an accurate validation here if applicable
-
   return true;
 }

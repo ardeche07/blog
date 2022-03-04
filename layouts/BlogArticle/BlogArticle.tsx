@@ -52,8 +52,6 @@ export const BlogArticle = ({
     ?.filter((article) => article.frontmatter.articleTitle !== articleTitle)
     .slice(0, 3);
 
-  console.log("????", articlesInfo);
-
   return (
     <>
       <Head
