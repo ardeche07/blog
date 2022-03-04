@@ -90,6 +90,8 @@ Host server1
     Hostname 192.168.100.20
 ```
 
+<EmailSubscribeViolet />
+
 
 ## Conclusion
 This post showed how to use **ProxyJump** and **ProxyCommand** and explained the differences between them. In summary, **ProxyJump** is a modern, easier alternative to **ProxyCommand**, but **ProxyCommand** provides greater route configuration flexibility. Although these commands are helpful for SSH jumping in a small environment, the config file can become long and chaotic if you have a large fleet of SSH servers and require different jump configurations for different servers. This issue can be easily solved using a modern SSH server such as Teleport. Teleport is open source, and you can use it as a drop-in replacement to OpenSSH. Teleport proxy and Teleport SSH client ([`tsh`](https://goteleport.com/docs/server-access/guides/tsh/)) intelligently configure routes for you so that you can manage access via jump servers for a large fleet of SSH servers without the hassle of maintaining a long list of SSH client config files. 

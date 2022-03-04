@@ -12,6 +12,8 @@ logo:
 layout: blogArticle
 ---
 
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
 # What is kubectl?
 
 In the last few years, Kubernetes has grown exponentially in popularity. Its wide adoption can be attributed to its open source nature, flexibility, and ability to run anywhere. Developers also love the fact that you can manage everything in Kubernetes using code. 
@@ -130,6 +132,8 @@ Depending on the specific resource or object, you can observe its state using th
 For example, [pods](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase) have five values for its status (pending, running, succeeded, failed, and unknown) depending on the observed state of the pod. 
 
 When working in a team, debugging the state of your objects is crucial. Resources created by another user could limit the performance of your resources. In space-limited clusters, your created resource could be stuck on `Pending`, `Waiting`, or even fail because assets needed for its creation are currently in use. Use [kubectl logs](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#logs) and [`kubectl debug`](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#debug) to understand your object’s state and dig into possible reasons for failure.
+
+<EmailSubscribeViolet />
 
 ## Conclusion
 
