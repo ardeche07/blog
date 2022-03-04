@@ -1,0 +1,97 @@
+---
+articleTitle: How To Use SSH ProxyJump and SSH ProxyCommand
+description: A hands-on look at using SSH ProxyJump and SSH ProxyCommand to connect to a server via jump servers.
+title: Tutorial:\ How to Use SSH ProxyJump and SSH ProxyCommand
+date: "2022-03-01"
+author: Zephyr Iglesias
+logo: 
+  image: ./assets/proxycommand-ssh@2x.png
+  alt: proxy command
+tags:
+  - ssh
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+OpenSSH **ProxyJump** and **ProxyCommand** directives tell the SSH client how to connect to a remote server via an intermediary server — often called a jump host, jump server, or bastion server. 
+
+If you are new to jump servers, read our tutorial on [how to set up a jump server](https://goteleport.com/blog/ssh-jump-server/) and learn some of the [best practices to secure them](https://goteleport.com/blog/security-hardening-ssh-bastion-best-practices/).  
+
+## ProxyCommand vs. ProxyJump
+**ProxyJump** is the easiest and recommended way to jump between hosts because it ensures that traffic passing through the intermediate hosts is always encrypted end-to-end. But **ProxyJump** is available only since OpenSSH version 7.5, and the feature requires port forwarding to be supported by intermediate hosts. Before **ProxyJump** was released, **ProxyCommand** was the way to jump hosts. **ProxyCommand** works by forwarding standard in and standard out (stdio) through an intermediate host. Internally, **ProxyJump** wraps the **ProxyCommand** in a secure and easy directive.
+
+Below is a sample usage of the **ProxyJump** command. Note the shorthand `-J`.
+```bash
+$ ssh -J <jump server> <remote server>
+```
+
+Below is a sample usage of **ProxyJump** command for jumping between multiple hosts.
+```bash
+$ ssh -J <jump server1>,<jump server2>,<jump server3> <remote server>
+```
+
+Below is a sample usage of **ProxyCommand** command.
+```bash
+$ ssh -o ProxyCommand="ssh -W %h:%p <jump server>" <remote server>
+```
+
+If you’re using OpenSSH on a Windows machine, you must include the full SSH file path in the **ProxyCommand** directive. It should look similar to this:
+
+```sh
+ProxyCommand C:\Windows\System32\OpenSSH\ssh.exe -W %h:%p <bastion_host>
+```
+
+## Configuring ProxyJump and ProxyCommand in the SSH client config file
+
+It can be tedious to configure jump routes between each new SSH connection. Luckily, OpenSSH allows configuring **ProxyJump** or **ProxyCommand** via the SSH client config file (usually `~/.ssh/config`).
+
+In the example below, we will set up the SSH config file to jump a single-intermediary server ("jumpserver" in this case) and log in to a host called "remoteserver" on port "2048" as a user named "dev".
+
+<BlogImage src="./assets/jump.png" alt="proxy jump config file" />
+
+On the workstation where you want to initiate the SSH connection, open the OpenSSH client configuration file (`~/.ssh/config`) using your text editor of choice and add the following code:
+
+```yml
+Host remoteserver
+  HostName 192.168.200.200
+  User dev
+  IdentityFile ~/.ssh/<your_key>
+  Port 2048
+
+  ## sample for ProxyJump
+  ProxyJump user@<jumpserver>
+
+  ## sample for ProxyCommand
+  ProxyCommand ssh -W %h:%p <jumpserver>
+```
+
+We can now simply use the hostname "remoteserver" without the hassle of configuring the jump route each time you access "remoteserver".
+
+```bash
+$ ssh remoteserver
+```
+
+For further detail on using client config files, you can refer to our blog post on how to use [SSH client config files]( https://goteleport.com/blog/ssh-client-config-file-example/).
+
+
+## Conditional jumping using `Match exec`
+Sometimes, we may need two different client configurations for the same host; for example, to jump through one intermediate server when working from the office but through two intermediate servers when working from home. This requirement is also very common in a home lab setup where lab owners want direct access when they SSH from home but need to jump through an intermediate server when they access from outside the home network. 
+
+OpenSSH supports the `Match exec` directives that can be used to configure jumping decisions based on given criteria. The following example shows using `!exec` to check if the IP address in network interface `en0` is `192.168.100.10`. If `grep` returns a row, this command will succeed, and SSH will use ProxyJump — otherwise, it will ignore this configuration block.
+
+```yml
+
+Match host server1 !exec "ifconfig en0 | grep 192.168.100.10"
+    ProxyJump user@<jump server>
+
+Host server1
+    Hostname 192.168.100.20
+```
+
+
+## Conclusion
+This post showed how to use **ProxyJump** and **ProxyCommand** and explained the differences between them. In summary, **ProxyJump** is a modern, easier alternative to **ProxyCommand**, but **ProxyCommand** provides greater route configuration flexibility. Although these commands are helpful for SSH jumping in a small environment, the config file can become long and chaotic if you have a large fleet of SSH servers and require different jump configurations for different servers. This issue can be easily solved using a modern SSH server such as Teleport. Teleport is open source, and you can use it as a drop-in replacement to OpenSSH. Teleport proxy and Teleport SSH client ([`tsh`](https://goteleport.com/docs/server-access/guides/tsh/)) intelligently configure routes for you so that you can manage access via jump servers for a large fleet of SSH servers without the hassle of maintaining a long list of SSH client config files. 
+
+Learn [how Teleport works](https://goteleport.com/how-it-works/) or [try it for yourself now](https://goteleport.com/teleport/download/).

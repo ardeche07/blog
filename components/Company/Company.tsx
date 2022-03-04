@@ -27,10 +27,10 @@ export default function Company({ id, size = "md" }: Company) {
     <Container>
       <Box width={sizes[size]}>
         <Image
-          src={imageSource}
           alt={data?.title}
-          title={data?.title}
           loading="lazy"
+          src={imageSource}
+          title={data?.title}
         />
       </Box>
     </Container>
