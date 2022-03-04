@@ -7,7 +7,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 export default withBundleAnalyzer({
-  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
+  pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx", "yaml"],
   outputFileTracing: false,
   images: {
     disableStaticImages: true,
@@ -54,6 +54,12 @@ export default withBundleAnalyzer({
           options: mdxSiteOptions,
         },
       ],
+    });
+
+    config.module.rules.push({
+      test: /\.ya?ml$/,
+      type: "json",
+      use: "yaml-loader",
     });
 
     return config;
