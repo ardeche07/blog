@@ -2,7 +2,7 @@ import { MDXProvider } from "@mdx-js/react";
 import styled from "styled-components";
 import css from "@styled-system/css";
 import Drift from "components/Drift";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import NextImage from "next/image";
 import Box from "components/Box";
 import FeaturedArticleCards from "./FeaturedArticleCards";
@@ -56,6 +56,12 @@ export const BlogArticle = ({
         Boolean(article.frontmatter.logo) // filter out the post itself as well as posts without cover photo
     )
     .slice(0, 3);
+
+  const unformattedDate = new Date(date);
+  console.log(unformattedDate);
+
+  // const newDate = format(parseISO(unformattedDate), "MMM d, yyyy");
+  // console.log("newDate", newDate);
 
   return (
     <>
