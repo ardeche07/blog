@@ -1,0 +1,10 @@
+- id: airSlate1
+  title: airSlate
+- id: elastic
+  title: Elastic
+  industry:
+    - Technology
+- id: sumologic
+  title: SumoLogic
+  industry:
+    - Technology
