@@ -50,6 +50,7 @@ export const BlogArticle = ({
 }: BlogArticleProps) => {
   const articlesInfo: BlogArticleInfo[] = featuredList
     ?.filter((article) => article.frontmatter.articleTitle !== articleTitle)
+    .filter((article) => Boolean(article.frontmatter.logo)) // filter out posts without cover photo
     .slice(0, 3);
 
   return (

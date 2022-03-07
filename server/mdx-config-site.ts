@@ -25,8 +25,8 @@ const config: MdxConfig = {
         defaultLayout: {
           path: "layouts/BlogArticle",
           metaProcessor: async (config: Record<string, unknown>) => {
-            const data = await getArticlesListAndTags(4);
-            config.featuredList = data.list; // Four last articles
+            const data = await getArticlesListAndTags(6);
+            config.featuredList = data.list; // Return the latest 6 articles to give padding in case some of the articles don't have a cover photo
             config.articleTags = data.tags; // Fill tags list for all blog posts
             return config;
           },
