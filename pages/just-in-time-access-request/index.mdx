@@ -1,0 +1,214 @@
+---
+author: Steven Martin
+date: "2021-11-11"
+tags:
+  - teleport
+  - security
+  - access-requests
+articleTitle: Just-In-Time Access Requests for Your DevOps Workflow
+title: How to Integrate Just-In-Time Access Requests into Your DevOps Workflow
+description: Just-in-time access requests enable DevOps teams to implement the principle of least privilege without introducing roadblocks to productivity. This post will show you how.
+logo:
+  image: ./assets/access-req-plugins.png
+  alt: plugins
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Customers are increasingly looking for just-in-time access to infrastructure. Imagine there is a production outage and a senior SRE needs to
+login to a production server to diagnose and fix the issue. In this organization, on-call SREs have elevated access to production systems,
+but when they are off-duty, their privileges are reduced. When the [Pager Duty](https://www.pagerduty.com/) alert goes off, our on-call SRE
+ssh's into the server but after several minutes of looking, can't diagnose the issue. But she thinks a colleague might be able to. The
+colleague who she wants to help isn't on call, so doesn't have SSH access to the box.  Not a problem, she can use Teleport to request
+temporary elevated access through PagerDuty, Jira or another system which is then approved via the on-call SRE or other required approver
+and jump in and fix the issue.
+
+This is just-in-time access to infrastructure, powered by one of Teleport's most useful features: Access Requests. A Teleport [Access
+Request](/access-requests/) is a self-initiated request on the behalf of a user to elevate their access
+temporarily. After receiving approval for the Access Request, the user's short-lived certificates are updated to their approved temporary
+roles. Once the certificate time to live (TTL) has exceeded their access period, the certificate will revert to their default roles.
+Just-in-time Access Requests are a critical part of a Zero Trust infrastructure so users do not have excess access.
+
+Approval/denial of Access Requests is done through command line, web console and through Access Request plugins.
+
+## Teleport Access Request plugins for DevOps toolchains
+
+Access Request plugins use Teleport-issued certificates and Teleport API to request and grant access. Plugins enable specific approval
+workflows to speed up and improve your DevOps processes. For instance, with a Teleport PagerDuty plugin, access requests can be
+auto-approved if a person is on duty. A Teleport Slack plugin can be used to DM users or post to a private channel to approve a request.
+
+You can use multiple [plugins](https://goteleport.com/docs/enterprise/workflow/) at the same time (Jira, Slack, Mattermost, Pagerduty,
+Email, GitLab,...) for notifying and processing Access Requests. 
+
+This article uses the Slack example as detailed [here](https://goteleport.com/docs/enterprise/workflow/ssh-approval-slack/) on how to
+integrate a Teleport plugin into a Slack Workspace. 
+
+## Dockerizing Teleport Access Plugins
+
+Many of our clients use containers to run their processes besides virtual machines (VMs) like AWS EC2.  
+
+Here is an example of dockerizing a plugin that is reusable for running any of the Teleport plugins. In this case, it uses the Slack plugin
+example. See the [guide](https://goteleport.com/docs/enterprise/workflow/ssh-approval-slack/) for creating the `access-plugin.pem` to
+connect to the web proxy. 
+
+Each Teleport Access Request plugin has a AMD64 Linux binary download available at:
+`https://get.gravitational.com/teleport-access-$PLUGIN-v$TELEPORT_VERSION-linux-amd64-bin.tar.gz`
+
+So for Teleport version `7.3.2`, the Slack Plugin is available at:
+ `https://get.gravitational.com/teleport-access-slack-v7.3.2-linux-amd64-bin.tar.gz`
+ 
+ For other platforms such as ARM, you can build directly from source. Instructions are available in the [Plugin
+ repository](https://github.com/gravitational/teleport-plugins/tree/master/access).  
+
+Let's define our goals for Dockerizing Teleport Access Request plugins:
+
+1. Generically usable for any Teleport Access Request plugin
+2. Deployable to Docker, Docker-Compose and Kubernetes
+3. Retrieves the specified plugin version automatically
+4. Set the TOML file via a volume
+5. Minimal installation following docker pattern for Teleport docker containers
+
+We'll define the Dockerfile, then show an example of this in use with the Slack Plugin.
+
+### Dockerfile
+
+Here is the dockerfile that meets these goals.
+
+```
+FROM ubuntu:20.04
+# Teleport version (ex: 7.3.2)
+ARG TELEPORT_VERSION
+# Plugin (slack, email,...)
+ARG PLUGIN
+# Apply any Ubuntu upgrades, retrieves the latest ca-certs, required tools
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y ca-certificates dumb-init curl && \
+    update-ca-certificates && \
+    apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/*
+#Retrieve and install the 
+RUN mkdir /teleport-plugin-install && \
+  curl -L https://get.gravitational.com/teleport-access-$PLUGIN-v$TELEPORT_VERSION-linux-amd64-bin.tar.gz -o /teleport-plugin-install/teleport-plugin.tar.gz && \
+tar -xzf /teleport-plugin-install/teleport-plugin.tar.gz -C /teleport-plugin-install && \
+/teleport-plugin-install/teleport-access-$PLUGIN/install && \
+# moving to generically call teleport-plugin
+mv /usr/local/bin/teleport-$PLUGIN /usr/local/bin/teleport-plugin && \
+rm -rf /teleport-plugin-install
+# Generically rename the plugin binary to teleport-plugin to make execuation easier
+ENTRYPOINT ["/usr/bin/dumb-init", "teleport-plugin", "start", "-c", "/var/lib/teleport-plugins/plugin.toml"]
+```
+
+### Individual building
+
+Here's how you can confirm the Dockerfile builds 
+```bash
+docker build --build-arg TELEPORT_VERSION=7.3.2 --build-arg PLUGIN=slack -t teleport/teleport-access-slack:7.3.2 -t teleport/teleport-access-slack:latest .
+```
+
+### Running
+
+Here is a sample Slack Plugin file that is usable with the Slack example. The [Slack Plugin
+Guide](https://goteleport.com/docs/enterprise/workflow/ssh-approval-slack/) shows how we generate the `access-plugin.pem` file. Note that we
+are using a Channel to post requests to.  You could also put individual recipients. 
+
+./slack/config/plugin.toml
+```toml
+[teleport]
+addr = "teleport.example.com:443" 
+identity = "/var/lib/teleport-plugins/access-plugin.pem"
+
+[slack]
+token = "<token-id>" # Slack Bot OAuth token
+recipients = ["requests"] # Channel to post to
+
+[log]
+output = "stderr" # Logger output. Could be "stdout", "stderr" or "/var/lib/teleport/slack.log"
+severity = "INFO" # Logger severity. Could be "INFO", "ERROR", "DEBUG" or "WARN".
+```
+
+Here is a docker-compose example to run using the built image.  The `access-plugin.pem` and `plugin.toml` files should be in the
+`./slack/config` directory.
+
+docker-compose.yml
+```yaml
+version: "3.3"
+services:
+  teleport-slack:
+    image: teleport/teleport-access-slack:latest
+    container_name: teleport-slack
+    restart: unless-stopped
+    volumes:
+      - ./slack/config:/var/lib/teleport-plugins
+    hostname: teleport-slack
+```
+
+Now you can run from the directory with `docker-compose.yml`
+
+`docker-compose up -d`
+
+### Example roles
+
+As highlighted in our introduction, you often want to get access into sensitive areas to solve issues quickly. We also want to track when
+that privilege was granted and used. Here's an example of a configured SRE role where `sres` role has default access to `test` and `staging`
+tagged environments. Production access is granted either by user request or initiated by others. The Slack Plugin here would notify the
+individuals or channel of a request to approve of. A PagerDuty could automatically approve based on a user's on-call schedule. We then have
+a method of allowing just-in-time access to resources that can be approved by Teleport Access Request Plugins without compromising
+traceability.
+
+```yaml
+kind: role
+version: v4
+metadata:
+  name: access-reviewer
+spec:
+  allow:
+    review_requests:
+      roles: ['prodaccess']
+---
+kind: role
+version: v4
+metadata:
+  name: sres
+spec:
+  allow:
+    logins: ['ec2-user']
+    node_labels:
+      'env': '^test|staging$'
+    request:
+      roles: ['prodaccess']
+---
+kind: role
+version: v4
+metadata:
+  name: prodaccess
+spec:
+  allow:
+    logins: ['ec2-user']
+    node_labels:
+      'env': 'prod'      
+```
+
+### Updating
+
+In the case that you want to update to a newer version you just need to stop the container, build with the updated version and restart.
+
+```bash
+#From the docker-compose.yml directory
+docker-compose down
+# From the directory
+docker build --build-arg TELEPORT_VERSION=7.3.3 --build-arg PLUGIN=slack -t teleport/teleport-access-slack:7.3.3 -t teleport/teleport-access-slack:latest .
+#From the docker-compose.yml directory
+docker-compose up -d
+```
+
+<EmailSubscribeViolet />
+
+## Summary
+
+We have shown an approach to dockerize an installed version of a Teleport Access Plugin and an example set of access roles. The dockerizing
+example is reusable for any of the Access Request plugins, and is deployable to Docker, Docker-Compose, and Kubernetes environments. The
+method also follows the Docker approach for the [Teleport
+Dockerfile](https://github.com/gravitational/teleport/blob/master/build.assets/charts/Dockerfile). We hope this makes integrating
+just-in-time access requests into your DevOps workflow much easier.

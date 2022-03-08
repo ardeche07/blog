@@ -1,0 +1,128 @@
+---
+author: Ev Kontsevoy
+date: "2020-11-19"
+tags: 
+  - company
+articleTitle: Announcing Teleport 5.0 - Access Plane and Application Access
+title: Teleport 5.0 adds Application Access for Developers
+description: How to access web applications from behind NAT? How to safely expose internal dashboards to the outside world? Teleport 5.0 is the answer!
+logo:
+  image: ./assets/application-access-announcement-header.png
+  alt: application announcement
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+import Quote from "components/Quote";
+
+## Introduction
+
+Today, we are announcing the availability of Teleport 5.0. This is a major release for the project with numerous improvements and new
+features, but the hallmark capability of this version is the [Access Plane](https://goteleport.com/) and [Application Access](https://goteleport.com/application-access/) for
+Developers.
+
+For those unfamiliar with Teleport, it is an open source project for giving developers secure remote access to everything they need. It
+started as a replacement for OpenSSH, then added Kubernetes access, and today we’re adding HTTPS as another protocol.
+
+## Application Access for Developers
+
+Do you have internal dashboards running inside your production or staging environments? Perhaps a couple of Jenkins servers, maybe a
+Kubernetes web UI, or other tools accessible via a browser? The old school method of accessing them was setting up a VPN, with extra points
+for configuring each of those apps to authenticate via some sort of a directory.
+
+A better method is to embrace the [Zero Trust](/vpns-and-zero-trust-thoughts-on-the-evolving-nature-of-remote-access/) principle and expose
+all of your internal application endpoints to the internet with proper identity-based authentication with MFA. This creates work: getting a
+public IP, configuring DNS, maintaining X.509 certificates, setting up SAML integrations, etc. Just maintaining the inventory of all
+available HTTPS endpoints is work. Setting this up to qualify a SOC2, PCI or FedRAMP compliance is also work, and keeping your setup this
+way is a tiny bit of extra never-ending work.
+
+This isn’t rocket science, but we believe it must not be something that you should be spending your time on. Besides, if the operational
+costs of securely exposing another internal tool to the team was zero, we would all enjoy more tools.
+
+Consider another use case: a web application running behind NAT on a third party network. To make it entertaining, think of a web app
+running on a self-driving vehicle with an ever-changing IP address. If you ship devices with web dashboards to be deployed inside customer
+networks, how do you access them from the outside?
+
+This is why we’ve added Application Access to Teleport 5.0. It allows users to visit the Teleport proxy in a browser and see a live
+inventory of applications running anywhere in the world. Each web application is just an HTTPS URL provided by Teleport, so you can have:
+
+* https://jenkins.proxy.example.com
+* https://grafana.proxy.example.com
+* https://your-own-app.example.com
+
+...and more. An application can be added or removed with just a couple of clicks. It can even be completely automated. Here’s how it looks in the Web UI:
+
+<video autoplay loop muted playsinline style="width:100%">
+  <source src="./assets/k8s-taa.mp4" type="video/mp4" autoplay />
+</video>
+
+## How does Application Access Work?
+
+Teleport, for those who have never used it, is a single dependency-free binary which can run as a Linux daemon or can be deployed as a Kubernetes pod. Not surprisingly, this binary is called `teleport`. 
+
+`teleport` behaves differently based on the command-line arguments or via a configuration file. It can run in several modes, also called roles. Combining them together allows you to tailor Teleport deployment to your needs:
+
+* _Proxy service_, if started as `teleport start --roles=proxy`
+* _An application access service,_ if started as `teleport start --roles=app` (shown as “sidecar” on the diagram)
+
+Here’s an example of how these services can work together to give developers seamless access to internal web apps with a single login:
+
+<BlogImage src="./assets/application-access-announcement-2.png" alt="how a proxy service and application access service work together" />
+
+Let’s consider how connectivity is established first, and then we’ll cover authentication.
+
+### Connectivity
+
+The diagram above is self-explanatory:
+
+* A Teleport Proxy service must be running somewhere and exposed to the public internet. The proxy is the single access point that can be used to access applications anywhere. The proxy is not a single point of failure as you can have several copies behind a network load-balancer or via a DNS split.
+* Each private network needs to run a copy of `teleport` running with `--roles=app`. This process is a sidecar, which creates an encrypted outbound tunnel to the Teleport proxy. The tunnel is permanent, and if the proxy becomes unavailable, or if the Internet connectivity is not reliable, the sidecar will be trying to reconnect when possible.
+* Each app gets a DNS name issued by the proxy, so if the proxy is running on `proxy.example.com`, you may have Jenkins available as `jenkins.proxy.example.com`. This DNS name also points at the proxy.
+* When a user tries to access `jenkins.proxy.example.com`, their request will be proxied through the suitable tunnel to the sidecar responsible for this app, and from there a connection to the actual Jenkins instance will be made.
+
+This architecture is fairly flexible, as it allows users to have sidecars running inside their networks, proxying access to all applications on that network. They can also be bundled with applications (inside the same Kubernetes pod, for example), so the apps can be configured to only listen on `localhost`. This guarantees that the only way to access an application is via the Teleport proxy.
+
+### Authentication
+
+Obviously, the proxy is protected. Teleport supports multiple authentication methods:
+
+* _The local database of users with MFA_. This is suitable for quick experimentation and as a “Plan B” when other methods are not available.
+* _Popular public identity providers_ such as Github and Google, so you can configure the proxy to trust a certain Github team or a Google Apps group.
+* _Corporate SSO_ logins via SAML. Examples include Active Directory, Okta, Auth0, OneLogin, and so on.
+
+The identity of users is passed to applications via HTTP headers. If an application is capable of understanding this information, it will not present its own login screen. But even if an application is not built to understand such headers, users will have to login again using in-app authentication. It’s worth noting that Teleport proxy, when integrated with SSO, usually bothers users with a login just once per day, and most legacy apps offer “remember me” functionality, so the double-login for most use cases is not an issue.
+
+## Who is Application Access for?
+
+Teleport Application access is naturally a great capability boost for existing Teleport users, who’re using it to get instant SSH to their environments. As a developer, a single login once per day should give you auto-expiring credentials for everything you need to be productive, be it a Jenkins instance, or Kubernetes clusters, or SSH nodes. 
+
+Teleport Application Access gives security professionals easy access controls to internal apps, so achieving FedRAMP compliance even for legacy internal applications becomes quite easy.
+
+But even as a hobbyist, I have been enjoying having access to my Synology home NAS or to my printer’s web UI on the go!
+
+## Other Improvements
+
+Teleport 5.0 comes with improved Kubernetes Access. In addition to connecting SSH nodes to a Teleport cluster, users can now configure Teleport to provide access to multiple Kubernetes clusters running behind NAT. This brings all three types of access to an equal footing:
+
+* SSH Access
+* Application Access
+* Kubernetes Access
+
+The end result is an engineer getting access to all three with a single login. 
+
+## The Future of Teleport
+
+Traditionally, open source projects of similar architecture were called “proxies,” or simply “servers”, as in SSH server. Such a description never felt right for Teleport because its mission is to provide instant _access for engineers to any computing resource anywhere in the world_. Calling it a server or a proxy did not feel right, as its purpose was to remove machine and network boundaries and create an illusion of all computing resources being in the same “room” as an engineer.
+
+Starting with version 5.0, Teleport will be known as an **Access Plane**. It fits perfectly with our vision of erasing access boundaries between computing resources and environments. 
+
+The cloud has largely replaced the notion of a “computer” for most developers, as we create programs to run “in the cloud” now. The cloud is a collection of geographically scattered production environments, each consisting of ever-growing in height tech stacks. It is, essentially, a single-purpose, custom “computer” that we build from virtual parts supplied by the cloud providers. This computer currently lacks an operating system or standardization of any kind and we’re still stitching together solutions from good ole days to run our stuff on it, including remote access solutions. The list of “computer components” is long and each component currently comes with its own remote access facility: SSH, RDP, K8s API, databases, internal dashboards, etc. Ending this fragmentation is what Teleport is about.
+
+<Quote>
+  Teleport Access plane’s purpose is to be a single remote access to this “cloud computer”, for all environments and all protocols. 
+</Quote>
+
+If you'll be [downloading Teleport](https://goteleport.com/pricing/) for the first time today, I figured you should be aware that you’re trying something new and truly special, and you should be aware that support for other protocols is in the works, with some just around the corner.
+
+Also, consider subscribing to our newsletter below. We make a good effort to make it interesting for engineers, which is easy because we are in the middle of a massive shift in remote access technology. 
