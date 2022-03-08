@@ -1,0 +1,96 @@
+---
+author: Jennifer Roberts
+date: "2022-01-04"
+tags:
+  - ssh
+articleTitle: "SSH Audit: Tracking Changes with SSH Audit Logging"
+title: "SSH Audit: How to use SSH Audit Logging"
+description: "This blog post will walk you through how you can track changes on Linux hosts with SSH Audit Logging."
+logo:
+  image: ./assets/ssh-audit-logging@2x.png
+  alt: SSH Audit logging
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+SSH audit logging is essential for system security, and it's often an important part of compliance regulations. Developers and
+administrators should only be granted access to the resources they need, and a continuous monitoring system should be in place to ensure
+that they aren't abusing that access.
+
+In this article, we'll explore some methods you can use for SSH audit logging, including creating trackable logs, preventing log
+manipulation, and using an interactive logging tool.
+
+## Create trackable logs
+For audit logging for SSH to be effective, you can assign each user a unique login. This approach enables you to track user logins and
+logouts in the `/var/log/auth.log` file. You can also change the log level by setting `LogLevel VERBOSE` in `sshd_config` to provide more
+detailed information.
+
+Don't be tempted to create shared credentials like “admin,” which mask the real identity of a user in your logs.
+
+It's also important to ensure that users don't have privileges to amend `auth.log` or any other log file. No user should ever be able to
+delete or otherwise manipulate their access history. Typically, only the `syslog` user can write to auth.log, and only other members of the
+`adm` group can read it. However, if a user has root access, they can both read and write to auth.log — and anything else on their system.
+
+When you’re equipped with information about who logged in and when, you can inspect that user's `.bash_history` file to discover what
+commands they executed during their session. There are also interactive logging tools such as `tlog` (part of Red Hat Enterprise Linux) that
+allows terminal I/O recording with a "playback" functionality which can be used to see the commands users executed in the authorized
+sessions.
+
+If you are using `.bash_history`, ensure to remove write access to `.bash_history` to prevent the user from removing or disguising their
+activity.
+
+
+## Prevent log manipulation
+A malicious user who wants to hide activity in their bash history could use one of several methods. One method is to clear the file’s
+contents, or even remove the file entirely, using commands like: 
+```bash
+$ cat /dev/null > ~/.bash_history
+```
+
+or 
+
+```bash
+$ rm -f .bash_history
+```
+
+To prevent this deletion, you can change the file to append-only by using the chattr command:
+
+```bash
+$ chattr +a /home/bad-user/.bash_history
+```
+
+A nice side effect of setting this flag is that it also prevents the user from linking .bash_history to `/dev/null`.
+
+To apply this setting to all users with a single command, execute:
+
+```bash
+$ find /home/ -maxdepth 3|grep -i bash_history|while read line; do chattr +a "$line"; done
+```
+
+More technically adept users might try to avoid logging commands to .bash_history by changing the default values of `HISTFILE` or
+`HISTFILESIZE` to a different file location and null, respectively. So, you might consider marking these settings as read-only in
+`/etc/bash.bashrc` or in `/etc/profile` and prevent users from modifying those configuration files too.
+
+While you can script all this, it's a rather cumbersome method of audit logging for SSH. And, if you detect malicious activity, it can be
+rather tricky to piece together what took place. You can only see the commands the user executed and not what happened as a result of those
+commands.
+
+<EmailSubscribeViolet />
+
+## Use purpose-built logging tool
+ 
+Using a purpose-built logging tool (e.g., Fluentd, Logstash) and databases (e.g., Elasticsearch, Splunk) helps create a tamperproof database
+of access logs. For production use cases, always create a centralized log repository maintained in a dedicated server. Document-oriented and
+time series databases are best suited for storing access log data. 
+  
+Alternatively, you can consider a complete solution for managing SSH access, such as the open-source solution
+[Teleport](https://goteleport.com/). In addition to secure access management features, Teleport maintains the SSH audit log of everything
+happening on a Linux server, including event-log (login attempts, file transfers, code execution, filesystem changes, or network activity)
+and session-recording (interactive SSH sessions are recorded for future replay).
+
+## Summary
+SSH audit logging is vital to keeping your systems secure. This article covered some basic auditing techniques and introduced more advanced
+tools such as the open-source solution Teleport, which offers a holistic approach to identity-based server access and SSH audit logs. Learn
+more today about how you can manage access and create rich audit logs with our [SSH Server
+Access](https://goteleport.com/ssh-server-access/) solution.

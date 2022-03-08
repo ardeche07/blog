@@ -48,7 +48,7 @@ Once logged in, the Desktop Session can last as long as Teleport is configured t
 
 To better understand the deployment model, we’ve created this architecture diagram outlining the setup used while beta testing Desktop Access. Desktop Access requires additional configuration in Active Directory. I modified [Amazon’s Active Directory Domain Services on the AWS Cloud template](https://aws-quickstart.github.io/quickstart-microsoft-activedirectory/). This template provides best practices for network and machine hardening.
 
-With Teleport Desktop Access gateway mode, a single Teleport process can serve as a gateway for connecting to multiple remote Windows hosts, similar to [Kubernetes Access](/kubernetes-access/). Hosts can be auto-discovered using the LDAP directory, or can be limited to a list provided in the Teleport configuration file.
+With Teleport Desktop Access gateway mode, a single Teleport process can serve as a gateway for connecting to multiple remote Windows hosts, similar to [Kubernetes Access](https://goteleport.com/kubernetes-access/). Hosts can be auto-discovered using the LDAP directory, or can be limited to a list provided in the Teleport configuration file.
 
 ![starting a security career](./assets/rdp-aws-access.png)
 

@@ -1,0 +1,135 @@
+---
+author: Troy Desjardins
+date: "2022-01-07"
+tags:
+  - ssh
+articleTitle: How to Set Up SSH 2fa (Two-Factor Authentication)
+title: "Tutorial: SSH 2fa using Using Google Authenticator"
+description: "This blog will walk you step-by-step through how to set up TOTP SSH 2fa (two-factor authentication) using Google Authenticator."
+logo: 
+  image: ./assets/2fa@2x.png
+  alt: SSH Audit logging
+---
+
+import BlogImage from "components/BlogImage";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+One way to enhance SSH login security is by using two-factor authentication (2FA). This approach forces an administrator to self-identify with an additional security verification in addition to the local admin credentials. 
+
+This tutorial guides you through setting up [Google Authenticator PAM](https://github.com/google/google-authenticator-libpam) to enable SSH 2FA for users connecting to a Linux server. We’ll use nano as our editor in examples.
+
+
+## Prerequisites
+To follow along, ensure you’ve met the following prerequisites:
+
+- Administrative (sudo) access to a running Linux machine — for example, Ubuntu 20.04 or similar
+- SSH server running on the Linux machine
+- Preconfigured Google Authenticator app on iOS or Android mobile
+
+
+## Installing Google Authenticator PAM
+To provide the 2FA mechanism for this Linux machine, you must install Google Pluggable Authentication Module (PAM). Validating the
+authentication is based on Time-Based One-Time Password (TOTP), an open standard that rotates secure tokens in discrete time blocks — every
+30 seconds, for example.
+
+First, authenticate to your Linux VM with administrative (sudo) permissions, then run the following command:
+
+```
+$ sudo apt install libpam-google-authenticator
+```
+
+## Configuring SSHD for Google PAM
+After installing PAM, you need to update several settings to the `sshd` daemon running on the Linux machine. Use your preferred editor to
+edit the necessary file by running the following command:
+
+```
+$ sudo nano /etc/pam.d/sshd
+```
+
+Scroll down to the end of the `sshd_config` file and add the following line of text: 
+
+```
+auth required pam_google_authenticator.so
+```
+
+Save the updated file and exit the editor. Next, modify the sshd_config file with the following command:
+
+```
+$ sudo nano /etc/ssh/sshd_config
+```
+
+About half-way into the file, you need to update a setting, `ChallengeResponseAuthentication`, from `no` to `yes`.
+
+
+This setting tells the SSH engine to expect an authentication code instead of accepting a username and password.
+
+Now, save the changes and exit the editor.
+
+
+Next, restart the `sshd` service on the machine by running the following command:
+
+```
+$ sudo systemctl restart sshd.service
+```
+
+## Generating the Google Authenticator QR Code
+In this section, you’ll initiate the locally running Google Authenticator to generate TOTP codes. These codes will configure the Google
+Authenticator app on a mobile phone.
+
+From the Linux machine, run the following command:
+
+```
+$ google-authenticator
+```
+
+<BlogImage src="./assets/ga-qr.png" alt="Google authenticator" />
+
+The results of this command will guide you through several questions. Answer each question with `y`. Before answering them, copy the QR code
+by taking a screenshot or follow the Google URL to obtain a higher-quality QR code. You’ll need this code later to set up Google
+Authenticator on your mobile device.
+
+<BlogImage src="./assets/ga-setup.png" alt="Google authenticator setup" />
+
+On your mobile device, open the Google Authenticator app, select **+** to add a new account. Then, select **Scan a QR code**, enabling you
+to scan the previously generated QR code. Scanning the QR code will show you the Linux virtual machine (VM) name, the user account, and a
+unique TOTP code that changes every 30 seconds.
+
+
+## Validating the two-factor authentication
+Although undocumented, experience tells us that you require a restart for this process to run smoothly. So, restart the Linux machine to
+finalize the Google Authenticator process.
+
+After the restart, open a new SSH session to this machine:
+
+```
+$ ssh <admin>@<ip-address>
+```
+
+As before, this session prompts you for the admin password credential. If working correctly, it also asks you for the verification code,
+which matches the TOTP code you see displayed in the Google Authenticator app for this Linux VM.
+
+After providing this code, you are successfully authenticated to the VM using Google 2FA.
+
+
+This completes the process of configuring 2FA for SSH using Google Authenticator PAM. There are several additional configurable features and
+customizations beyond the base configuration we used here.
+
+For example, you can specify which admin users should require two-factor SSH, allowing users to initially authenticate when 2FA is not yet
+in place for them. By doing this, you define a grace period during which 2FA is disabled. To learn more about these and other SSH options,
+explore the extensive documentation available in the [Google Authenticator Pam GitHub
+repository](https://github.com/google/google-authenticator-libpam).
+
+<EmailSubscribeViolet />
+
+## Advanced SSH 2fa
+
+<BlogImage src="./assets/teleport-2fa.png" alt="Teleport 2fa" />
+
+So far, we’ve shown how to configure TOTP-based two-factor authentication for SSH using Google Authenticator. But TOTP is not the only
+method for adding two-factor authentication. Standards such as [Universal 2nd Factor
+(U2F)](https://www.yubico.com/authentication-standards/fido-u2f/) and [WebAuthn](https://webauthn.guide/) offer more secure options for
+two-factor authentication, and these standards can easily be utilized using
+[Teleport](https://goteleport.com/docs/access-controls/guides/webauthn/). Teleport is a modern access solution for SSH servers that enables
+SSO, 2FA, RBAC, and complete session visibility over SSH access. In addition to SSH, Teleport also supports Windows, Kubernetes, Databases,
+and internal applications like Jenkins, GitLab, Grafana and more, allowing it to consolidate infrastructure access across multiple private
+or public cloud networks. Learn more on [how Teleport works](https://goteleport.com/how-it-works/). 

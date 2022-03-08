@@ -1,0 +1,177 @@
+---
+author: Sakshyam Shah
+date: "2022-02-25"
+tags: 
+  - security
+articleTitle: 6 Authentication Best Practices
+title: Authentication Best Practices
+description: Learn about authentication best practices such as prioritizing passwordless authentication and implementing federated login with 2fa in this comprehensive blog post.
+logo: 
+  image: "./assets/authentication-best-practices@2x-min.png"
+  alt: best practices
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+Our previous blog post on authentication security covered six [most common authentication
+vulnerabilities](https://goteleport.com/blog/authentication-vulnerabilities/). In this post, we will discuss a few best practices that help
+avoid authentication vulnerabilities and defeat specific attack vectors.
+
+Below are the six best practices to secure the authentication process.
+
+## 1. Prioritize passwordless authentication
+Passwords and password-based authentication processes are plagued with security threats such as phishing and password cracking. And the
+passwordless authentication approach is the way to eliminate these threats. But why is password-based authentication still widely
+implemented? The answer to this probably is because password-based authentication is easier to implement, and the solution "just works".
+
+Passwordless authentication often requires special devices, and if the software is published for a broader demographic, it can be
+challenging, if not impossible, to enforce passwordless authentication. But with the growth in adoption of smartphones with Touch ID and
+Face ID features and the availability of easy-to-carry hardware security tokens such as U2F keys and specifications such as
+[WebAuthn](https://webauthn.guide/), now is the perfect time to prioritize passwordless authentication. (Here's where you can learn why
+[it's time to get rid of passwords](https://goteleport.com/blog/no-passwords/).) 
+
+## 2. Implement federated login and single sign-on (SSO)
+Single sign-on (SSO) allows users to login into multiple applications with a single set of credentials. And federated login allows users to
+authenticate with identities attested by 3rd party (e.g., log in with Google, log in with Facebook). Unless your software application is an
+identity provider, it makes little sense to implement an identity verification process. Authentication standards such as OAuth2, OpenID
+Connect and SAML make it much easier to implement a federated login and SSO.  
+
+An important caution when using federated authentication and SSO is correctly implementing the authenticity exchange process. Although these
+standards are secure by design, the security depends on implementation. As with any software, [vulnerabilities in the protocol
+implementation](https://portswigger.net/web-security/oauth) [are](https://www.amolbaikar.com/facebook-oauth-framework-vulnerability/)
+[common](https://threatpost.com/microsoft-oauth-flaw-azure-takeover/150737/). Learn more on best practices for
+[SAML](https://cheatsheetseries.owasp.org/cheatsheets/SAML_Security_Cheat_Sheet.html) and
+[OAuth2](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets_draft/OAuth_Cheat_Sheet.md).
+
+## 3. Harden authentication functionality
+Hardening authentication functionality is an essential part of properly implementing your authentication flows. Below are six best practices
+that help avoid logical flaws and secure the authentication functionality.
+
+### Secure account recovery process
+An insecure account recovery process can be exploited to [bypass the authentication
+process](https://www.securityweek.com/google-patches-serious-account-recovery-vulnerabilities). Below are a few important functionalities to
+consider when developing an account recovery process:
+
+- The account recovery process should be protected with a second-factor authentication step.
+- Generate a [cryptographically secure random value](https://en.wikipedia.org/wiki/Cryptographically-secure_pseudorandom_number_generator)
+  for reset tokens.
+- Ensure reset tokens are sent over HTTPS.
+- Expire reset tokens on first use and enforce a short time-to-live (TTL).
+- Re-authenticate users for password update even if they are already in an authenticated session. 
+- Protect the account recovery process from [CSRF attacks](/csrf-attacks/).
+
+### Secure session management
+Since sessions hold users' authenticated state, compromising the session management process allows malicious users to bypass the
+authentication process or impersonate as other users. Below are a few important functionalities to consider when implementing the session
+management process.
+
+- Use [cryptographically secure random values](https://en.wikipedia.org/wiki/Cryptographically-secure_pseudorandom_number_generator) for
+  session cookies.
+- A session should always be managed on the server-side.
+- Implement cookie security attributes including `Secure`, `HttpOnly`, `SameSite`, `Domain`, `Path`, `Expire` and `Max-Age`.
+- Cautiously store session data in `localStorage` and `sessionStorage`.
+- Ensure session tokens are regenerated on each new login and destroyed after the user logs out.
+- Implement idle session timeout.
+
+
+### Use safe and audited authentication libraries and monitor for vulnerabilities in dependencies
+The security of libraries that are used as a dependency to build authentication functionality is also an important factor to consider. ​​For
+example, a vulnerability that allowed an attacker to completely bypass XML signature validation and pass off an altered file as a signed one
+with a carefully crafted XML file was discovered in the [Go XML Digital Signature library](github.com/russellhaering/goxmldsig). This
+library is used by many popular Go-based software programs for SAML authentication. Even Teleport was affected by this, which we fixed in
+the [4.1.11 release](https://github.com/gravitational/teleport/blob/master/CHANGELOG.md#4111).
+
+Use dependency vulnerability scanners such as [npm
+audit](https://docs.npmjs.com/auditing-package-dependencies-for-security-vulnerabilities), follow CVE advisories related to a programming
+language (e.g. [.net CVE](https://www.cvedetails.com/vulnerability-list/vendor_id-26/product_id-43007/Microsoft-.net-Core.html), [python
+CVE](https://www.cvedetails.com/vulnerability-list/vendor_id-10210/product_id-18230/Python-Python.html)) and maintain proactive practices
+for continuous monitoring of dependency vulnerabilities.
+
+### Design controls to prevent and contain logical flaws
+Logical flaws can be hard to discover and may have a severe impact. A proper software design with a review from security engineers is the
+first step to avoid logical security flaws. Additionally, software developers must be educated on the [common vulnerabilities related to
+authentication process](https://goteleport.com/blog/authentication-vulnerabilities/) and trained to prevent those vulnerabilities. The
+[authentication cheat sheet series by
+OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#implement-proper-password-strength-controls) is a
+great place to learn how to securely implement authentication functionality.
+
+
+### Implement two-factor authentication (2FA)
+Two-factor authentication is probably the best way to improve the security of an authentication process. It is safe to say that a properly
+implemented 2FA method can help you prevent a severe vulnerability in the authentication process. But even the [2FA process can be
+vulnerable](https://duo.com/blog/duo-security-researchers-uncover-bypass-of-paypal-s-two-factor-authentication) and can be [bypassed if
+insecurely implemented](https://www.varonis.com/blog/box-mfa-bypass-totp). Below are a few ways to harden 2FA implementation.
+
+- Favor passwordless/PIN-less 2FA (e.g. U2F), over password/PIN-based 2FA (TOTP, SMS).
+- Ensure authenticated sessions are only created with a valid 2FA verification state stored on the server-side.  
+- Enforce re-authentication to update 2FA settings.
+- Implement rate-limiting in failed 2FA.
+
+2FA safeguards from compromised credentials and slows down or prevents automated attacks. So ensure that 2FA is enforced by default on every
+authentication process.
+
+### Implement mutual authentication
+Mutual authentication involves authenticating both the connecting parties (client and server) and is best suited for API authentication and
+machine-to-machine authentication. Mutual authentication is also commonly used as an additional trust factor besides credentials such as
+passwords. Mutual authentication can be implemented with certificates and public-key infrastructure (PKI). Protocols such as SSH and TLS
+have built-in support for mutual authentication.
+
+## 4. Protect against automated attacks
+
+### Implement rate limiters
+
+Implementing rate limiters help to stop brute force attacks. A simple rate limiter that counts for failed authentication attempts and blocks
+users for a certain period can greatly enhance security and stop brute-force attacks. For API-based services, which usually handle high
+volume authentication requests,  [token bucket](https://en.wikipedia.org/wiki/Token_bucket) and [leaky
+bucket](https://en.wikipedia.org/wiki/Leaky_bucket) algorithms are popular algorithms to implement rate limiters.
+
+### Add CAPTCHA
+CAPTCHAs are a great way to slow down automated attacks. Although it is often annoying for genuine users to solve CAPTCHAs, it can be used
+in conjunction with rate limiters so that CAPTCHAs are only challenged to the users or machines who violate rate limit rules.
+
+## 5. Harden password-based authentication
+Although the general advice is to favor a passwordless solution, it is not an easy migration in many cases. The following are a few
+recommendations for securing password-based authentication.
+
+- Enforce strong password entropy. Password strength checkers such as [zxcvbn](https://github.com/dropbox/zxcvbn) can be helpful to
+  implement strong entropy. 
+- Do not ship software into production with default passwords.
+- Do not preset root passwords. Instead, build authentication logic that requires users to set passwords by themselves on their first login.
+  For example, during account setup, generate a short-lived token that can be exchanged to set up passwords. As a reference, [Teleport uses
+  a similar token exchange method for user account setup](https://github.com/gravitational/teleport/blob/master/lib/auth/usertoken.go).
+- Disallow using known passwords. This can be implemented by cross-checking with public password lists such as [SecList common
+  credentials](https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials) or with services like
+  [haveibeenpwned](https://haveibeenpwned.com/).
+- Hash passwords before storing them in the database using secure password hashing algorithms such as
+  [Argon2](https://en.wikipedia.org/wiki/Argon2), [scrypt](https://www.tarsnap.com/scrypt/scrypt.pdf) or
+  [bcrypt](https://en.wikipedia.org/wiki/Bcrypt). To further enhance security, add
+  [salt](https://auth0.com/blog/adding-salt-to-hashing-a-better-way-to-store-passwords/) and
+  [pepper](https://words.filippo.io/salt-and-pepper/) to the hash values. 
+
+At Teleport, we regularly emphasize the value of passwordless solutions. To understand why passwords are bad, listen to our recent session
+with security visionary Troy Hunt - [Lessons From Billions of Breached Records by Troy Hunt of
+https://haveibeenpwned.com](https://www.youtube.com/watch?v=n5BiIkb5Y0M).
+
+## 6. Do not reinvent authentication methods
+It's easy to write authentication functionality but harder to implement correctly. Standard specification certified libraries (e.g. [OpenID
+Connect certified](https://openid.net/developers/certified/)) and security audited libraries are a safer choice. It can be tempting to
+invent custom authentication protocols and use custom cryptographic algorithms to secure the authentication process, but this can be very
+risky and is [not recommended](https://www.schneier.com/blog/archives/2011/04/schneiers_law.html). 
+
+<EmailSubscribeViolet />
+
+## Conclusion
+The best recommendations to secure the authentication process are prioritizing passwordless authentication and implementing federated login
+or SSO with a two-factor authentication. Security considerations must be taken early on in the design process to implement controls that
+prevent logical flaws. Regular security audits are also equally important to test for logical flaws, and careful consideration must be
+placed in selecting libraries and dependencies for the authentication process.
+
+### Secure infrastructure authentication with Teleport
+Teleport is an open-source project and helps implement passwordless authentication for infrastructure access. Passwordless authentication is
+based on certificates and can be used to authenticate against SSH servers, RDP servers, databases, Kubernetes clusters, and web
+applications. Learn more about how Teleport enables [passwordless access to cloud infrastructure](https://goteleport.com/how-it-works/).
+
+
+
+
