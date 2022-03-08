@@ -1,0 +1,112 @@
+---
+articleTitle: Most Common Authentication Vulnerabilities
+description: This blog post explores the most common vulnerabilities related to the authentication process.
+title: "What are the Most Common Authentication Vulnerabilities?"
+date: "2022-02-18"
+author: Sakshyam Shah
+logo:
+  image: ./assets/threats_to_auth-t@2x.png
+  alt: Zero Trust
+tags:
+  - security
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+The majority of threats related to the authentication process are associated with passwords and password-based authentication methods. But
+broken authentication also causes a significant amount of vulnerabilities. [Broken
+authentication](https://owasp.org/www-project-top-ten/2017/A2_2017-Broken_Authentication) occurs when the implementation of the
+authentication process is flawed.  Unfortunately, this is usually hard to discover, and can be more severe than the risks associated with
+passwords.
+
+This blog post explores the security vulnerabilities that are commonly found in the authentication and password process of a software
+application.  It will also discuss common attack vectors that are used to exploit weak authentication processes. 
+
+## 6 vulnerabilities related to broken authentication
+### 1. Vulnerable authentication logic
+Logical flaws are a common source of vulnerabilities in software applications and affect the authentication process in the same way. Flawed
+assumptions about user behaviors, excessive trust in the user inputs, and enforcement of security controls only under specific conditions
+are typical examples of vulnerable authentication logic. 
+
+
+### 2. Weak account/password recovery process
+Often security controls are only enforced during the authentication process. Exploiting weak account and password recovery processes is
+common and involves misusing the "forgot account" or "forgot password" process. For example, in 2016, a security researcher found a way to
+[exploit Google's account recovery feature, which allowed them to hijack the victim's account
+entirely](https://www.securityweek.com/google-patches-serious-account-recovery-vulnerabilities). 
+
+### 3. Using a vulnerable authentication library
+Modern software is written with many dependencies. A vulnerability in the authentication dependency can bite back the whole authentication
+process. For example, an authentication flaw in WordPress Infinite WP Client and WP Time Capsule plugins let anyone [log into the WordPress
+administrator's account without any
+password](https://portswigger.net/daily-swig/authentication-bypass-flaw-found-in-popular-wordpress-plugins).  
+
+
+### 4. Insecure session handling
+Authentication should be a continuous process. But asking users to prove credentials at each step is impracticable. That's why
+authentication states are kept in a stateful session. A vulnerability in session management allows a malicious user to ride on a valid
+authenticated session without the need for authentication. Improper user logout functionality, lack of session timeouts, insecure practices
+of storing session data in non `httponly` cookies, web pages, or browser storage are common vulnerabilities related to session handling.
+
+### 5. Missing rate limiters and lockout process
+Rate limiters and lockout processes prevent brute-force attacks. Lack of this functionality opens many other ways to exploit authentication
+processes such as password cracking, user enumeration and denial of service.
+
+### 6. Insecure two-factor authentication
+Two-factor authentication (2FA) is a proven way to improve the security of the authentication process. But a flawed implementation can let
+the malicious users completely bypass the 2FA, nullifying the security advantage. For example, researchers at Duo Labs successfully
+[bypassed PayPal's two-factor
+authentication](https://duo.com/blog/duo-security-researchers-uncover-bypass-of-paypal-s-two-factor-authentication). The vulnerability was
+that the PayPal REST API had insecure enforcement of two-factor authentication when authenticating using OAuth. Similarly, in another recent
+case, Varonis researchers found a way to [bypass Box's two-factor authentication](https://www.varonis.com/blog/box-mfa-bypass-totp). The
+vulnerability was that the feature that allowed a user to disable 2FA did not require any authentication, so anyone could disable the
+victim's 2FA.
+
+Additionally, 2FA based on [SMS and phone-based verification are equally considered
+insecure](https://securityboulevard.com/2021/12/why-using-sms-authentication-for-2fa-is-not-secure/).
+
+## 2 additional authentication vulnerabilities related to passwords
+### 1. Insecure password verification methods
+In the simplest terms, password-based authentication includes comparing a password stored in a server with a password supplied by the user.
+Technically, this comparison can be made with a simple string comparison or by verifying hash functions. Hash functions are recommended as
+they avoid storing passwords in clear text on the server. But using insecure hash functions such as [MD5 which are known to be
+crackable](https://www.4armed.com/blog/hashcat-crack-md5-hashes/) aids attackers in retrieving passwords from stolen hash values. 
+
+### 2. Poor password security enforcement 
+Allowing usage of common, default known passwords or allowing users to set weak entropy passwords create an authentication risk since such
+passwords are easy to crack. Poor password security enforcement will eventually impact the security of the authentication process.
+
+## Attack vectors
+While some vulnerabilities — such as weak passwords and known vulnerable dependency libraries — are easy to exploit, exploiting logical
+flaws is more challenging and requires a manual attack process. But the most considerable risk might just be tricking users into giving away
+their credentials. We can classify the attack vectors most commonly used to compromise the authentication process in two ways:
+
+- **Compromising passwords**: Phishing is a popular adversarial technique to trick users into giving away credentials such as passwords and
+PINs and is one of the most potent attack vectors. Phishing has higher success rate than many other attack vectors which explains its
+popularity. Similarly, brute-force password cracking techniques are equally popular. [Dictionary-based
+attacks](https://en.wikipedia.org/wiki/Dictionary_attack) and [rainbow table
+attacks](https://www.thesslstore.com/blog/rainbow-tables-a-path-to-password-gold-for-cybercriminals/) are also common password cracking
+techniques. 
+
+- **Manual exploitation of logical flaws**: Manual exploitation includes interception of raw HTTP requests and responses and maliciously
+manipulating the intercepted data to exploit logical flaws. 
+
+- **SQL injection**: SQL injection involves insertion of raw SQL queries that can retrieve unauthenticated data, unauthorized data, or even
+change the logical behavior of the application. In the context of authentication, SQL injection can spill the credentials stored in the
+database or affect the authentication logic, allowing an attacker to log in without authentication. Learn more about how [SQL injection
+attack works](https://portswigger.net/web-security/sql-injection). 
+
+<EmailSubscribeViolet />
+
+## Conclusion
+Although passwords and password-based authentication methods induce most of the vulnerabilities and threats related to authentication,
+logical flaws and insecure implementation also cause many problems. Besides the vulnerabilities mentioned in this blog post, it is essential
+to mention that insecure practices by employees can be a significant vulnerability related to the authentication process. After all,
+employees are the weakest link, and attack vectors such as phishing attacks are designed to exploit this vulnerability.
+
+## Secure authentication for infrastructure access
+Just as with the case of application security, vulnerabilities in the authentication process related to infrastructure access can be severe.
+Teleport enables certificate-based passwordless authentication to infrastructure resources which eliminates the [risks associated with
+passwords](https://goteleport.com/blog/no-passwords/). Additionally, support for single sign-on(SSO) dramatically reduces the probability of
+logical flaws related to the authentication process. Learn how Teleport [certificate-based authentication works](https://goteleport.com/how-it-works/certificate-based-authentication-ssh-kubernetes/). You can [download the community edition](https://goteleport.com/pricing/) to try it for yourself.
