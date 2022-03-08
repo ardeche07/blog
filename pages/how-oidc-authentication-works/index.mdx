@@ -89,7 +89,7 @@ While this distinction may seem like splitting hairs, understanding how authenti
 
 To discuss federated identity without mentioning SAML would be disingenuous. Recall that federated identity is the ability to use the same digital identity across multiple domains, meaning we are primarily concerned with the act of authentication, which involves proving who you are. There are two main protocols for authentication over networks: OIDC (OpenID Connect) and SAML (Security Assertion Markup Language). We will take a brief pitstop to better understand their differences and unique use cases before continuing to learn more about OIDC.
 
-OIDC is an authentication layer built on top of an authorization protocol (more on this in the next section), whereas SAML is its own self-contained authentication and authorization protocol. While these two protocols differ (enough to warrant its own blog post), there are two important differences. One, SAML uses XML-based federation while OIDC uses JSON/REST. Two, SAML requires individual actors within the SAML architecture to be pre-configured. By keeping a tight leash on who is part of the system, SAML identity providers can tightly control who accesses data. This is often used for enterprise-grade security, which you can read more about in this article, [How SAML Authentication Works.](/blog/how-saml-authentication-works/) Conversely, applications using OIDC work with any identity provider that supports the protocol. This form of authentication is more popular with consumer and native mobile applications, like gaming or productivity apps. Exporting identity management to companies like Google, Amazon, and Microsoft, these app developers can significantly reduce the friction of user sign-up. It is important to note that OIDC is extensible and can be configured to meet the security demands that enterprises require.
+OIDC is an authentication layer built on top of an authorization protocol (more on this in the next section), whereas SAML is its own self-contained authentication and authorization protocol. While these two protocols differ (enough to warrant its own blog post), there are two important differences. One, SAML uses XML-based federation while OIDC uses JSON/REST. Two, SAML requires individual actors within the SAML architecture to be pre-configured. By keeping a tight leash on who is part of the system, SAML identity providers can tightly control who accesses data. This is often used for enterprise-grade security, which you can read more about in this article, [How SAML Authentication Works.](/how-saml-authentication-works/) Conversely, applications using OIDC work with any identity provider that supports the protocol. This form of authentication is more popular with consumer and native mobile applications, like gaming or productivity apps. Exporting identity management to companies like Google, Amazon, and Microsoft, these app developers can significantly reduce the friction of user sign-up. It is important to note that OIDC is extensible and can be configured to meet the security demands that enterprises require.
 
 <figure>
   <BlogImage src="./assets/oidc-3.png" alt="SAML vs OAuth2 vs OIDC Comparison" width="100%"/>
@@ -102,7 +102,7 @@ _Further Reading: [https://blog.aspiresys.pl/technology/oauth-vs-oidc-vs-saml-se
 
 We’ve touched on the fact that OIDC is an authentication layer built on top of the authorization protocol, OAuth. But…what does that mean?
 
-It means that OIDC uses the same components and architecture as OAuth, but to authenticate. [OAuth](/blog/everything-you-need-to-know-about-oauth/) was originally dreamt up as a solution to something known as “delegated access,” or allowing applications to talk to one another and share information on the user’s behalf (see figure 4).
+It means that OIDC uses the same components and architecture as OAuth, but to authenticate. [OAuth](/everything-you-need-to-know-about-oauth/) was originally dreamt up as a solution to something known as “delegated access,” or allowing applications to talk to one another and share information on the user’s behalf (see figure 4).
 
 <figure>
   <BlogImage src="./assets/oidc-4.png" alt="Bob Delegating Spotify Access to his Facebook Profile" width="100%"/>
@@ -111,7 +111,7 @@ It means that OIDC uses the same components and architecture as OAuth, but to au
 
 This problem necessitated a solution that would standardize how two unrelated applications share personal user data. While OAuth handles this, it transmits no identifiable information about who is requesting privileges. There is a profound difference between granting Spotify access to your Facebook account data and letting Spotify make a post as you. OIDC adds the authentication feature to OAuth’s powerful authorization utility.
 
-Before we peek under the hood on OIDC, I am going to cheat and request that you familiarize yourself with the material in my other blog post: [How OAuth Authentication Works](/blog/everything-you-need-to-know-about-oauth/). In it, we dive into the conceptual design of OAuth and a practical case study with Github SSO.
+Before we peek under the hood on OIDC, I am going to cheat and request that you familiarize yourself with the material in my other blog post: [How OAuth Authentication Works](/everything-you-need-to-know-about-oauth/). In it, we dive into the conceptual design of OAuth and a practical case study with Github SSO.
 
 <figure>
   <BlogImage src="./assets/oidc-5.png" alt="OIDC Workflow" width="100%"/>
@@ -166,7 +166,7 @@ Requesting any further user information is optional and not part of the authenti
 
 ### Grants and Flows While most of this material is covered in [How OAuth
 
-Authentication Works](/blog/everything-you-need-to-know-about-oauth/), grants and flows merit a quick comment. Namely that much of the existing literature regarding OIDC grants are outdated. For OAuth (and by extension OIDC), the Implicit Flow has become deprecated due to security concerns and has been replaced with the PKCE extension for the Authorization Code Grant.
+Authentication Works](/everything-you-need-to-know-about-oauth/), grants and flows merit a quick comment. Namely that much of the existing literature regarding OIDC grants are outdated. For OAuth (and by extension OIDC), the Implicit Flow has become deprecated due to security concerns and has been replaced with the PKCE extension for the Authorization Code Grant.
 
 You can read more about Implicit Flow vs PCKE in Christian Lüdemann's fantastic [blog post](https://christianlydemann.com/implicit-flow-vs-code-flow-with-pkce/). For the following case study, we will be using the Authorization Code Grant.
 

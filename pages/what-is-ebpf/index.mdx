@@ -119,7 +119,7 @@ Putting this conceptual jigsaw together, eBPF programs are inserted into a hook 
 
 At Teleport, we’ve used a few eBPF programs in one of our open source projects, Teleport, for tracing and networking. For some necessary context: [Teleport](/) gives developers secure server access via SSH. Because organizations want to know what happens during a session, Teleport records user actions. Yet there are ways to bypass session recording entirely by obfuscating behavior within encoded commands, commands run in shell scripts, or even terminal commands like disabling `echo`.
 
-Earlier this year with our [Teleport 4.2 release](/blog/teleport-release-4-2), we introduced _enhanced_ session recording, which uses three eBPF programs (for now!) to take unstructured SSH sessions and transform them into a stream of structured events.
+Earlier this year with our [Teleport 4.2 release](/teleport-release-4-2), we introduced _enhanced_ session recording, which uses three eBPF programs (for now!) to take unstructured SSH sessions and transform them into a stream of structured events.
 
 Consider `echo Y3VybCBodHRwOi8vd3d3LmV4YW1wbGUuY29tCg== | base64 --decode | sh`. Though we can capture this command printed in the terminal, it means nothing to us as the user has encoded something to obfuscate their actions. But using eBPF, we learn the user is was attempting to obfuscate `curl`:
 

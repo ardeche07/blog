@@ -12,7 +12,7 @@ tags:
 layout: blogArticle
 ---
 
-We are excited to [welcome Windows hosts to the Teleport Access Plane](/blog/rdp-access-for-windows-browser/). For the past 5 years we’ve helped refine our Access Plane for Linux hosts, providing short-lived certificate-based access, RBAC and developer-friendly access to resources. As we’ve rolled Teleport to larger organizations, we found that people wanted the same convenience and security of Teleport but for Windows hosts.
+We are excited to [welcome Windows hosts to the Teleport Access Plane](/rdp-access-for-windows-browser/). For the past 5 years we’ve helped refine our Access Plane for Linux hosts, providing short-lived certificate-based access, RBAC and developer-friendly access to resources. As we’ve rolled Teleport to larger organizations, we found that people wanted the same convenience and security of Teleport but for Windows hosts.
 
 ## How do you control access to Windows hosts?
 
@@ -24,7 +24,7 @@ An [RDP Gateway](https://docs.microsoft.com/en-us/windows-server/remote/remote-d
 
 ## “Hackers don’t break in, they log in.”
 
-Weak passwords are the entry point for the majority of attacks across enterprise and consumer accounts. Microsoft has been working hard to move to a [passwordless future](https://techcommunity.microsoft.com/t5/azure-active-directory-identity/introducing-password-removal-for-microsoft-accounts/ba-p/2747280). Since its inception [Teleport has been passwordless](/blog/no-passwords/) and has never supported password-based SSH authentication. Teleport supports only [SSH Certificates](/blog/ssh-certificates/) for Linux servers and x.509 certificates for other protocols like databases and Kubernetes clusters since we wanted to keep passwordless access as our security invariant. With Teleport Desktop Access, we are bringing passwordless, certificated-based access to Windows as well.
+Weak passwords are the entry point for the majority of attacks across enterprise and consumer accounts. Microsoft has been working hard to move to a [passwordless future](https://techcommunity.microsoft.com/t5/azure-active-directory-identity/introducing-password-removal-for-microsoft-accounts/ba-p/2747280). Since its inception [Teleport has been passwordless](/no-passwords/) and has never supported password-based SSH authentication. Teleport supports only [SSH Certificates](/ssh-certificates/) for Linux servers and x.509 certificates for other protocols like databases and Kubernetes clusters since we wanted to keep passwordless access as our security invariant. With Teleport Desktop Access, we are bringing passwordless, certificated-based access to Windows as well.
 
 But how do you login to Windows without a password?
 

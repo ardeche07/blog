@@ -39,7 +39,7 @@ Single sign on, or SSO, is an important tool in federating identity across multi
 
 ### What is SAML?
 
-To enable SSO for a particular application, it must support an authentication protocol. One of these protocols is the Security Assertion Markup Language (SAML). These protocols allow identity providers to authenticate users on behalf of the application and pass on authorization information back to the application. If you are not familiar with SAML, I recommend reading through [How SAML 2.0 Authentication Works](/blog/how-saml-authentication-works/).
+To enable SSO for a particular application, it must support an authentication protocol. One of these protocols is the Security Assertion Markup Language (SAML). These protocols allow identity providers to authenticate users on behalf of the application and pass on authorization information back to the application. If you are not familiar with SAML, I recommend reading through [How SAML 2.0 Authentication Works](/how-saml-authentication-works/).
 
 
 ## What is Kubernetes User Impersonation?
@@ -216,7 +216,7 @@ We have successfully granted permissioned access to a user authenticated via SAM
 
 ## Mapping SAML Assertions to Kubernetes Groups
 
-You may be wondering why Teleport’s certificate authority is needed at all. This is a fair question. After all, everything we’ve done so far can be done with any ServiceAccount, why do we need another set of credentials if SAML can authenticate and authorize? While there are many reasons to employ a [certificate authority](/blog/ssh-certificates/), the necessary component is synchronizing RBAC across multiple different types of compute resources. In other words, when assigning an Admin role in Auth0, it should also inform the admin role across SSH, Kubernetes, databases, applications, etc. (Read more on [Best Practices for Secure Infrastructure Access](/resources/white-papers/secure-infrastructure-access/).) For a supported protocol like OIDC, by using the flag `--oidc-groups-claim`, the Kubernetes API will apply claims as a user’s groups, giving us RBAC parity between IDP and Kubernetes. But when an XML file asserts:
+You may be wondering why Teleport’s certificate authority is needed at all. This is a fair question. After all, everything we’ve done so far can be done with any ServiceAccount, why do we need another set of credentials if SAML can authenticate and authorize? While there are many reasons to employ a [certificate authority](/ssh-certificates/), the necessary component is synchronizing RBAC across multiple different types of compute resources. In other words, when assigning an Admin role in Auth0, it should also inform the admin role across SSH, Kubernetes, databases, applications, etc. (Read more on [Best Practices for Secure Infrastructure Access](/resources/white-papers/secure-infrastructure-access/).) For a supported protocol like OIDC, by using the flag `--oidc-groups-claim`, the Kubernetes API will apply claims as a user’s groups, giving us RBAC parity between IDP and Kubernetes. But when an XML file asserts:
 
 
 ```
