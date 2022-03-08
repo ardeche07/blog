@@ -78,7 +78,7 @@ management process.
 ### Use safe and audited authentication libraries and monitor for vulnerabilities in dependencies
 The security of libraries that are used as a dependency to build authentication functionality is also an important factor to consider. ​​For
 example, a vulnerability that allowed an attacker to completely bypass XML signature validation and pass off an altered file as a signed one
-with a carefully crafted XML file was discovered in the [Go XML Digital Signature library](github.com/russellhaering/goxmldsig). This
+with a carefully crafted XML file was discovered in the [Go XML Digital Signature library](https://github.com/russellhaering/goxmldsig). This
 library is used by many popular Go-based software programs for SAML authentication. Even Teleport was affected by this, which we fixed in
 the [4.1.11 release](https://github.com/gravitational/teleport/blob/master/CHANGELOG.md#4111).
 
