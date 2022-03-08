@@ -172,7 +172,7 @@ You can read more about Implicit Flow vs PCKE in Christian Lüdemann's fantastic
 
 ## Case Study: Teleport SSO with Okta
 
-Now that we’ve gathered the necessary concepts and design elements to see OIDC in action, we will run through a case study with our secure remote access tool, [Teleport](/how-it-works). In the OAuth article, we demonstrated how the OSS Community version of Teleport supports Github SSO throughout OAuth to issue SSH certificates. In this article, we’ll go the enterprise route and demonstrate how Teleport can use issue certificates using any IDP that supports OIDC. This example closely parallels the example in the OAuth article to help highlight how OIDC and OAuth are different.
+Now that we’ve gathered the necessary concepts and design elements to see OIDC in action, we will run through a case study with our secure remote access tool, [Teleport](https://goteleport.com/how-it-works). In the OAuth article, we demonstrated how the OSS Community version of Teleport supports Github SSO throughout OAuth to issue SSH certificates. In this article, we’ll go the enterprise route and demonstrate how Teleport can use issue certificates using any IDP that supports OIDC. This example closely parallels the example in the OAuth article to help highlight how OIDC and OAuth are different.
 
 As mentioned above, this case study uses the Authorization Code Grant flow. Teleport is not hosted, so we can assume we’ve installed it correctly within our infrastructure. If this weren’t the case, the PKCE extension would be used.
 

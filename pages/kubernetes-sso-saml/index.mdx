@@ -89,9 +89,9 @@ The trick is to not let Jane authenticate herself directly with the API, but rat
 
 ## Which Proxy Will We Use?
 
-We could configure a proxy from scratch, creating a ServiceAccount or normal user and giving it impersonation privileges. But this won’t let us map SAML attributes to Kubernetes groups since a vanilla account has no way to translate attributes to groups. Instead, we use an OSS tool called [Teleport](/), which, for reasons later explained, gives us that ability. If this mapping is not important to you, the rest of this article is still relevant, but instead of using the Teleport proxy just create a generic proxy account.
+We could configure a proxy from scratch, creating a ServiceAccount or normal user and giving it impersonation privileges. But this won’t let us map SAML attributes to Kubernetes groups since a vanilla account has no way to translate attributes to groups. Instead, we use an OSS tool called [Teleport](https://goteleport.com/), which, for reasons later explained, gives us that ability. If this mapping is not important to you, the rest of this article is still relevant, but instead of using the Teleport proxy just create a generic proxy account.
 
-Teleport consists of two services: a Proxy service, which accepts credentials from clients, and an Auth service, which issues and validates those credentials. While Teleport is [much more](/features/), this simplified description is sufficient.
+Teleport consists of two services: a Proxy service, which accepts credentials from clients, and an Auth service, which issues and validates those credentials. While Teleport is [much more](https://goteleport.com/features/), this simplified description is sufficient.
 
 <BlogImage src="./assets/kubernetes-sso-saml-1.png" width="100%" alt="single cluster kubernetes integration"/>
 
@@ -112,7 +112,7 @@ The diagram above shows a generic implementation of how we might use Teleport as
 
 Before we touch impersonation, we must first set up a SAML connector to our proxy. Well really, first we have to set up the services, but let’s make some assumptions for the sake of time:
 
-1. Teleport is running with the proxy and auth services [deployed as pods](/docs/kubernetes-access/)
+1. Teleport is running with the proxy and auth services [deployed as pods](https://goteleport.com/docs/kubernetes-access/)
 2. We’ve registered ourselves as a user with Teleport proxy
 
 Recall impersonation uses an account as a proxy between the API. This means the process for user authentication via SAML is an entirely separate process than the proxy authentication with the Kubernetes API. The user authentication happens with the proxy and auth services, not the API. Using some technical terminology, Teleport is our Service Provider requesting authentication and identity information from our IDP of choice.
@@ -216,7 +216,7 @@ We have successfully granted permissioned access to a user authenticated via SAM
 
 ## Mapping SAML Assertions to Kubernetes Groups
 
-You may be wondering why Teleport’s certificate authority is needed at all. This is a fair question. After all, everything we’ve done so far can be done with any ServiceAccount, why do we need another set of credentials if SAML can authenticate and authorize? While there are many reasons to employ a [certificate authority](/ssh-certificates/), the necessary component is synchronizing RBAC across multiple different types of compute resources. In other words, when assigning an Admin role in Auth0, it should also inform the admin role across SSH, Kubernetes, databases, applications, etc. (Read more on [Best Practices for Secure Infrastructure Access](/resources/white-papers/secure-infrastructure-access/).) For a supported protocol like OIDC, by using the flag `--oidc-groups-claim`, the Kubernetes API will apply claims as a user’s groups, giving us RBAC parity between IDP and Kubernetes. But when an XML file asserts:
+You may be wondering why Teleport’s certificate authority is needed at all. This is a fair question. After all, everything we’ve done so far can be done with any ServiceAccount, why do we need another set of credentials if SAML can authenticate and authorize? While there are many reasons to employ a [certificate authority](/ssh-certificates/), the necessary component is synchronizing RBAC across multiple different types of compute resources. In other words, when assigning an Admin role in Auth0, it should also inform the admin role across SSH, Kubernetes, databases, applications, etc. (Read more on [Best Practices for Secure Infrastructure Access](https://goteleport.com/resources/white-papers/secure-infrastructure-access/).) For a supported protocol like OIDC, by using the flag `--oidc-groups-claim`, the Kubernetes API will apply claims as a user’s groups, giving us RBAC parity between IDP and Kubernetes. But when an XML file asserts:
 
 
 ```

@@ -71,7 +71,7 @@ To authenticate a server, you get either an [asymmetric public key](https://gote
 
 As a user, you get to choose which authn method you want and how to configure it on both sides - yay!
 
-When it comes to authorization, things are not great. Authorization granularity is basically: "*user X can log into server Y,*" no grouping. You have to configure each server a user might log into individually by writing users’ public keys to ~/.ssh/authorized_keys and creating a local UNIX user for them. Using [SSH certificates](https://goteleport.com/blog/ssh-certificates/) can help with key distribution. [A bit of PAM plumbing](/docs/server-access/guides/ssh-pam/) can also create users for you. Regardless, it will take some work.
+When it comes to authorization, things are not great. Authorization granularity is basically: "*user X can log into server Y,*" no grouping. You have to configure each server a user might log into individually by writing users’ public keys to ~/.ssh/authorized_keys and creating a local UNIX user for them. Using [SSH certificates](https://goteleport.com/blog/ssh-certificates/) can help with key distribution. [A bit of PAM plumbing](https://goteleport.com/docs/server-access/guides/ssh-pam/) can also create users for you. Regardless, it will take some work.
 
 Luckily, higher-level software is available to solve these problems if you’re willing to expand your toolbox.
 

@@ -16,7 +16,7 @@ import Quote from "components/Quote";
 
 ## Introducing Gravity 6.0
 
-We are excited to announce a major new release of our flagship product, [Gravity](/). Since open sourcing Gravity last year, we have been pleased with its growing popularity and this new version contains quite a few improvements based on users’ feedback.
+We are excited to announce a major new release of our flagship product, [Gravity](https://goteleport.com/). Since open sourcing Gravity last year, we have been pleased with its growing popularity and this new version contains quite a few improvements based on users’ feedback.
 
 Before we dive deeper into what’s new, let me explain what Gravity is to folks who haven’t used it before.
 
@@ -42,7 +42,7 @@ First of all, this is still a beta version. You can download the beta version an
 As with any major new release, there are numerous new features to boast about. Before we touch on the most notable ones, let us explain the goals we had in mind for this release:
 
 1. **Improving user experience**. Long-time Gravity users and contributors are usually quite comfortable with the command line interface (CLI). No doubt, the CLI tools are powerful, but the learning curve can be substantial. Gravity 6.0 comes with a new Web UI which can be used by novices to explore and learn Gravity concepts (and Kubernetes, as well).
-2. **Advanced privileged access management**. Gravity has always relied on [Teleport](/) under the hood to provide remote access to instances of Cluster Images running across multiple clouds (aka, Gravity Clusters) but not all Teleport features had been exposed to Gravity users. This release exposes the advanced audit log, interactive session recording and seamless integration of Kubernetes permissions with SSH.
+2. **Advanced privileged access management**. Gravity has always relied on [Teleport](https://goteleport.com/) under the hood to provide remote access to instances of Cluster Images running across multiple clouds (aka, Gravity Clusters) but not all Teleport features had been exposed to Gravity users. This release exposes the advanced audit log, interactive session recording and seamless integration of Kubernetes permissions with SSH.
 3. **Simplified logging**. Managing applications logs is largely a solved problem. There are solutions for structured logging like Splunk, SumoLogic, LogDNA, ElasticSearch, etc. However, if you are using Gravity to distribute Cluster Images onto other people’s infrastructure, you can’t always rely on those solutions being available. Gravity 6.0 offers a new lightweight, yet powerful way, to manage application logging within a Gravity Cluster.
 4. **Gravity Hub**. While the open source edition of Gravity does not offer this feature, Enterprise users will finally get a redesigned central repository for publishing and distributing Cluster Images, known as Gravity Hub. You can think of Gravity Hub as an “application catalog” or “app store” for Cluster Images.
 
@@ -66,7 +66,7 @@ The new user interface includes the following improvements:
 
 Each Gravity Cluster includes an authentication gateway (the endpoint which users can use to authenticate to receive a Kubernetes certificate). Users configure Gravity to authenticate against an identity manager such as Okta, Active Directory, Github, Google, etc. (the open source version only supports Github and built-in users).
 
-The certificates issued by Gravity are accepted not only by the Kubernetes API, but you can also use them to SSH into any of the nodes within a Gravity Cluster. In other words, Gravity provides a single gateway or “bastion host” (using a common SSH term) for both protocols and keeps them in sync. If you need to prevent unwanted users from logging into a production environment, they won’t be able to bypass your Kubernetes RBAC rule by using SSH instead. Under the hood, this magic is provided by [Teleport](/) which can be used separately from Gravity.
+The certificates issued by Gravity are accepted not only by the Kubernetes API, but you can also use them to SSH into any of the nodes within a Gravity Cluster. In other words, Gravity provides a single gateway or “bastion host” (using a common SSH term) for both protocols and keeps them in sync. If you need to prevent unwanted users from logging into a production environment, they won’t be able to bypass your Kubernetes RBAC rule by using SSH instead. Under the hood, this magic is provided by [Teleport](https://goteleport.com/) which can be used separately from Gravity.
 
 This release is now fully integrated with Teleport’s audit log. Every time a user executes a `kubectl` command, establishes an SSH session into a box, or creates an interactive session into a container, Gravity creates an audit event which goes into the audit log. Interactive sessions are recorded and can be replayed later. This allows Gravity Clusters to adhere to various compliance regulations you may encounter if, for example, you want to deploy your application into a cloud environment owned by an enterprise customer.
 
@@ -93,7 +93,7 @@ The biggest areas of focus for us between now and the final release are:
 
 ## Download It Now!
 
-If you want to learn more about Gravity and its use cases, take a look at [our website](/). TLDR; here’s a short list of problems Gravity (and we) can help you solve:
+If you want to learn more about Gravity and its use cases, take a look at [our website](https://goteleport.com/). TLDR; here’s a short list of problems Gravity (and we) can help you solve:
 
 1. Thinking about deploying a SaaS application into on-premise environments?
 2. You’ve set up a dozen or more Kubernetes clusters and managing them is no longer fun?
