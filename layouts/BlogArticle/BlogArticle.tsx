@@ -33,6 +33,10 @@ interface BlogArticleProps {
   children: React.ReactNode;
 }
 
+const addUTCTime = (dateString) => {
+  return dateString.concat(" 00:00:00 GMT");
+};
+
 export const BlogArticle = ({
   children,
   meta: {
@@ -57,10 +61,18 @@ export const BlogArticle = ({
     )
     .slice(0, 3);
 
-  const unformattedDate = new Date(date);
-  console.log(unformattedDate);
+  // const convertedDate = addUTCTime(date);
 
-  // const newDate = format(parseISO(unformattedDate), "MMM d, yyyy");
+  console.log("date", date);
+  // const newDate = new Date(date);
+  // console.log(newDate);
+  // const formatted = format(convertedDate, "MMM d, yyyy");
+  // console.log(formatted);
+
+  // const x = parseISO(date);
+  // console.log(x);
+
+  // const newDate = format(x, "MMM d, yyyy");
   // console.log("newDate", newDate);
 
   return (
@@ -89,7 +101,7 @@ export const BlogArticle = ({
               mt="2"
               mb={[6, 11]}
             >
-              {format(new Date(date), "MMM d, yyyy")} by {author}
+              {date} by {author}
             </Box>
             {logo && (
               <NextImage
