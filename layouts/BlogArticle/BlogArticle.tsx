@@ -2,7 +2,6 @@ import { MDXProvider } from "@mdx-js/react";
 import styled from "styled-components";
 import css from "@styled-system/css";
 import Drift from "components/Drift";
-import { format, parseISO } from "date-fns";
 import NextImage from "next/image";
 import Box from "components/Box";
 import FeaturedArticleCards from "./FeaturedArticleCards";
@@ -21,6 +20,7 @@ import { BlogMeta } from "layouts/BlogArticle/types";
 import divider from "./assets/divider.png";
 import rss from "./assets/rss.svg";
 import { components } from "./components";
+import { format } from "date-fns";
 
 interface MetaBlogArticle extends BlogMeta {
   noindex?: boolean;
@@ -33,8 +33,16 @@ interface BlogArticleProps {
   children: React.ReactNode;
 }
 
-const addUTCTime = (dateString) => {
-  return dateString.concat(" 00:00:00 GMT");
+export const getParsedDate = (date) => {
+  // date needs to be coerced into DateTime because dates can't be strings when passed to 'format'
+  const initialParsedDate = new Date(date);
+  // date needs to be adjusted to take into account time zone differences
+  // the time zone offset from PST is subtracted from the initial parsed date
+  const adjustedDate = new Date(
+    initialParsedDate.valueOf() +
+      initialParsedDate.getTimezoneOffset() * 60 * 1000
+  );
+  return format(adjustedDate, "MMM d, yyyy");
 };
 
 export const BlogArticle = ({
@@ -60,20 +68,7 @@ export const BlogArticle = ({
         Boolean(article.frontmatter.logo) // filter out the post itself as well as posts without cover photo
     )
     .slice(0, 3);
-
-  // const convertedDate = addUTCTime(date);
-
-  console.log("date", date);
-  // const newDate = new Date(date);
-  // console.log(newDate);
-  // const formatted = format(convertedDate, "MMM d, yyyy");
-  // console.log(formatted);
-
-  // const x = parseISO(date);
-  // console.log(x);
-
-  // const newDate = format(x, "MMM d, yyyy");
-  // console.log("newDate", newDate);
+  const parsedDate = getParsedDate(date);
 
   return (
     <>
@@ -101,7 +96,7 @@ export const BlogArticle = ({
               mt="2"
               mb={[6, 11]}
             >
-              {date} by {author}
+              {parsedDate} by {author}
             </Box>
             {logo && (
               <NextImage
