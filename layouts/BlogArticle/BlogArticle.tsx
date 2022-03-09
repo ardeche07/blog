@@ -48,8 +48,13 @@ export const BlogArticle = ({
     articleTags,
   },
 }: BlogArticleProps) => {
+  // articlesInfo returns the last 6 blog posts
   const articlesInfo: BlogArticleInfo[] = featuredList
-    ?.filter((article) => article.frontmatter.articleTitle !== articleTitle)
+    ?.filter(
+      (article) =>
+        article.frontmatter.articleTitle !== articleTitle &&
+        Boolean(article.frontmatter.logo) // filter out the post itself as well as posts without cover photo
+    )
     .slice(0, 3);
 
   return (
