@@ -23,7 +23,7 @@ for reasons only known to them, need to leave AWS and move their workloads into
 a colocation facility, using Kubernetes to provide "cloudiness" of operations
 that we're all so accustomed to.
 
-In the first part, called [AWS vs Colocation](/blog/aws-vs-colocation/), we covered some hardware
+In the first part, called [AWS vs Colocation](/aws-vs-colocation/), we covered some hardware
 considerations and compared the costs of AWS and the colo, and here we will dive
 into building a network for a small bare metal environment to run Kubernetes
 on.
@@ -93,7 +93,7 @@ control over the systems you’re protecting. But you shouldn't be trusting a
 closed source implementation of server management software (which came from a
 hardware vendor) to be accessible from the Internet. Therefore have your IPMI
 interfaces behind a VPN. Besides, this setup does not preclude you from using
-zero trust software, like our open source [ZeroTrust SSH and Kubernetes gateway](/)
+zero trust software, like our open source [ZeroTrust SSH and Kubernetes gateway](https://goteleport.com/)
 that enables SSH and Kubernetes API access between multiple data centers and do
 not rely on secure private keys (i.e. not vulnerable to private keys leaked via stolen
 laptops, etc).

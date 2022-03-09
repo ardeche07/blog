@@ -134,7 +134,7 @@ There are various standard-setting organizations that have published "best pract
 
 While not listed in the template here, there may be a purchaser that has other requests because they are subject to government regulation, like the Federal Information Security Management Act (FISMA), Sarbanes Oxley (SOX) or Health Insurance Portability and Accountability Act (HIPAA). For example, a common request from a purchaser that needs to be HIPAA compliant is that you sign a [Business Associate Agreement (BAA)](https://www.hhs.gov/hipaa/for-professionals/covered-entities/sample-business-associate-agreement-provisions/index.html).
 
-Many of these standards require that you implement an Access Control Layer (ACL) that restricts access to certain types of data. Gravity was built with these standards in mind and uses Teleport (which can integrate with existing identity management services) to implement SSH level [Role Based Access Control (RBAC)](/teleport/features/rbac-for-ssh/) that also integrates with Kubernetes labels. This creates an automated way to restrict access based on the workload or data type even if they are ephemeral or dynamic across servers.
+Many of these standards require that you implement an Access Control Layer (ACL) that restricts access to certain types of data. Gravity was built with these standards in mind and uses Teleport (which can integrate with existing identity management services) to implement SSH level [Role Based Access Control (RBAC)](https://goteleport.com/features/rbac-for-ssh/) that also integrates with Kubernetes labels. This creates an automated way to restrict access based on the workload or data type even if they are ephemeral or dynamic across servers.
 
 ## Section 2: Data Protection & Access Controls
 
@@ -423,7 +423,7 @@ A proper SLA will be required for providing support response times, as well as i
     * What types of security reviews do you perform on outsourced software?
 </Quote>
 
-It's pretty apparent that these are responsibilities that need to be addressed by the vendor, regardless of where the application is running. We leave this to the vendors existing tooling and operational procedures. We did write a previous post about [keeping track of open source libraries](/blog/keeping-track-of-oss-licenses/) which includes some tools for tracking third party libraries used in the code base.
+It's pretty apparent that these are responsibilities that need to be addressed by the vendor, regardless of where the application is running. We leave this to the vendors existing tooling and operational procedures. We did write a previous post about [keeping track of open source libraries](/keeping-track-of-oss-licenses/) which includes some tools for tracking third party libraries used in the code base.
 
 ## Conclusion
 

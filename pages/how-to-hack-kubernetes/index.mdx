@@ -1,0 +1,210 @@
+---
+author: Kolawole Samuel Adebayot
+date: "2022-03-08"
+tags: 
+  - kubernetes
+articleTitle: How to Hack Kubernetes (and How to Protect It)
+title: How to Hack Kubernetes (and How to Protect It)
+description: Practical tips for how to hack Kubernetes and how to protect your clusters.
+logo:
+  image: ./assets/kubernetes-audit@2x.png
+  alt: kubernetes audit
+layout: blogArticle
+---
+
+[Kubernetes](https://kubernetes.io/) is a valuable resource and a leading container management system in development pipelines across the
+world, but it’s not exempt from malicious attacks. Using Kubernetes requires a deep understanding of Kubernetes’ environment—including the
+different vulnerabilities you can be exposed to while creating, deploying, or running applications in your clusters.
+
+Since your Kubernetes cluster is likely one of your most valuable cloud resources, it needs to be protected. Kubernetes’ security addresses
+the safety of your cloud, application clusters, containers, apps and code. Although Kubernetes provides inherent security advantages,
+bolstering your defensive tactics is crucial to protecting your system against hackers and other cybersecurity threats. 
+
+This roundup covers the top seven ways your cluster is likely to be attacked, with a corresponding countermeasure for each.
+
+## Why do you need defense tactics to avoid getting hacked?
+
+Because of the distributed, dynamic nature of a Kubernetes cluster, you need to implement defensive tactics that follow the best security
+practices [throughout the container lifecycle](https://www.vmware.com/topics/glossary/content/kubernetes-security.html).
+
+While several security issues exist with Kubernetes throughout the application lifecycle (build, deploy, and runtime), some of the most
+critical security concerns include:
+
+* **Using codes from unverified open source public registries:** This can create backdoors for threat actors to exploit — giving them access
+  to your critical assets. To protect the software supply chain  from malware. 
+
+* **Failing to follow the principle of least privilege (PoLP):** PoLP ensures you limit the privileges that users have access to. According
+  to the
+  [CISA](https://www.cisa.gov/uscert/bsi/articles/knowledge/principles/least-privilege#:~:text=The%20Principle%20of%20Least%20Privilege%20states%20that%20a%20subject%20should,control%20the%20assignment%20of%20rights),
+  if a subject doesn’t need an access right, the subject should not have that right. Granting unnecessary privileges widens the attack
+  surface and creates more security loopholes for attackers to pounce on. 
+
+* **Building complex Kubernetes clusters:** This makes it difficult to isolate and replace compromised clusters when there’s an attack,
+hampering the remediation process. Therefore, developing adequate defense strategies is key to keeping your clusters protected from bad
+actors and misconfigurations at all times. 
+
+## The top seven defense tactics for protecting your Kubernetes clusters
+
+While Kubernetes enables some essential security measures by default, developers must explore the best security practices to ensure the
+safety of their clusters. 
+
+The defense tactics in this article were selected based on industry standard best practices for preventing a Kubernetes hack. It includes
+comments made by several experts to explain how and why these strategies will help to secure Kubernetes workloads and mitigate cloud
+environment risk.
+
+### 1.  ABAC vs. RBAC
+
+While attribute-based access control (ABAC) is a great access control method, it’s complex to understand and manage. Apart from its
+complexity, ABAC grants access rights to users based on user attributes like subject attributes, resource attributes, and environmental
+attributes. ABAC enables cluster-wide permission for users to do whatever they want: create resources in the cluster, view secrets, delete
+codes and more. It doesn’t ensure maximum protection and can have catastrophic consequences.
+
+Kubernetes announced the release of [Kubernetes 1.6](https://kubernetes.io/blog/2017/03/kubernetes-1-6-multi-user-multi-workloads-at-scale/)
+on March, 28, 2017, stating that “Role-based access control (RBAC),
+[kubefed](https://kubernetes.io/docs/tutorials/federation/set-up-cluster-federation-kubefed/),
+[kubeadm](https://kubernetes.io/docs/getting-started-guides/kubeadm/), and other scheduling features were moving to beta.” Moving RBAC to
+beta was a major highlight of this announcement. Andrew Grant, co-founder of [Control Plane](https://control-plane.io/) and coauthor of
+[Hacking Kubernetes](https://www.oreilly.com/library/view/hacking-kubernetes/9781492081722/), noted in an
+[article](https://kubernetes.io/blog/2018/07/18/11-ways-not-to-get-hacked/) that ABAC has been superseded by RBAC since release 1.6, and
+that it should not be used on the API server. 
+
+According to Grant, disabling ABAC and enabling RBAC with least privilege offer powerful protection against getting hacked. Unlike ABAC,
+RBAC grants access rights to users based on their roles. For example, while a DevOps team may have access to programming files, a project
+management team will have access to all the project files. That’s an example of what RBAC does — enabling permissions based on the functions
+of users.
+
+You can enable RBAC by starting the kube-apiserver with the `--authorization-mode` flag:
+
+```shell
+kube-apiserver --authorization-mode=Example,RBAC --other-options --more-options
+```
+
+More details on RBAC can be found in the [Kubernetes documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/) and
+[Kubernetes API Access Hardening](/kubernetes-api-access-security/).
+
+### 2. Monitor the logs
+
+Another way to prevent your clusters being hacked is to ensure that you monitor logs and audit them regularly for suspicious activities like
+unusual or unwanted API calls—especially authentication failures. Although audit logging helps with analysis and identifying trends over
+time, [notes Amir Kaushansky](https://www.armosec.io/blog/kubernetes-audit-log-security/), VP of Products at Armo, it’s most commonly used
+by organizations to monitor Kubernetes cluster performance and enforce security.
+
+For example, if a log entry displays a message status like “Forbidden,” which was not authorized by a cluster administrator, it could mean
+that an attacker is trying to use stolen credentials. Kubernetes users can access this data in their console and set up notifications for
+authorization failures.
+
+Audit logging enables customizable event logging. You can set one of the four API logging levels:
+
+* None
+* Metadata only
+* Request: this logs metadata and requests but not responses
+* RequestResponse: logs metadata, requests, and responses
+
+**Note:** Keeping these logs inside clusters poses a security threat, as compromise on a sector of any cluster might provide hackers with
+the logs stored in that cluster and jeopardize the overall security of your clusters. Any sensitive logs should be transported outside the
+cluster to mitigate risk.
+
+To enable audit logging, you need to use the `--audit-policy-file` flag while starting kube-apiserver. The policy file contains the rules
+which dictate what will be logged. Here’s an example policy template file:
+
+```yaml
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# Ignore all requests in RequestReceived stage.
+omitStages:
+  - "RequestReceived"
+rules:
+  # Log pod changes at RequestResponse level
+  - level: RequestResponse
+    resources:
+    - group: ""
+      resources: ["pods"]
+```
+
+### 3. Rotate encryption keys regularly
+
+One of the best security practices to protect your Kubernetes against malicious actors is regularly rotating encryption keys and
+certificates. By default, these certificates are issued with a year-long expiration date so that you don’t have to renew them frequently.
+However, you can also customize them to a time more suitable for you. 
+
+Kubernetes enables encryption keys and certificate rotation to automatically generate a new key and request a new certificate from the API
+server as the current certificate approaches expiration. Once the new certificate is available, it will authenticate connections to the
+Kubernetes API. This process saves time by ensuring the user doesn’t need to frequently rotate keys and certificates. 
+
+In addition, it’s essential to always encrypt your backups using a well-reviewed backup encryption solution, and consider using full disk
+encryption where possible.
+
+Rotating encryption keys and certificates regularly limits the damage in the event of a key compromise. Thankfully, Kubernetes’ automated
+process of changing keys and certificates removes the possibility of human failure: a leak of sensitive keys.
+
+If you want to see how to rotate etcd encryption keys in Kubernetes, you can check out [this
+article](https://faun.pub/rotating-etcd-encryption-key-in-kubernetes-11f28a4a0d01?gi=cf0f2333ca62).
+
+### 4. Update your Kubernetes version
+
+As simple as it may seem, keeping Kubernetes up to date is an excellent way to keep clusters safe from attacks. To get a sense of how secure
+your current version is, you can find a list of Kubernetes vulnerabilities on this [CVE
+list](https://www.cvedetails.com/vulnerability-list/vendor_id-15867/product_id-34016/Kubernetes-Kubernetes.html).
+
+For developers who use a hosted provider such as AWS EKS, check if your provider automatically updates your Kubernetes version. 
+
+### 5. Whitelist application processes
+
+Process whitelisting helps to identify processes that run unexpectedly.
+ 
+The first step to using process whitelisting to protect Kubernetes is to observe and identify every process that runs when an application
+behaves normally. Next, use this list as a whitelist to check for any anomalies in future application behaviors.
+
+If a hacker manages to access your cluster and runs harmful processes, the whitelist helps you to swiftly identify and flag such
+irregularities.
+
+### 6. Run containers as a non-root user
+
+Running containers as a root user exposes you to security breaches. As tech columnist Raquel Campuzano Godoy puts it [on
+Bitnami](https://engineering.bitnami.com/articles/why-non-root-containers-are-important-for-security.html#:~:text=Because%20anyone%20who%20accesses%20your,which%20makes%20your%20application%20vulnerable),
+“Anyone who accesses your container running as `root` can start undesirable processes in it — such as injecting malicious codes”. Running
+your docker containers as a root user also makes your applications vulnerable because it enables users to change the user ID or group ID
+when they start the container.
+
+Reconfiguring your containers from `root` to `non-root` provides an additional layer of protection that secures you against hackers. A
+selection of non-root image containers tagged “non-root” is available here on [Bitnami’s GitHub
+repository](https://github.com/search?q=bitnami&type=Repositories).
+
+To run a container as a `non-root`, you need to set the `securitycontext` field to specify exactly what permissions the container should
+have. In this context, you need to set the `securitycontext.runAsUser` and `securityContext.runAsGroup` to run containers as a non-root
+user.
+
+[Here](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod) is how to configure a security context for a pod or container.
+
+### 7. Audit `kubectl` usage
+
+Integrating Kubernetes with a third-party authentication provider like [Teleport](https://goteleport.com/) is another effective way to
+protect your clusters against threat actors. It provides additional security features such as multi-factor authentication and ensures there
+are no changes to the `kube-api` server when users are added or removed.
+
+Teleport offers an identity-based access proxy for multiple Kubernetes clusters. User certificates are issued after their identities are
+validated by single sign-on (SSO) providers such as Okta, GitHub, Google Apps, and others. [Teleport Kubernetes
+Access](https://goteleport.com/how-it-works/secure-kubernetes-access/) offers a simple, unified way to access all environments via a single
+access point, using the same identity provider. This provides the same role-based access (RBAC) rules for all your Kubernetes clusters and
+resources — ensuring secure access to them. 
+
+Teleport delivers hardened security best practices to companies. Use it to:
+
+* Secure your Kubernetes clusters while meeting compliance requirements
+* Secure access to underlying linux infrasture 
+* Prevent honeypot attacks and eliminate the issue of trust on first use
+* Allow users to enumerate all servers and other current online resources
+* Improve visibility into access and behavior across your infrastructure
+* Full playback for `kubectl execs` 
+* Reduce the operational overhead of enforcing security best practices
+
+## Conclusion
+
+While many DevOps teams enable default security measures that come with Kubernetes, these measures aren’t enough to keep clusters protected
+from attacks. Vigilant DevOps teams need to do more to create the walls necessary to stop hackers from infiltrating their systems. 
+
+
+This post scratches the surface of Kubernetes-based attacks. If you would like to learn more, I would recommend checking out Episode 8 of
+[Access Control on Securing Kubernetes](https://goteleport.com/resources/podcast/access-control-andrew-martin/). The CIS has a great
+benchmark for [securing Kubernetes](https://www.cisecurity.org/benchmark/kubernetes) and if you want to up level your cloud native skill
+set, we would recommend the CNCF (Certified Kubernetes Security Specialist (CKS) exam)[https://www.cncf.io/certification/cks/]. 

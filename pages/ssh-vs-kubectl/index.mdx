@@ -27,13 +27,13 @@ of it to `ssh` is like comparing `systemd` to BSD `init`.
 
 Also, I will use `SSH` to mean `OpenSSH`, which is the de-facto standard
 for SSH protocol implementation. But most discussion points will apply to any
-[SSH implementation](/blog/how-ssh-into-a-self-driving-vehicle/).
+[SSH implementation](/how-ssh-into-a-self-driving-vehicle/).
 
 
 ## Apples to Oranges
 At first glance, this is an odd comparison.
 
-OpenSSH has been around for two decades, long before _The Cloud_ [was born](/blog/saas-to-onprem-considerations/). Its design assumes that you’re managing a handful of pet servers and are carefully configuring and tweaking every aspect of them. SSH has also been adopted as a transport-layer protocol for things like SFTP and Ansible.
+OpenSSH has been around for two decades, long before _The Cloud_ [was born](/saas-to-onprem-considerations/). Its design assumes that you’re managing a handful of pet servers and are carefully configuring and tweaking every aspect of them. SSH has also been adopted as a transport-layer protocol for things like SFTP and Ansible.
 
 kubectl, on the other hand, was born in the cloud, ~~molded by it~~. It deals with remote machines (or containers) by the thousands, treating them like cattle. `kubectl exec` is just a small part of this and is used for debugging when things go wrong.
 
@@ -47,7 +47,7 @@ With that out of the way, let’s dive into their similarities and differences.
 ## Authn/z
 Let’s start with everyone’s favorite topic: security.
 
-**TL;DR**: SSH authentication is very customizable, but large-scale management is a pain. `kubectl` deals with _authorization_ much better, but _[authentication](/blog/how-oidc-authentication-works/)_ is usually opaque and hard to tweak.
+**TL;DR**: SSH authentication is very customizable, but large-scale management is a pain. `kubectl` deals with _authorization_ much better, but _[authentication](/how-oidc-authentication-works/)_ is usually opaque and hard to tweak.
 
 Note: we won’t discuss pros and cons of authentication methods here, that’s a yak for another shaving session.
 
@@ -62,7 +62,7 @@ SSH supports a range of authentication options:
 * Certificates ([but not the X.509 kind!](https://github.com/openssh/openssh-portable/blob/master/PROTOCOL.certkeys)) linked to a private CA
   * With all the options for storing a private key above
 * Pluggable external authentication via [GSSAPI](https://en.wikipedia.org/wiki/Generic_Security_Services_Application_Program_Interface) and/or PAM
-  * E.g. Active Directory, LDAP, [OIDC](/blog/how-oidc-authentication-works/), etc
+  * E.g. Active Directory, LDAP, [OIDC](/how-oidc-authentication-works/), etc
 * With 2FA
   * Based on a local hardware token
   * Or remotely, using TOTP (e.g. Google Authenticator) or services like Duo, through PAM
@@ -71,7 +71,7 @@ To authenticate a server, you get either an [asymmetric public key](https://gote
 
 As a user, you get to choose which authn method you want and how to configure it on both sides - yay!
 
-When it comes to authorization, things are not great. Authorization granularity is basically: "*user X can log into server Y,*" no grouping. You have to configure each server a user might log into individually by writing users’ public keys to ~/.ssh/authorized_keys and creating a local UNIX user for them. Using [SSH certificates](https://goteleport.com/blog/ssh-certificates/) can help with key distribution. [A bit of PAM plumbing](/docs/server-access/guides/ssh-pam/) can also create users for you. Regardless, it will take some work.
+When it comes to authorization, things are not great. Authorization granularity is basically: "*user X can log into server Y,*" no grouping. You have to configure each server a user might log into individually by writing users’ public keys to ~/.ssh/authorized_keys and creating a local UNIX user for them. Using [SSH certificates](https://goteleport.com/blog/ssh-certificates/) can help with key distribution. [A bit of PAM plumbing](https://goteleport.com/docs/server-access/guides/ssh-pam/) can also create users for you. Regardless, it will take some work.
 
 Luckily, higher-level software is available to solve these problems if you’re willing to expand your toolbox.
 
@@ -119,7 +119,7 @@ Both `ssh` and `kubectl` support some form of moving files between you and the s
 #### SSH
 SSH has a wide range of tools that piggy-back on it as a transport:
 
-* There are the built-in [SCP](/blog/scp-familiar-simple-insecure-slow/) and newer SFTP
+* There are the built-in [SCP](/scp-familiar-simple-insecure-slow/) and newer SFTP
 * There’s the fancier [rsync](https://download.samba.org/pub/rsync/rsync.1), although it needs to be installed separately from OpenSSH
 * You can even slap together [some pipes and tar](https://www.cyberciti.biz/faq/howto-use-tar-command-through-network-over-ssh-session/) in a pinch
 

@@ -15,16 +15,26 @@ layout: blogArticle
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
 ## Why get SOC 2 Type II certified? Here’s our experience.
-Just like how computers use trusted third parties and chains of trust to connect with one another, organizations use (admittedly much slower and more human powered) authoritative standards organizations (AICPA) and certified audit firms to create a trust system between organizations. It’s a similar handshake process where we agree upon our protocols before making a trusted connection.
+Just like how computers use trusted third parties and chains of trust to connect with one another, organizations use (admittedly much slower
+and more human powered) authoritative standards organizations (AICPA) and certified audit firms to create a trust system between
+organizations. It’s a similar handshake process where we agree upon our protocols before making a trusted connection.
 
-SOC 2 is one of the audits that is used to help provide assurances to companies who store their data with other service providers, which is most commonly their SaaS or cloud providers. Getting a SOC 2 Type II certification is table stakes if you are selling a SaaS B2B product so your customers can be more comfortable that their data is safe with your organization.
+SOC 2 is one of the audits that is used to help provide assurances to companies who store their data with other service providers, which is
+most commonly their SaaS or cloud providers. Getting a SOC 2 Type II certification is table stakes if you are selling a SaaS B2B product so
+your customers can be more comfortable that their data is safe with your organization.
 
-We have been somewhat unusual in the SaaS dominated B2B software space in that we have not historically offered a SaaS offering. We develop open source software and offer commercial, open core versions of that software that our customers install and self-host on their own infrastructure. This has arguably given our customers an even higher level of trust (relative to a SOC 2 certified SaaS) when using our software, since we do not host any of their data. So it has not historically been a requirement from our customers. This is one of the big benefits of selling "on-prem software" but of course [there are many trade-offs](/blog/open-core-vs-saas-intro/).
+We have been somewhat unusual in the SaaS dominated B2B software space in that we have not historically offered a SaaS offering. We develop
+open source software and offer commercial, open core versions of that software that our customers install and self-host on their own
+infrastructure. This has arguably given our customers an even higher level of trust (relative to a SOC 2 certified SaaS) when using our
+software, since we do not host any of their data. So it has not historically been a requirement from our customers. This is one of the big
+benefits of selling "on-prem software" but of course [there are many trade-offs](/open-core-vs-saas-intro/).
 
-However, there are two reasons why we went through the process recently. The first, unfortunately, had to do with a bit of security theater compliance. It became overly burdensome to explain to bureaucratic compliance departments why SOC 2 is not as relevant for on-prem software. It was a checkbox they wanted checked.
+However, there are two reasons why we went through the process recently. The first, unfortunately, had to do with a bit of security theater
+compliance. It became overly burdensome to explain to bureaucratic compliance departments why SOC 2 is not as relevant for on-prem software.
+It was a checkbox they wanted checked.
 
 The second, and more relevant, is that we have announced the hosted
-version of our Teleport software, [Teleport Cloud](/pricing/). We may
+version of our Teleport software, [Teleport Cloud](https://goteleport.com/pricing/). We may
 have continued to fight the good fight, debating compliance officials about
 security theater, but Teleport Cloud makes the argument moot.
 
@@ -62,19 +72,19 @@ and at least an extra quarter of work from the HR, IT, InfoSec and product teams
 
 ## Will getting SOC 2 require us to implement slow ‘Big Company’ processes?
 
-I’ll be honest, we definitely had developers worried about us ‘getting corporate’ and having to log tickets and [access requests](/features/access-requests/) for everything. That’s one way of handling compliance, adding lots of hoops to jump through, but it’s not the only way.
+I’ll be honest, we definitely had developers worried about us ‘getting corporate’ and having to log tickets and [access requests](https://goteleport.com/features/access-requests/) for everything. That’s one way of handling compliance, adding lots of hoops to jump through, but it’s not the only way.
 
 There are newer schools of thought that meet compliance requirements without getting in the way. Here are two great examples that companies at every size are quickly adopting.
 
 ### Role Based Access Controls (RBAC)
-Employees and contractors automatically get access to exactly what they need based on their role. They can elevate that by building [approval workflows](/docs/enterprise/workflow/) for temporarily elevating privileges using Slack bots or integrating with Jira to make approvals quick and automated.
+Employees and contractors automatically get access to exactly what they need based on their role. They can elevate that by building [approval workflows](https://goteleport.com/docs/enterprise/workflow/) for temporarily elevating privileges using Slack bots or integrating with Jira to make approvals quick and automated.
 
 Auditors ask many questions about granting and revoking privileges. There are 110 mentions of the word ‘access’ in the AICPA Trust Service Criteria for SOC 2. For example, expect to provide evidence that a contractor's privileged access was revoked within a day of their end date.
 
 One common “surface area” for SOC 2 compliance developers should think about is infrastructure access: AWS APIs, SSH access, Kubernetes, or any other method of accessing production environments. Our own open-source project, [Teleport](https://goteleport.com/download/), takes care of the latter two.
 
 ### Beyond Corp
-In past organizations, we handled firewall rule changes with requests, reviews, approvals, and late night change windows. Now we use [Trusted Clusters](/docs/trustedclusters/), and perimeter security is of little concern.
+In past organizations, we handled firewall rule changes with requests, reviews, approvals, and late night change windows. Now we use [Trusted Clusters](https://goteleport.com/docs/trustedclusters/), and perimeter security is of little concern.
 
 Expect auditors to ask about firewall rules and how you “protect external access points from attempts and unauthorized access and are monitored to detect such attempts.”
 
@@ -97,7 +107,7 @@ Since SOC 2 is certified by independent auditors, you don’t have to take the c
 ### Vendor Security Reviews
 As a buyer and seller of software, we complete a lot of vendor security reviews. Part of being SOC 2 compliant is that we security review every vendor we do business with to create a chain of trust. Our process is to review SOC 2 reports, third party security audits, and whitepapers that describe the softwares architecture. If vendors don’t have SOC 2, we require them to complete a lengthy security questionnaire. Before we got SOC 2 certified, I filled out many very long security questionnaires - the process is often not that different from working with the SOC 2 auditor with many back and forth discussions on spreadsheets describing security controls. Now we only have to do that process once with our auditor rather than with each and every potential client.
 
-We choose to publish our [external audits](/resources/audits/) to make the vendor security review process quicker for customers and to promote transparency.
+We choose to publish our [external audits](https://goteleport.com/resources/audits/) to make the vendor security review process quicker for customers and to promote transparency.
 
 <EmailSubscribeViolet />
 

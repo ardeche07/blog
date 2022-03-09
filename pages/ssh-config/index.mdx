@@ -39,7 +39,7 @@ Host myserver
 	IdentityFile /users/virag/keys/us-west/ed25519
 ```
 
-Elegant and simple. Now that we have the basics, let’s see what’s actually going on here. My choice of ed25519 is explained in [Comparing SSH Keys - RSA, DSA, ECDSA, or EdDSA?](/blog/comparing-ssh-keys/)
+Elegant and simple. Now that we have the basics, let’s see what’s actually going on here. My choice of ed25519 is explained in [Comparing SSH Keys - RSA, DSA, ECDSA, or EdDSA?](/comparing-ssh-keys/)
 
 ## How ssh_config Works
 
@@ -105,7 +105,7 @@ There are close to 100 options for ssh_config in `man 5 ssh_config`. I’ve comp
 - `ForwardAgent` & `AddKeysToAgent` - Hopping between hosts (when you type `ssh` again inside of another `ssh` session) requires repeated authentication. For this to work, `ssh` credentials must be stored on intermediary servers, but this is not a safe practice. These two options allow another process usually called `ssh-agent` to automatically load your local `ssh` credentials into memory and serve them to the intermediate machine’s ssh client via a securely forwarded UNIX socket. `ForwardAgent` enables this forwarding behavior while `AddKeysToAgent` automates the process of loading keys to memory. I will provide more detail on this below.
 - `IdentityFile` - This option specifies the path to a key the ssh client should try for authentication. This does not preclude the ssh client from trying keys in `~/.ssh` or the ssh-agent. Commonly used when keys are not stored in the default location for whatever reason.
 - `IdentitiesOnly` - Often used with `IdentityFile`, this option tells the ssh client exactly which key to present and forgo any keys in `~/.ssh` or the ssh-agent. Because `ssh` will throw an authentication error if too many invalid keys are tried, this option helps the client precisely identify what key to present. Even if `IdentitiesOnly` is enabled in `ssh_config`, any identities entered into the command line will also be tried.
-- `CertificateFile` - Given that **keys are largely antiquated**, this option can be used in conjunction with `IdentityFile` to specify which [certificate](https://goteleport.com/blog/ssh-certificates/) to present. This is not always necessary. When [certificate authority](https://goteleport.com/blog/ssh-certificates/) signs a key to create a certificate, `-cert.pub` will automatically be appended to the key’s filename. The ssh client will first try to load a certificate from the provided filename using the expected naming convention before loading a key. However, if the key and certificate file names do not follow this pattern, then `CertificateFile` must be used or the cert will not be located. [Read more on why you should use certs](/blog/how-to-ssh-properly/).
+- `CertificateFile` - Given that **keys are largely antiquated**, this option can be used in conjunction with `IdentityFile` to specify which [certificate](https://goteleport.com/blog/ssh-certificates/) to present. This is not always necessary. When [certificate authority](https://goteleport.com/blog/ssh-certificates/) signs a key to create a certificate, `-cert.pub` will automatically be appended to the key’s filename. The ssh client will first try to load a certificate from the provided filename using the expected naming convention before loading a key. However, if the key and certificate file names do not follow this pattern, then `CertificateFile` must be used or the cert will not be located. [Read more on why you should use certs](/how-to-ssh-properly/).
 - `SetEnv` & `SendEnv` - These options allow an ssh client to send local environment variables to a specified host. The host server must be configured to accept these environment variables by setting `AcceptEnv` to Yes in `/etc/ssh/sshd_config`.
 - `ServerAliveInterval` & `ServerAliveCountMax-` An ssh client will request a response from the host server if it has not received any data in a specified time interval. This can prevent load balancers and servers from dropping connections due to inactivity.
 - `HostKeyAlias` - The ssh client is directed to use a key alias from `~/.ssh/known_hosts` instead of `HostName`. This is useful for hosts with dynamically changing IP addresses or multiple servers running on one host.
@@ -167,7 +167,7 @@ If one-off cases arise, always remember that options entered into the command li
 
 ## Using the SSH Agent
 
-An [ssh jump server](/blog/ssh-jump-server/) is a proxy standing between clients and the rest of the `ssh` fleet. Jump hosts minimize threats by forcing all `ssh` traffic to go through a single hardened location and minimizing an individual node’s `ssh` endpoints to the outside world.
+An [ssh jump server](/ssh-jump-server/) is a proxy standing between clients and the rest of the `ssh` fleet. Jump hosts minimize threats by forcing all `ssh` traffic to go through a single hardened location and minimizing an individual node’s `ssh` endpoints to the outside world.
 
 One way to configure a multi-hop setup is by storing a private key for the destination server on our jump server. Do _not_ do this. A jump server is usually a multi-user environment, meaning any single party with elevated privileges can compromise any private key. A solution to this security threat is enabling agent forwarding, which we briefly touched on with `AddKeysToAgent` and `ForwardAgent`. Given how common this method is, it may surprise you when I suggest _not_ doing this either. To understand why, let’s dig a bit deeper.
 
@@ -239,5 +239,5 @@ The broader take away from this article is to _make life simple_. This can be ac
 
 If you want to learn more about best practices for `ssh` access, you may consider the following articles:
 
-- [How to SSH properly](/blog/how-to-ssh-properly/)
+- [How to SSH properly](/how-to-ssh-properly/)
 - Teleport: a [modern replacement for OpenSSH](https://github.com/gravitational/teleport)

@@ -18,14 +18,14 @@ import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
 Teleport 4.4 is here! The major innovation we’re introducing in this version is much improved control over interactive sessions for SSH and Kubernetes protocols. We’ll do a deeper dive into session control later, but for those who aren't familiar with it, Teleport is an open source project. It provides access to SSH servers and Kubernetes clusters on any infrastructure, on any cloud, or any IoT device, anywhere, even behind NAT. Teleport is an alternative to OpenSSH with support for additional protocols like Kubernetes.
 
-_[How Teleport Works](/how-it-works/)_ is a good introduction.
+_[How Teleport Works](https://goteleport.com/how-it-works/)_ is a good introduction.
 
 
 ## What is an SSH Session?
 
 Every time a user types `ssh user@host`, a connection is established between the user’s machine (a client) and the target host. In Teleport, this connection is never direct. Teleport does not expose hosts to the Internet by default, so every connection is transparently established via a proxy.
 
-A user may execute a remote command, or a sequence of commands, and be waiting for their completion. A user may execute a remote shell or any interactive terminal application. For this to work, the context of the connection needs to be maintained. The state of the information exchange that takes place over this connection is called a _session_. Teleport provides useful metadata for each session and stores it in [the audit log](/how-it-works/audit-logging-for-ssh-and-kubernetes/):
+A user may execute a remote command, or a sequence of commands, and be waiting for their completion. A user may execute a remote shell or any interactive terminal application. For this to work, the context of the connection needs to be maintained. The state of the information exchange that takes place over this connection is called a _session_. Teleport provides useful metadata for each session and stores it in [the audit log](https://goteleport.com/how-it-works/audit-logging-for-ssh-and-kubernetes/):
 
 
 
@@ -85,6 +85,6 @@ Teleport is an open source project and the full list of closed tickets can be fo
 
 To learn more or take Teleport for a spin:
 
-* [How Teleport works](/how-it-works/)
-* [Download Teleport](https://goteleport.com/download/) and watch [Teleport 4.4. Webinar](/resources/videos/ssh-compliance-visibility/) .
+* [How Teleport works](https://goteleport.com/how-it-works/)
+* [Download Teleport](https://goteleport.com/download/) and watch [Teleport 4.4. Webinar](https://goteleport.com/resources/videos/ssh-compliance-visibility/) .
 * Are you a security engineer or a UX engineer? [Join our engineering team!](https://jobs.lever.co/teleport)

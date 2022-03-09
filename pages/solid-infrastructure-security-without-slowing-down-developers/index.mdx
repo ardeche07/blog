@@ -72,7 +72,7 @@ Where is the SRE group stored? Pick whichever is most convenient. Github, Google
 
 How is SSH access granted based on group membership? You must leave SSH keys behind (even if they’re “automatically rotated”) and adopt certificate-based authentication.
 
-We have blogged previously about [How to SSH Properly](/blog/how-to-ssh-properly/), where we’ve shown how to set this up using the de facto standard, OpenSSH. Or instead of implementing all the tips in “How to SSH Properly” yourself, you can take a shortcut by using our open source Teleport solution, which embraces identity-based access as the _only_ method of accessing infrastructure. This simplifies access management, and the side-effect of identity-based access is a dramatically better user experience.
+We have blogged previously about [How to SSH Properly](/how-to-ssh-properly/), where we’ve shown how to set this up using the de facto standard, OpenSSH. Or instead of implementing all the tips in “How to SSH Properly” yourself, you can take a shortcut by using our open source Teleport solution, which embraces identity-based access as the _only_ method of accessing infrastructure. This simplifies access management, and the side-effect of identity-based access is a dramatically better user experience.
 
 Why certificates? Because certificates have a designated TTL (time to live) and this means that the access credentials expire automatically. Moreover, certificates allow the injection of metadata. Metadata is useful for several reasons:
 
@@ -123,6 +123,6 @@ And perhaps more importantly, it pays off to minimize the need to access infrast
 
 ### Additional Reading
 
-* [How to SSH properly](/blog/how-to-ssh-properly/)
-* [Certificates Explained](/blog/ssh-certificates/)
-* [Teleport: Unified Access for SSH & Kubernetes](/)
+* [How to SSH properly](/how-to-ssh-properly/)
+* [Certificates Explained](/ssh-certificates/)
+* [Teleport: Unified Access for SSH & Kubernetes](https://goteleport.com/)

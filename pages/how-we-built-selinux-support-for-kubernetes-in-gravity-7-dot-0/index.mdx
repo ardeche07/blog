@@ -15,7 +15,7 @@ layout: blogArticle
 
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
-As one of the engineers on the Gravity team here at Teleport, I was tasked with adding SELinux support to [Gravity 7.0](/blog/announcing-gravity-7-0/), released back in March. The result of this work is a base Kubernetes cluster [policy](https://github.com/gravitational/selinux/) that confines the services (both Gravity-specific and Kubernetes) and user workloads.
+As one of the engineers on the Gravity team here at Teleport, I was tasked with adding SELinux support to [Gravity 7.0](/announcing-gravity-7-0/), released back in March. The result of this work is a base Kubernetes cluster [policy](https://github.com/gravitational/selinux/) that confines the services (both Gravity-specific and Kubernetes) and user workloads.
 
 In this post, I will explain how I built it, which issues I ran into, and some useful tips I’d like to share. Specifically, we will look at the use of attributes for the common aspects of the policy. We will see how to search for and select appropriate builtin interfaces to increase the readability of the policy and how file equivalence rules should be taken into account when working with file labels.
 

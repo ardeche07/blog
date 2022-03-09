@@ -278,7 +278,7 @@ In the end, the infrastructure team at ECMWF chose Teleport as their solution. A
       <td>
         <ul>
           <li>
-            By encoding a time-to-live into all <a href="/teleport/how-it-works/certificate-based-authentication-ssh-kubernetes/">certificates</a>
+            By encoding a time-to-live into all <a href="https://goteleport.com/teleport/how-it-works/certificate-based-authentication-ssh-kubernetes/">certificates</a>
             , Teleport can limit how long sessions last, instead of indefinitely
             with keys.
           </li>
@@ -363,7 +363,7 @@ By connecting the user login with an identity provider, identity information get
 
 #### Authenticate with OIDC
 
-Frustrated with the OTP authentication flow, the ECMWF adopted the [OIDC](/blog/how-oidc-authentication-works/) standard. Unhitched from a process that could take minutes for each ssh connection, users could now SSO and use their preferred method of MFA. But more importantly, with Teleport, the ECMWF could now authenticate on both the proxy and the destination host, while simultaneously enforcing RBAC policies to restrict what nodes users may connect to.
+Frustrated with the OTP authentication flow, the ECMWF adopted the [OIDC](/how-oidc-authentication-works/) standard. Unhitched from a process that could take minutes for each ssh connection, users could now SSO and use their preferred method of MFA. But more importantly, with Teleport, the ECMWF could now authenticate on both the proxy and the destination host, while simultaneously enforcing RBAC policies to restrict what nodes users may connect to.
 
 #### The Web UI
 

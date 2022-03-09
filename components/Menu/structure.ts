@@ -12,7 +12,7 @@ const menu: MenuCategoryProps[] = [
   {
     title: "Products",
     description: "Teleport Products",
-    href: `${HOST}/teleport/`,
+    href: `https://${HOST}/`,
     children: [
       {
         image: serverSvgPath,

@@ -13,7 +13,7 @@ layout: blogArticle
 import BlogImage from "components/BlogImage";
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
-Wormhole is a new networking plugin for Kubernetes built to encrypt internal cluster communications transparently using Wireguard, a new lightweight VPN technology. The plugin builds an encrypted overlay network, ensuring all internal traffic is always encrypted. See my previous post [introducing Wormhole](/blog/announcing-wormhole/) for additional background.
+Wormhole is a new networking plugin for Kubernetes built to encrypt internal cluster communications transparently using Wireguard, a new lightweight VPN technology. The plugin builds an encrypted overlay network, ensuring all internal traffic is always encrypted. See my previous post [introducing Wormhole](/announcing-wormhole/) for additional background.
 
 This post aims to explore and answer two of the most interesting questions we came across after announcing [Gravitational Wormhole](https://github.com/gravitational/wormhole).
 
@@ -26,7 +26,7 @@ This post aims to explore and answer two of the most interesting questions we ca
 
 I personally find this to be a fascinating question because strictly speaking Kubernetes itself does not trust the underlying network. The core components of Kubernetes adopt modern best practices for encrypting and authenticating connections within the control plane.
 
-The control plane itself is responsible for most of what Kubernetes does, running software within the cluster, transferring configured secrets, giving remote admin access, and does so with relatively few [severe bugs](/blog/kubernetes-websocket-upgrade-security-vulnerability/).
+The control plane itself is responsible for most of what Kubernetes does, running software within the cluster, transferring configured secrets, giving remote admin access, and does so with relatively few [severe bugs](/kubernetes-websocket-upgrade-security-vulnerability/).
 
 However, Kubernetes more loosely defines the network offered within the cluster, with many options available as plugins built by different organizations each of which offers different capabilities. Generally, these fall into two main categories:
 
@@ -99,7 +99,7 @@ So while our implementation is new and may not have robust experience in product
 
 ## Summary
 
-With Wormhole, we tried to keep the security model as simple and understandable as possible and leveraging the security already in place. If you feel like we've missed something, please feel free to reach out to us. If this is the type of problem you like to work on, also check out our [careers page](/about#jobs).
+With Wormhole, we tried to keep the security model as simple and understandable as possible and leveraging the security already in place. If you feel like we've missed something, please feel free to reach out to us. If this is the type of problem you like to work on, also check out our [careers page](https://goteleport.com/about#jobs).
 
 ## Important Links
 - Wormhole Github: https://github.com/gravitational/wormhole
