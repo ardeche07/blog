@@ -46,6 +46,7 @@ export const getParsedDate = (date) => {
       // multiplying by '1000' gives us the difference in milliseconds
       initialParsedDate.getTimezoneOffset() * 60 * 1000
   );
+  // formats the date to be Month, Day Year
   return format(adjustedDate, "MMM d, yyyy");
 };
 
