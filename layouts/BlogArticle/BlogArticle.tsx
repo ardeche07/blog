@@ -34,12 +34,16 @@ interface BlogArticleProps {
 }
 
 export const getParsedDate = (date) => {
-  // date needs to be coerced into DateTime because dates can't be strings when passed to 'format'
+  // date needs to be coerced into DateTime because dates can't be of type string when passed as arg to 'format'
   const initialParsedDate = new Date(date);
   // date needs to be adjusted to take into account time zone differences
   // the time zone offset from PST is subtracted from the initial parsed date
   const adjustedDate = new Date(
+    // valueOf() returns number of milliseconds between 1 January 1970 00:00:00 UTC and the given date
     initialParsedDate.valueOf() +
+      // getTimeZoneOffset returns the time zone difference, in minutes, from current locale to UTC
+      // multiplying by '60' gives us the difference in seconds
+      // multiplying by '1000' gives us the difference in milliseconds
       initialParsedDate.getTimezoneOffset() * 60 * 1000
   );
   return format(adjustedDate, "MMM d, yyyy");
