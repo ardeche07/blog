@@ -21,13 +21,22 @@ production environment. Open source companies like us, or anyone else who accept
 
 For the eager, the attack works by pivoting from a Kubernetes worker pod to the node itself, and from there exfiltrating credentials from
 the CI/CD system. Critically, this vulnerability exposed production AWS credentials that could be used to alter release artifacts and access
-production infrastructure.
+production cloud services.
 
 Once discovered, we immediately fixed our CI system to prevent this attack from occurring. Our response team’s analysis found no evidence
 this vulnerability was exploited or any data was tampered with. Even so, we encourage customers to upgrade to the recently released Teleport
 4.4.11, 5.2.4, 6.2.12, or 7.1.1.
 
 In this post, I will walk through the vulnerability and focus on some key areas where we are improving our CI/CD tools and practices.
+
+<iframe
+  src="https://protocol.podigee.io/7-cloud-infrastructure-attack-via-a-pull-request/embed?context=external&theme=default"
+  style="border: 0"
+  border="0"
+  marginTop="20px"
+  height="150px"
+  width="100%"
+/>
 
 ## Context
 
