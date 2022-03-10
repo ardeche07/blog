@@ -21,7 +21,7 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
   const parsedDate = getParsedDate(meta.frontmatter.date);
 
   return (
-    <OuterContainer style={{ flexDirection: image ? "row" : "column" }}>
+    <OuterContainer flexDirection={!!image ? "row" : "column"}>
       {image && (
         <ImageContainer>
           <NextImage
@@ -32,38 +32,31 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
           />
         </ImageContainer>
       )}
-      <TextContainer>
-        <DateContainer text="text-sm">{parsedDate}</DateContainer>
-
-        <AuthorContainer text="text-md">
-          By {meta.frontmatter.author}
-        </AuthorContainer>
-
-        <ArticleTitleContainer>
+      <Text>
+        <Date text="text-sm">{parsedDate}</Date>
+        <Author text="text-md">By {meta.frontmatter.author}</Author>
+        <Title>
           <ArticleLink href={meta.uri}>
             {meta.frontmatter.articleTitle}
           </ArticleLink>
-        </ArticleTitleContainer>
-
-        <DescriptionContainer>
-          {meta.frontmatter.description}
-        </DescriptionContainer>
+        </Title>
+        <Description>{meta.frontmatter.description}</Description>
         {!!meta.frontmatter.tags.length && (
           <StyledTags tags={meta.frontmatter.tags} size="sm" />
         )}
-      </TextContainer>
+      </Text>
     </OuterContainer>
   );
 }
 
-const AuthorContainer = styled(Box)(
+const Author = styled(Box)(
   css({
     color: "darkest",
     fontWeight: "bold",
   })
 );
 
-const DateContainer = styled(Box)(
+const Date = styled(Box)(
   css({
     color: "darkest",
   })
@@ -79,7 +72,7 @@ const StyledTags = styled(Tags)(
   })
 );
 
-const TextContainer = styled(Flex)(
+const Text = styled(Flex)(
   css({
     flexDirection: "column",
   })
@@ -152,7 +145,7 @@ const ImageContainer = styled("div")(
   })
 );
 
-const ArticleTitleContainer = styled(Box)(
+const Title = styled(Box)(
   css({
     fontSize: "header-3",
     lineHeight: "lg",
@@ -173,7 +166,7 @@ const ArticleTitleContainer = styled(Box)(
   })
 );
 
-const DescriptionContainer = styled(Box)(
+const Description = styled(Box)(
   css({
     fontSize: "text-lg",
     lineHeight: "lg",
