@@ -19,12 +19,12 @@ interface ArticleCardProps {
 export default function ArticleCard({ meta }: ArticleCardProps) {
   const image = meta.frontmatter.logo?.image;
   return (
-    <StyledCard href={meta.uri} flexDirection={!!image ? "row" : "column"}>
-      {!!image && (
+    <StyledCard style={{ flexDirection: image ? "row" : "column" }}>
+      {image && (
         <StyledWrapperImage>
           <NextImage
             src={image}
-            alt="article image"
+            alt={meta.frontmatter.articleTitle}
             layout="fill"
             objectFit="cover"
           />
@@ -38,20 +38,44 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
           By {meta.frontmatter.author}
         </Box>
         <StyledArticleTitle as="h3">
-          {meta.frontmatter.articleTitle}
+          <StyledArticleLink href={meta.uri}>
+            {meta.frontmatter.articleTitle}
+          </StyledArticleLink>
         </StyledArticleTitle>
         <StyledDescription as="p">
           {meta.frontmatter.description}
         </StyledDescription>
         {!!meta.frontmatter.tags.length && (
-          <Tags tags={meta.frontmatter.tags} size="sm" mt="auto" pt="3" />
+          <Tags
+            tags={meta.frontmatter.tags}
+            size="sm"
+            mt="auto"
+            pt="3"
+            position="relative"
+          />
         )}
       </Flex>
     </StyledCard>
   );
 }
 
-const StyledCard = styled(Link)(
+const StyledArticleLink = styled("a")(
+  css({
+    textDecoration: "none",
+    color: "dark-purple",
+
+    "&:after": {
+      content: "''",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      bottom: 0,
+      right: 0,
+    },
+  })
+);
+
+const StyledCard = styled("div")(
   css({
     display: "flex",
     position: "relative",
