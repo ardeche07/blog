@@ -21,52 +21,89 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
   const parsedDate = getParsedDate(meta.frontmatter.date);
 
   return (
-    <StyledCard href={meta.uri} flexDirection={!!image ? "row" : "column"}>
-      {!!image && (
-        <StyledWrapperImage>
+    <OuterContainer flexDirection={!!image ? "row" : "column"}>
+      {image && (
+        <ImageContainer>
           <NextImage
             src={image}
-            alt="article image"
+            alt={meta.frontmatter.logo.alt}
             layout="fill"
             objectFit="cover"
           />
-        </StyledWrapperImage>
+        </ImageContainer>
       )}
-      <Flex flexDirection="column">
-        <Box as="p" text="text-sm" color="darkest">
-          {parsedDate}
-        </Box>
-        <Box as="p" text="text-md" color="darkest" fontWeight="bold">
-          By {meta.frontmatter.author}
-        </Box>
-        <StyledArticleTitle as="h3">
-          {meta.frontmatter.articleTitle}
-        </StyledArticleTitle>
-        <StyledDescription as="p">
-          {meta.frontmatter.description}
-        </StyledDescription>
+      <Text>
+        <Date text="text-sm">{parsedDate}</Date>
+        <Author text="text-md">By {meta.frontmatter.author}</Author>
+        <Title>
+          <ArticleLink href={meta.uri}>
+            {meta.frontmatter.articleTitle}
+          </ArticleLink>
+        </Title>
+        <Description>{meta.frontmatter.description}</Description>
         {!!meta.frontmatter.tags.length && (
-          <Tags tags={meta.frontmatter.tags} size="sm" mt="auto" pt="3" />
+          <StyledTags tags={meta.frontmatter.tags} size="sm" />
         )}
-      </Flex>
-    </StyledCard>
+      </Text>
+    </OuterContainer>
   );
 }
 
-const StyledCard = styled(Link)(
+const Author = styled(Box)(
   css({
-    display: "flex",
+    color: "darkest",
+    fontWeight: "bold",
+  })
+);
+
+const Date = styled(Box)(
+  css({
+    color: "darkest",
+  })
+);
+
+const StyledTags = styled(Tags)(
+  css({
+    mt: "auto",
+    // position relative is used on the Tags link in order for Tags to be clickable
+    // over ArticleLink (which makes the whole card clickable)
     position: "relative",
+    pt: 3,
+  })
+);
+
+const Text = styled(Flex)(
+  css({
+    flexDirection: "column",
+  })
+);
+
+const ArticleLink = styled(Link)(
+  css({
     textDecoration: "none",
+    color: "dark-purple",
+
+    // pseudo-content :after is used to make the entire card clickable
+    "&:after": {
+      bottom: 0,
+      content: "''",
+      left: 0,
+      position: "absolute",
+      right: 0,
+      top: 0,
+    },
+  })
+);
+
+const OuterContainer = styled(Flex)(
+  css({
+    position: "relative",
     ml: -4,
     py: 5,
     px: 4,
     "&::after": {
-      position: "absolute",
-      bottom: 0,
       left: 4,
       display: "block",
-      content: ["none", '""'],
       width: "840px",
       height: "1px",
       backgroundColor: "lightest-gray",
@@ -82,7 +119,7 @@ const StyledCard = styled(Link)(
   })
 );
 
-const StyledWrapperImage = styled("div")(
+const ImageContainer = styled("div")(
   css({
     position: "relative",
     flexShrink: 0,
@@ -108,7 +145,7 @@ const StyledWrapperImage = styled("div")(
   })
 );
 
-const StyledArticleTitle = styled(Box)(
+const Title = styled(Box)(
   css({
     fontSize: "header-3",
     lineHeight: "lg",
@@ -129,7 +166,7 @@ const StyledArticleTitle = styled(Box)(
   })
 );
 
-const StyledDescription = styled(Box)(
+const Description = styled(Box)(
   css({
     fontSize: "text-lg",
     lineHeight: "lg",
