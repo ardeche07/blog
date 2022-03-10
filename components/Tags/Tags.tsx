@@ -61,7 +61,7 @@ const StyledUL = styled("ul")(
   all
 );
 
-const StyledLink = styled(Link)(
+const StyledLink = styled("button")(
   css({
     display: "block",
     color: "darkest",
