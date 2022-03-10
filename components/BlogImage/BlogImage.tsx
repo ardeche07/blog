@@ -39,7 +39,7 @@ export default function BlogImage({
       />
       {isExpanded && (
         <StyledImgWrapper onClick={clickToClose}>
-          <ExpandedImage src={src} alt={alt} />
+          <ExpandedImage src={src} alt={alt} loading="lazy"/>
         </StyledImgWrapper>
       )}
     </Box>
