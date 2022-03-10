@@ -24,19 +24,20 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
         <ImageContainer>
           <NextImage
             src={image}
-            alt={meta.frontmatter.articleTitle}
+            alt={meta.frontmatter.logo.alt}
             layout="fill"
             objectFit="cover"
           />
         </ImageContainer>
       )}
       <TextContainer>
-        <Box as="p" text="text-sm" color="darkest">
+        <DateContainer text="text-sm">
           {format(new Date(meta.frontmatter.date), "MMM d, yyyy")}
-        </Box>
-        <Box as="p" text="text-md" color="darkest" fontWeight="bold">
+        </DateContainer>
+
+        <AuthorContainer text="text-md">
           By {meta.frontmatter.author}
-        </Box>
+        </AuthorContainer>
 
         <ArticleTitleContainer>
           <ArticleLink href={meta.uri}>
@@ -55,13 +56,26 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
   );
 }
 
+const AuthorContainer = styled(Box)(
+  css({
+    color: "darkest",
+    fontWeight: "bold",
+  })
+);
+
+const DateContainer = styled(Box)(
+  css({
+    color: "darkest",
+  })
+);
+
 const StyledTags = styled(Tags)(
   css({
     mt: "auto",
-    pt: 3,
     // position relative is used on the Tags link in order for Tags to be clickable
     // over ArticleLink (which makes the whole card clickable)
     position: "relative",
+    pt: 3,
   })
 );
 
@@ -76,14 +90,14 @@ const ArticleLink = styled(Link)(
     textDecoration: "none",
     color: "dark-purple",
 
-    // psuedo-content :after is used to make the entire card clickable
+    // pseudo-content :after is used to make the entire card clickable
     "&:after": {
-      content: "''",
-      position: "absolute",
-      top: 0,
-      left: 0,
       bottom: 0,
+      content: "''",
+      left: 0,
+      position: "absolute",
       right: 0,
+      top: 0,
     },
   })
 );
