@@ -7,6 +7,11 @@ import Flex from "components/Flex";
 type PositioningValue = "left" | "center" | "right";
 type MarginValue = number | number[] | string | string[];
 
+/**
+ * This component is substituted in place of <img> by the MDX processor.
+ */
+
+// uses the positioningValue prop to return alignment of image on page
 const getAlignItems = (align?: PositioningValue) => {
   switch (align) {
     case "right":
@@ -29,6 +34,7 @@ interface SharedProps {
 
 export type ImageProps = SharedProps & NextImageProps;
 
+// formats the image with the props and returns a next/image
 const getImage = (
   imageProps: NextImageProps,
   imagePositioning?: PositioningValue
@@ -43,6 +49,8 @@ const getImage = (
   return <NextImage {...imageProps} />;
 };
 
+// this component passed to the MDX processor and returned by default when using
+// md syntax, e.g. ![image](./image.png)
 export const Image = ({
   align,
   bordered,

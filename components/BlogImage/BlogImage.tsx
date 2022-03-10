@@ -5,11 +5,19 @@ import { useState } from "react";
 import Image from "components/Image";
 
 export interface BlogImageProps {
+  height?: string | number;
+  width?: string | number;
   src: string;
   alt: string;
 }
 
-export default function BlogImage({ src, alt, ...props }: BlogImageProps) {
+export default function BlogImage({
+  height,
+  width,
+  src,
+  alt,
+  ...props
+}: BlogImageProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleClick = () => {
@@ -21,7 +29,14 @@ export default function BlogImage({ src, alt, ...props }: BlogImageProps) {
   };
   return (
     <Box {...props} my={6} mx="auto">
-      <StyledImage src={src} alt={alt} onClick={handleClick} />
+      <StyledImage
+        height={height}
+        width={width}
+        loading="lazy"
+        src={src}
+        alt={alt}
+        onClick={handleClick}
+      />
       {isExpanded && (
         <StyledImgWrapper onClick={clickToClose}>
           <ExpandedImage src={src} alt={alt} />

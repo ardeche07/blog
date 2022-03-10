@@ -17,6 +17,7 @@ import BlogImage from "components/BlogImage";
 import Box from "components/Box";
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
+
 ## Introduction
 
 Did you know that in the United States, the Social Security Number was [never intended](https://www.theverge.com/2012/9/26/3384416/social-security-numbers-national-ID-identity-theft-nstic) to become the defacto method for physical identification? On its surface, this may come as a shock given how ubiquitously SSNs are used for this exact reason, but looking beneath the surface, we find that SSNs are _terrible_ forms of identification. Ignoring the security concerns of a nine digit numeric code, an SSN is not for universal identification. Rather, it represents an impersonal abstraction of a person that is intended for a narrow use-case. However, the convenience of a universally accepted method of identification was too great to pass up, and we now find ourselves stuck in a troublesome place: How do we let institutions authenticate our identities without relying on a unique identifier that can be easily compromised? While we do not yet have a universally secure authentication method for our physical identities, we have come to solve this problem in the digital world.
@@ -37,7 +38,7 @@ You have probably seen a login prompt like this before:
 
 <Box mx="auto">
   <figure>
-    <BlogImage src="./assets/oidc-1.png" alt="Federated Identity"/>
+    <BlogImage height={500} width={281} src="./assets/oidc-1.png" alt="Federated Identity" />
     <figcaption>(Figure 1) Federated Identity</figcaption>
   </figure>
 </Box>
@@ -65,7 +66,7 @@ You can think of these two processes in the context of presenting a passport. Wh
 While this distinction may seem like splitting hairs, understanding how authentication and authorization work together is fundamental to designing secure online systems. For example, given the current public health crisis, imagine if a customs agent trusted your word on your country of origin to allow entrance or if a customs agent only verified your passport without checking any related travel restrictions. Chaos would ensue and safe travel could not be ensured. Intelligent design means verifying the identity of a user to enforce the narrowest access policies.
 
 <figure>
-  <BlogImage src="./assets/oidc-2.png" alt="Authentication vs Authorization" width="100%"/>
+  <BlogImage height={316} width={680} src="./assets/oidc-2.png" alt="Authentication vs Authorization" width="100%"/>
   <figcaption>(Figure 2) [Authentication vs Authorization](https://dev.to/caffiendkitten/authentication-vs-authorization-25lc)</figcaption>
 </figure>
 
@@ -92,7 +93,7 @@ To discuss federated identity without mentioning SAML would be disingenuous. Rec
 OIDC is an authentication layer built on top of an authorization protocol (more on this in the next section), whereas SAML is its own self-contained authentication and authorization protocol. While these two protocols differ (enough to warrant its own blog post), there are two important differences. One, SAML uses XML-based federation while OIDC uses JSON/REST. Two, SAML requires individual actors within the SAML architecture to be pre-configured. By keeping a tight leash on who is part of the system, SAML identity providers can tightly control who accesses data. This is often used for enterprise-grade security, which you can read more about in this article, [How SAML Authentication Works.](/blog/how-saml-authentication-works/) Conversely, applications using OIDC work with any identity provider that supports the protocol. This form of authentication is more popular with consumer and native mobile applications, like gaming or productivity apps. Exporting identity management to companies like Google, Amazon, and Microsoft, these app developers can significantly reduce the friction of user sign-up. It is important to note that OIDC is extensible and can be configured to meet the security demands that enterprises require.
 
 <figure>
-  <BlogImage src="./assets/oidc-3.png" alt="SAML vs OAuth2 vs OIDC Comparison" width="100%"/>
+  <BlogImage height={195} width={680}src="./assets/oidc-3.png" alt="SAML vs OAuth2 vs OIDC Comparison" width="100%"/>
   <figcaption>(Figure 3) [SAML vs OAuth2 vs OIDC Comparison](https://www.resilient-networks.com/concept-week-saml-oauth2-openid-connect/)</figcaption>
 </figure>
 
@@ -105,7 +106,7 @@ We’ve touched on the fact that OIDC is an authentication layer built on top of
 It means that OIDC uses the same components and architecture as OAuth, but to authenticate. [OAuth](/blog/everything-you-need-to-know-about-oauth/) was originally dreamt up as a solution to something known as “delegated access,” or allowing applications to talk to one another and share information on the user’s behalf (see figure 4).
 
 <figure>
-  <BlogImage src="./assets/oidc-4.png" alt="Bob Delegating Spotify Access to his Facebook Profile" width="100%"/>
+  <BlogImage height={442} width={680}src="./assets/oidc-4.png" alt="Bob Delegating Spotify Access to his Facebook Profile" width="100%"/>
   <figcaption>(Figure 4) [Bob Delegating Spotify Access to his Facebook Profile](https://www.resilient-networks.com/concept-week-saml-oauth2-openid-connect/)</figcaption>
 </figure>
 
@@ -114,7 +115,7 @@ This problem necessitated a solution that would standardize how two unrelated ap
 Before we peek under the hood on OIDC, I am going to cheat and request that you familiarize yourself with the material in my other blog post: [How OAuth Authentication Works](/blog/everything-you-need-to-know-about-oauth/). In it, we dive into the conceptual design of OAuth and a practical case study with Github SSO.
 
 <figure>
-  <BlogImage src="./assets/oidc-5.png" alt="OIDC Workflow" width="100%"/>
+  <BlogImage height={272} width={680} src="./assets/oidc-5.png" alt="OIDC Workflow" width="100%"/>
   <figcaption>(Figure 5) [OIDC Workflow](https://www.ge.com/digital/documentation/predix-platforms/uaas-oidc-federated-authentication.html)</figcaption>
 </figure>
 
@@ -160,13 +161,13 @@ OIDC defines a protected resource, called the UserInfo Endpoint, that contains c
 Requesting any further user information is optional and not part of the authentication process, but gives applications basic functional data without jumping through hoops. It should be noted that OIDC scopes are not separate from OAuth scopes. Clients can use both families of scopes at the same time. OIDC associated scopes and OAuth associated scopes can be used in the same request.
 
 <figure>
-  <BlogImage src="./assets/oidc-6.png" alt="Optional OIDC Standard Scopes" width="100%"/>
+  <BlogImage height={272} width={680} src="./assets/oidc-6.png" alt="Optional OIDC Standard Scopes" width="100%"/>
   <figcaption>(Figure 6) Optional OIDC Standard Scopes - [https://connect2id.com/learn/openid-connect#claims](https://connect2id.com/learn/openid-connect#claims)</figcaption>
 </figure>
 
-### Grants and Flows While most of this material is covered in [How OAuth
+### Grants and Flows 
 
-Authentication Works](/blog/everything-you-need-to-know-about-oauth/), grants and flows merit a quick comment. Namely that much of the existing literature regarding OIDC grants are outdated. For OAuth (and by extension OIDC), the Implicit Flow has become deprecated due to security concerns and has been replaced with the PKCE extension for the Authorization Code Grant.
+While most of this material is covered in [How OAuth Authentication Works](/blog/everything-you-need-to-know-about-oauth/), grants and flows merit a quick comment. Namely that much of the existing literature regarding OIDC grants are outdated. For OAuth (and by extension OIDC), the Implicit Flow has become deprecated due to security concerns and has been replaced with the PKCE extension for the Authorization Code Grant.
 
 You can read more about Implicit Flow vs PCKE in Christian Lüdemann's fantastic [blog post](https://christianlydemann.com/implicit-flow-vs-code-flow-with-pkce/). For the following case study, we will be using the Authorization Code Grant.
 
@@ -177,7 +178,7 @@ Now that we’ve gathered the necessary concepts and design elements to see OIDC
 As mentioned above, this case study uses the Authorization Code Grant flow. Teleport is not hosted, so we can assume we’ve installed it correctly within our infrastructure. If this weren’t the case, the PKCE extension would be used.
 
 <figure>
-  <BlogImage src="./assets/oidc-7.png" alt="OIDC Authorization Code Grant Flow" width="100%"/>
+  <BlogImage height={365} width={680} src="./assets/oidc-7.png" alt="OIDC Authorization Code Grant Flow" width="100%"/>
   <figcaption>(Figure 7) OIDC Authorization Code Grant Flow</figcaption>
 </figure>
 
