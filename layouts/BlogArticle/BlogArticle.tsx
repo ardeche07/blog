@@ -2,7 +2,6 @@ import { MDXProvider } from "@mdx-js/react";
 import styled from "styled-components";
 import css from "@styled-system/css";
 import Drift from "components/Drift";
-import { format } from "date-fns";
 import NextImage from "next/image";
 import Box from "components/Box";
 import FeaturedArticleCards from "./FeaturedArticleCards";
@@ -21,6 +20,7 @@ import { BlogMeta } from "layouts/BlogArticle/types";
 import divider from "./assets/divider.png";
 import rss from "./assets/rss.svg";
 import { components } from "./components";
+import { format } from "date-fns";
 
 interface MetaBlogArticle extends BlogMeta {
   noindex?: boolean;
@@ -32,6 +32,23 @@ interface BlogArticleProps {
   meta: MetaBlogArticle;
   children: React.ReactNode;
 }
+
+export const getParsedDate = (date) => {
+  // date needs to be coerced into DateTime because dates can't be of type string when passed as arg to 'format'
+  const initialParsedDate = new Date(date);
+  // date needs to be adjusted to take into account time zone differences
+  // the time zone offset from PST is subtracted from the initial parsed date
+  const adjustedDate = new Date(
+    // valueOf() returns number of milliseconds between 1 January 1970 00:00:00 UTC and the given date
+    initialParsedDate.valueOf() +
+      // getTimeZoneOffset returns the time zone difference, in minutes, from current locale to UTC
+      // multiplying by '60' gives us the difference in seconds
+      // multiplying by '1000' gives us the difference in milliseconds
+      initialParsedDate.getTimezoneOffset() * 60 * 1000
+  );
+  // formats the date to be Month, Day Year
+  return format(adjustedDate, "MMM d, yyyy");
+};
 
 export const BlogArticle = ({
   children,
@@ -56,6 +73,7 @@ export const BlogArticle = ({
         Boolean(article.frontmatter.logo) // filter out the post itself as well as posts without cover photo
     )
     .slice(0, 3);
+  const parsedDate = getParsedDate(date);
 
   return (
     <>
@@ -83,7 +101,7 @@ export const BlogArticle = ({
               mt="2"
               mb={[6, 11]}
             >
-              {format(new Date(date), "MMM d, yyyy")} by {author}
+              {parsedDate} by {author}
             </Box>
             {logo && (
               <NextImage

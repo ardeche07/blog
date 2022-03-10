@@ -1,13 +1,13 @@
 import NextImage from "next/image";
 import styled from "styled-components";
 import css from "@styled-system/css";
-import { format } from "date-fns";
 import Flex from "components/Flex";
 import Box from "components/Box";
 import Tags from "components/Tags";
 import Link from "components/Link";
 import { transition } from "components/system";
 import { BlogMeta } from "layouts/BlogArticle/types";
+import { getParsedDate } from "layouts/BlogArticle";
 
 interface ArticleCardProps {
   meta: {
@@ -18,6 +18,8 @@ interface ArticleCardProps {
 
 export default function ArticleCard({ meta }: ArticleCardProps) {
   const image = meta.frontmatter.logo?.image;
+  const parsedDate = getParsedDate(meta.frontmatter.date);
+
   return (
     <OuterContainer style={{ flexDirection: image ? "row" : "column" }}>
       {image && (
@@ -31,9 +33,7 @@ export default function ArticleCard({ meta }: ArticleCardProps) {
         </ImageContainer>
       )}
       <TextContainer>
-        <DateContainer text="text-sm">
-          {format(new Date(meta.frontmatter.date), "MMM d, yyyy")}
-        </DateContainer>
+        <DateContainer text="text-sm">{parsedDate}</DateContainer>
 
         <AuthorContainer text="text-md">
           By {meta.frontmatter.author}

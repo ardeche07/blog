@@ -70,7 +70,7 @@ export const getBlogPaths = () => {
       (path) =>
         !ignorePages.some((regexp) => regexp.test(path)) && path !== blogIndex
     );
-  paths.unshift(pagesRoot);
+  paths.unshift(pagesRoot + "/");
   return paths.map((path) => getURIFromPath(path));
 };
 
