@@ -24,7 +24,7 @@ In the first part of the series, we will explore how to replace a traditional ba
 ## Why use a bastion host in AWS?
 One of the best practices for running secure workloads on Amazon Web Services is to isolate the instances into private and public subnets of a Virtual Private Cloud (VPC). For example, a database backend is typically provisioned within a private subnet while web servers connected to a load balancer are launched in a public subnet. 
 
-To access and manage Amazon EC2 instances running in a private subnet, a bastion host is deployed in the public subnet. The [bastion host](https://en.wikipedia.org/wiki/Bastion_host) or jump server provides secure access to private instances by limiting the exposure from public IPs. To understand why this approach is important to improve infrastructure access security, read our blog on [why you still need a bastion host](https://goteleport.com/blog/do-we-still-need-a-bastion/) for more details.
+To access and manage Amazon EC2 instances running in a private subnet, a bastion host is deployed in the public subnet. The [bastion host](https://en.wikipedia.org/wiki/Bastion_host) or jump server provides secure access to private instances by limiting the exposure from public IPs. To understand why this approach is important to improve infrastructure access security, read our blog on [why you still need a bastion host](/do-we-still-need-a-bastion/) for more details.
 
 This tutorial will describe how to create a bastion host in AWS using the [open-source solution Teleport](https://goteleport.com/how-it-works/). While Teleport provides the same advantages of using a traditional bastion host, it has a number of advantages for securing your AWS infrastructure over the bastion host instances alone.
 
