@@ -167,7 +167,7 @@ If one-off cases arise, always remember that options entered into the command li
 
 ## Using the SSH Agent
 
-An [ssh jump server](/ssh-jump-server/) is a proxy standing between clients and the rest of the `ssh` fleet. Jump hosts minimize threats by forcing all `ssh` traffic to go through a single hardened location and minimizing an individual node’s `ssh` endpoints to the outside world.
+An [ssh jump server](https://goteleport.com/ssh-jump-server/) is a proxy standing between clients and the rest of the `ssh` fleet. Jump hosts minimize threats by forcing all `ssh` traffic to go through a single hardened location and minimizing an individual node’s `ssh` endpoints to the outside world.
 
 One way to configure a multi-hop setup is by storing a private key for the destination server on our jump server. Do _not_ do this. A jump server is usually a multi-user environment, meaning any single party with elevated privileges can compromise any private key. A solution to this security threat is enabling agent forwarding, which we briefly touched on with `AddKeysToAgent` and `ForwardAgent`. Given how common this method is, it may surprise you when I suggest _not_ doing this either. To understand why, let’s dig a bit deeper.
 
