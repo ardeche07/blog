@@ -1,0 +1,118 @@
+---
+author: TK Walsh
+date: "2022-03-14"
+tags:
+  - ssh
+articleTitle: SSH into Docker Container or Use Docker Exec?
+title: "2 Ways to Get a Docker Shell: SSH into Docker Container or Use Docker Exec"
+description: This blog post explains two ways to SSH into a Docker container using conventional OpenSSH and Docker's built-in docker exec command.
+logo:
+  image: ./assets/docker-ssh@2x.png
+  alt: SSH Into Docker Container
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+SSH has always been the default mechanism to get remote shell access into a running Unix or Linux operating system from a terminal client to execute commands. While SSH is familiar, Docker provides more lightweight and easier-to-use methods that don't require running your container with an SSH server. This post will explore two methods to get shell access into a Docker container using OpenSSH and the docker exec command.
+
+## Method 1: Docker shell using OpenSSH
+First, let's look at how to enable SSH in a container. To enable SSH, the docker image must be pre-configured with an OpenSSH server. This means packaging the OpenSSH server beside your containerized application. 
+
+For a quick demo of sshing into a Docker container, you can check the docker image published by [LinuxServer.io LinuxServer-OpenSSH-Server](https://github.com/linuxserver/docker-openssh-server). This repository comes with the necessary Dockerfile and Linux image references so that you can get started immediately.
+
+Below, we will set things up from scratch so you can follow along step by step.
+
+### Step 1 - Build docker image with OpenSSH
+First, you will need an SSH keypair. If you do not have one, follow our blog on [how to set up SSH keys](/how-to-set-up-ssh-keys/).
+Next, create a new directory named "sshdemo" and create a Dockerfile. 
+```sh
+$ vi dockerfile
+FROM ubuntu:latest
+RUN apt update && apt install  openssh-server sudo -y
+# Create a user “sshuser” and group “sshgroup”
+RUN groupadd sshgroup && useradd -ms /bin/bash -g sshgroup sshuser
+# Create sshuser directory in home
+RUN mkdir -p /home/sshuser/.ssh
+# Copy the ssh public key in the authorized_keys file. The idkey.pub below is a public key file you get from ssh-keygen. They are under ~/.ssh directory by default.
+COPY idkey.pub /home/sshuser/.ssh/authorized_keys
+# change ownership of the key file. 
+RUN chown sshuser:sshgroup /home/sshuser/.ssh/authorized_keys && chmod 600 /home/sshuser/.ssh/authorized_keys
+# Start SSH service
+RUN service ssh start
+# Expose docker port 22
+EXPOSE 22
+CMD ["/usr/sbin/sshd","-D"]
+```
+
+This Dockerfile file starts by pulling the `ubuntu:latest` base image. Then it installs the OpenSSH server, adds a new user named "sshuser", copies the SSH public key file to the `authorized_keys` file in the container, starts the SSH service (using `systemctl`), exposes port `22` and finally runs the SSH daemon.
+
+Now from within the same directory, execute the `docker build` command:
+```sh
+$ docker build -t sshubuntu .
+```
+
+
+This command compiles a new docker image called “sshubuntu” based on the script inside the Dockerfile. Note that if you’re running this command from a Linux client, you might need to prefix the docker command with sudo since it requires elevated permissions to run.
+
+### Step 2 - Running the Docker container
+The following command starts the docker image just created named “sshubuntu”. We also map docker port `22` to host port `2022`.
+```sh
+$ docker run -d -p 2022:22 sshubuntu
+```
+
+Our Docker container is now running host port 2022. To verify, you can use the docker ps command as follows:
+```sh
+$ docker ps
+CONTAINER ID   IMAGE       COMMAND               CREATED        STATUS        PORTS                                   NAMES
+2a443e5592b0   sshubuntu   "/usr/sbin/sshd -D"   14 hours ago   Up 14 hours   0.0.0.0:2022->22/tcp, :::2022->22/tcp   friendly_nash
+```
+
+### Step 3 - SSH into the Docker container
+From here, you can initiate an SSH connection into the running container. To SSH into your Docker container, execute the traditional SSH command:
+```sh
+$ ssh -i idkey sshuser@localhost -p 2022
+```
+
+
+The above command connects to docker's default IP address, localhost, but it can be different if you explicitly specify the container's IP address. You can now run commands as long as the container image recognizes it. 
+
+### Why is SSH not recommended to get shell access into docker?
+You've just seen how to SSH into a Docker container, but you probably shouldn't. Why not?  Two reasons.  First, unlike virtual machines, you should ideally run a single service per container because it makes it easier to debug problems in containers. And since you need to run OpenSSH in the container in order to use SSH, you're already at two services. Additionally, docker’s built-in method of using the `docker exec` command to run SSH commands makes it a lot easier than what was outlined above.  With this command, you can access the shell or run remote commands without needing an SSH server. With that in mind, use SSH in a container only when you need a dockerized SSH service for a specific purpose. 
+
+
+## Method 2: Shell using the docker exec command
+The above steps showed how a regular OpenSSH server can be configured to get shell access to the Docker container. We also explained why it isn’t the recommended method. Now let’s explore Docker’s built-in `docker exec` command which uses Docker’s built-in remote shell API to get shell access in a running container.
+
+
+```sh
+$ docker exec -it <running_container_name_or_id> \bin\bash
+```
+
+This command brings you to the container’s prompt. From there, you can execute almost any Linux command. For example, you can execute the `top` command. This command shows information about the running system processes and performance. Ending it brings you back to Docker’s bash shell prompt.
+```sh
+$ top - 02:49:15 up  4:40,  0 users,  load average: 0.00, 0.00, 0.00
+Tasks:   2 total,   1 running,   1 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem :   7912.4 total,   5898.8 free,    857.4 used,   1156.2 buff/cache
+MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   6436.6 avail Mem
+ 
+PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+   1 root      20   0    4112   3508   2960 S   0.0   0.0   0:00.07 bash
+   12 root      20   0    6096   3268   2768 R   0.0   0.0   0:00.01 top
+```
+
+When compared with SSH, `docker exec` is a much more lightweight and ready-to-use method to remote into containers. However, note that you're logged on as a "root" user to the container with the docker exec command. In contrast, you explicitly connect as the "sshuser" and not as a "root" user with SSH.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+SSH has always been the traditional approach to remote into a Linux or Unix system and has been ubiquitous to DevOps workflow. The SSH
+method works fine for Docker containers, too. That said, you can SSH into a Docker container using Docker's built-in `docker exec`. If you
+do not need an interactive shell, you can also use the `docker attach` command to connect the host's `stdin` and `stdout` to the running
+container and execute remote commands. 
+
+### Teleport for secure SSH
+Looking to add audit and access controls to SSH? You can use open-source Teleport to unify remote SSH access across all environments with
+certificate-based authentication, session recording and RBAC. Teleport is an open-source project and can be used as a security-enhanced,
+drop-in alternative to OpenSSH. [Learn how Teleport works](https://goteleport.com/how-it-works/) and try it today.

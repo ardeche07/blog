@@ -1,0 +1,181 @@
+---
+author: Sadequl Hussain
+date: "2022-03-18"
+tags:
+  - kubernetes
+articleTitle: "How to Stop Container Escape and Prevent Privilege Escalation"
+title: "Stop Container Escape and Prevent Privilege Escalation"
+description: "Container escape is a security risk in which malicious players can leverage containerized apps. Deep-dive into the risks and how to prevent privilege escalation."
+logo:
+  image: "./assets/security-threats-authorization@2x.png"
+  alt: "Stop Container Escape and Prevent Privilege Escalation"
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+_Container escape_ is a security risk in which malicious players can leverage a containerized application’s vulnerabilities to breach its
+isolation boundary, gaining access to the host system’s resources.
+
+Once an attacker accesses the host system, they can escalate their privilege to access other containers running in the machine or run
+harmful code on the host. Depending on how vulnerable the host is, the actor could also access other hosts in the network.  
+
+Needless to say, container escape and privilege escalation attacks can be devastating — costing you sensitive information from files or
+databases or leading to entire applications going down. For example, in 2020 [two
+vulnerabilities](https://portswigger.net/daily-swig/researcher-discovers-vulnerabilities-in-azure-functions-stumbles-across-false-oracle)
+were discovered in [Azure Functions](https://azure.microsoft.com/en-us/services/functions/) that allowed attackers to escape the
+[Docker](https://www.docker.com/) container, escalate privileges, and execute code to overwrite packages. 
+
+As a security-aware administrator or developer, you need to know how to prevent such attacks. This article will demonstrate how container
+escape works and how to mitigate this risk. 
+
+## How do container escapes happen?
+
+Attackers logged into a container can exploit different vulnerabilities:
+
+* Leveraging any software running with privileged mode to run malicious commands on the host
+* Building and running a container with bind parameters to mount the host’s filesystems and deploy payloads to them
+* Exploiting vulnerabilities like kernel bugs, poor configuration, or weak access controls for privilege escalation
+* Escalating privilege on the host to access other containers
+
+## What happens when a container is escaped?
+
+After escaping the container, an attacker will attempt to escalate their privilege. [Privilege
+escalation](https://en.wikipedia.org/wiki/Privilege_escalation) means the attacker logs into the host system using an account with elevated
+access privileges. With this, the attacker gains control of the whole system.
+
+With privilege escalation, attackers can cause mayhem. They can stop and destroy all containers running on the host, start their own
+containers using malicious code, access databases or files in the machine or network, mount volumes, remove or corrupt critical
+configuration files, run crypto mining, or worst of all, connect to a [C2
+server](https://medium.com/dnsfilterofficial/how-a-c2-server-is-leveraged-in-a-botnet-command-and-control-attack-42d03da1e5f5) to await
+further instructions.  
+
+### The ImageMagick example
+
+[*ImageMagick*](https://imagemagick.org/) is a platform to edit, compose, and convert digital images. It consists of multiple command line
+tools and programming language binaries commonly used in applications for image processing, such as changing the format, resizing, and other
+transformations.
+
+Unfortunately, ImageMagick involves several weaknesses, including the infamous [ImageTragick](https://imagetragick.com/) vulnerability that
+can cause command injections or remote code execution. The vulnerabilities can also lead to file deletion or moving and server-side request
+forgery (SSRF). 
+
+Say you’re developing an image processing application using ImageMagick code. But [ImageMagick’s code may have vulnerabilities within
+itself](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=imagemagick) that are exploitable. How do you prevent that?
+
+Instead of running it on a host (physical or virtual) by itself, you can run ImageMagick as a containerized application. By default, a
+container runtime creates an isolation layer between a host and the application container and between containers running on the same host.
+Containers reduce an application’s surface area, protecting the host by blocking access to it. 
+
+You have other options as well:
+
+* Containerize only stable versions of ImageMagick.
+* Enable least required permissions for your code that calls ImageMagick libraries.
+* Run ImageMagick binaries with minimal permissions and minimal network access.
+* Run separate, stripped-down versions of ImageMagick libraries in separate containers for different image processing tasks.
+* Run vulnerability scanners and automatically apply security patches on both the container runtime and ImageMagick.
+
+Without such basic but necessary steps, you risk any vulnerabilities being exposed and exploited — even within a containerized setup.
+
+## How to prevent container escape and privilege escalation
+
+But are these measures enough to prevent container escape and privilege escalation? Not always.
+
+New vulnerabilities are regularly discovered in container runtimes like Docker or orchestration platforms like
+[Kubernetes](https://kubernetes.io/). You can patch them, but the threat landscape is always evolving. 
+
+The key to ensuring security is to implement multiple layers of defense mechanisms between the container and an attacker. Here are some ways
+you can do so:
+
+### Use a robust authentication system
+
+An authentication mechanism can largely prevent attackers from accessing your containers and escalating privileges. Such mechanisms may
+include risk-based authentication RBA, [context-based access
+controls](https://en.wikipedia.org/wiki/Context-based_access_control#:~:text=Context%2Dbased%20access%20control%20(CBAC,for%20intranets%2C%20extranets%20and%20internets)),
+multi-factor authentication, [role-based access control (RBAC)](/rbac-and-abac-with-aws-iam/), or [privileged
+access management (PAM)](https://goteleport.com/use-cases/privileged-access-management/).  
+
+Enabling Zero Trust security and [the principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) for the
+containerized application also reduces risk. 
+
+### Implement a strong network policy
+
+A solid network security policy permits only specific traffic types or sources to a given network, host or application. This can be applied
+at the container level, so only specific ports are exposed from the container. Strict network policies can also isolate host clusters to
+their subnets, enabling network or host-based intrusion prevention systems and alerting.
+
+### Don’t run containers as root
+
+While container runtimes may need root access to run, containers don’t; however, in many cases, developers run it as root because it’s
+easier. Root users can access, read and write any file in the host’s file system, and running containerized applications as the root user
+allows container escape.
+
+To address this issue, you can set up a policy to restrict developers or administrators from running containers as root. For example, you
+can specify a non-root user when creating container images, enabling the minimal system access required to execute tasks. You can also
+[utilize user namespace when running processes in a privileged container](https://docs.docker.com/engine/security/userns-remap/). 
+
+Also, creating a user with a known GID and UID in a Dockerfile and running your processes with that user can help secure your container
+during runtime. 
+
+### Adopt safe image practices
+
+Use security best practices when creating container images.
+
+When a container builds, it layers different changes on top of the base image. Often, the base image is sourced from a public image
+repository. Instead of depending on public repos, use private registries where base images are already downloaded and pre-scanned for
+vulnerabilities. You can also use [Kubernetes security scanners](https://goteleport.com/blog/how-to-hack-kubernetes/) to check for
+vulnerabilities in your existing container images. 
+
+Automate the image build process and incorporate vulnerability scanning. Once a new image version is built, all containers running old
+versions should be gradually migrated to the latest one.
+
+Furthermore, you can use `docker scan` to detect vulnerabilities in Docker local images. It will help you deeply analyze an image’s security
+posture and take immediate actions as needed. You can trigger the scan from the command line to see the vulnerabilities detected. Fixing
+these issues will allow secure container deployments. 
+
+### Patch and upgrade containers 
+
+When a vulnerability scanner finds an issue with a running container, it may not always be possible to stop it immediately and start with an
+updated image. This is where immediate patching and upgrading can help thwart any possible attack.
+
+### Monitor the runtime environment
+
+Some vulnerabilities always remain hidden and can lead to security risks; therefore, it’s essential to proactively monitor the application
+in the runtime environment for anomalies. This involves analyzing runtime logs, user activities, network traffic, file access patterns, and
+other data. There are both open source and commercial monitoring solutions like Nagios, Splunk, OSSEC, or Snort that can automate
+application monitoring. 
+
+### Team effort
+
+Lastly, implementing an effective defense requires a team effort. Having skilled and responsible professionals in your team can help you
+maintain security for your containers and the clusters that run them.
+
+## Using serverless functions as alternative
+
+In today’s cloud-native world, most organizations have either migrated some or all of their workloads to the cloud or are considering doing
+so. Public cloud providers now offer features that can run what’s known as serverless functions. 
+
+*Serverless functions* are small code snippets that run in the cloud providers’ managed environments. Behind the scenes, the cloud provider
+ensures the compute runtime is always available for running the user’s code. Once the code finishes, the runtime is destroyed. Every time
+the code runs, a new compute environment is assigned to it. The only drawback is that, due to the ephemeral nature of the underlying compute
+environment, the user’s code cannot persist data in the compute environment—although it can do so in other mediums like the cloud provider’s
+object storage. AWS offers this feature via [AWS Lambda](https://aws.amazon.com/lambda/), GCP via [Cloud
+Functions](https://cloud.google.com/functions), and Azure via [Azure Functions](https://azure.microsoft.com/en-us/services/functions/).
+
+Depending on the use case, this can be a good replacement for running your own containers — either in dedicated hosts or in managed
+environments — which eliminates the risk of container escape and privilege escalation. [An application based on serverless functions can be
+hewn together with API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-with-lambda-integration.html)
+to delegate certain features to different serverless functions, and the Gateway can route client requests to the appropriate functions.
+
+Using the ImageMagick example, a graphics application might perform manipulations on user-uploaded images using separate serverless
+functions. Each function could call the relevant ImageMagick library necessary for its task, and the serverless code could load the
+ImageMagick libraries as part of its initialization. Once the code finishes running, the runtime containing the ImageMagick library would
+also be removed.
+
+<EmailSubscribeViolet />
+
+## Conclusion
+ 
+Container escape and the ensuing privilege escalation are severe security risks. Attackers can leverage vulnerabilities in your
+containerized applications to reach the host and take control of it — accessing sensitive data or causing service disruption. Still, there
+are steps you can take to minimize or eliminate this risk so that you keep your applications safe. 
