@@ -1,0 +1,189 @@
+---
+author: Sakshyam Shah
+date: "2022-03-16"
+tags:
+  - security
+articleTitle: Most Common Authorization Vulnerabilities
+title: 7 Common Authorization Vulnerabilities
+description: This blog post explores the most common vulnerabilities related to the authorization process.
+logo:
+  image: ./assets/auth.png
+  alt: auth
+layout: blogArticle
+---
+
+
+Authorization vulnerabilities allow malicious users to perform unwanted actions or access resources that are deemed protected otherwise.
+Authorization vulnerabilities are one of the most widely found vulnerabilities in web applications. The [OWASP top
+10](https://owasp.org/Top10/) list of web application security risks listed broken access control vulnerabilities as the number one risk in
+2021, so understanding authorization vulnerabilities is an important topic for application security engineers.
+
+
+If you are new to access controls, read our previous blog on [authentication vs. authorization](/authn-vs-authz/), common [authentication
+vulnerabilities](/authentication-vulnerabilities/), and best practices to [prevent authentication
+vulnerabilities](/authentication-best-practices/).
+
+
+Before we dive into authorization vulnerabilities, let's first explore privileges further since most of the vulnerabilities related to
+authorization are associated with poor privilege management within software applications.
+
+## Understanding privileges
+Privileges are sets of permissions assigned to a user that define what actions a user can perform (e.g., read, write, execute). Although it
+sounds simple to understand, it isn't easy to implement privileges securely. Most of the vulnerabilities related to authorization are due to
+insecure privilege management. But why are they so hard to implement correctly? As application scope and feature sets grow, so does the
+complexity of roles and privileges. Security features are usually stitched in later in the application development process, making logical
+authorization flaws inevitable.
+
+
+### Privilege escalation vulnerabilities
+Most authorization vulnerabilities can be described as a form of privilege escalation. A privilege escalation occurs when a user can access
+privileges not explicitly assigned to them. Privilege escalation can be broadly categorized into horizontal privilege escalation and
+vertical privilege escalation. 
+
+- **Horizontal privilege escalation:** Horizontal privilege escalation occurs when a normal user can access other users' resources with
+  similar privileges.
+
+- **Vertical privilege escalation:** Vertical privilege escalation occurs when a normal user can access administrative privileges.
+
+
+Now let's explore 7 common authorization vulnerabilities that allow unauthorized access or unauthorized action to protected resources.
+
+
+## 1. Insecure direct object reference
+Insecure direct object reference (IDOR) occurs when software allows a user to access resources or perform actions without adequately
+verifying the resource owner. IDOR is a notorious vulnerability commonly found in web applications.
+
+### Exploiting IDOR vulnerability
+For demonstration purposes, lets create a hypothetical organization named unicornprofilebook.com. Unicornprofilebook.com is a social
+networking web application that allows users to upload selfie pictures and share them with friends and family. Unicornprofilebook.com has
+three users named Alice, Bob and Carol.
+
+In unicornprofilebook.com, the selfie pictures uploaded by users are given a unique identifier (Id) on the server. User Alice has uploaded 3
+pictures, and the pictures are assigned with Id `1`,`2`, and `3`. User Bob has uploaded 5 pictures, and the pictures are assigned with Id
+`4`,`5`,`6`,`7`, and `8`. User carol has uploaded 2 pictures, and the pictures are assigned with an Id `9` and `10`.
+
+Alice and Bob have privileges to upload and delete pictures. But Carol's privilege only permits to upload pictures and not delete them.
+
+When Carol tries to delete her picture from unicornprofilebook.com, her request will be denied as she does not have the privilege to delete
+them. This is working as expected since only Alice and Bob have this privilege. When Alice deletes her picture from unicornprofilebook.com,
+an HTTP request is sent as:
+
+```
+https://unicornprofilebook.com/pictures/delete?id=2
+```
+
+When an IDOR vulnerability exists, Alice can send a similar HTTP request to unicornprofilebook.com but with a guessed or prediscovered Id of
+Bob's picture and have Bob's image deleted from unicornprofilebook.com. An example below:
+```
+https://unicornprofilebook.com/pictures/delete?id=6
+```
+
+
+So IDOR, in this case, is that the application has built-in authorization checks for privileges but fails to verify the owner of the
+resource. Hence, Alice can not only delete her pictures but also can delete Bob's picture.
+
+
+## 2. Unprotected resources
+Unprotected resources are usually a result of missing or misconfigured authorization checks in web applications. It is an infamous practice
+among many organizations where URLs of admin interfaces, for example, are obfuscated so that other normal users could not easily find them
+but not protected with authorization, a practice known as security through obscurity. Another example is when an FTP server would be
+accessible without authentication as an anonymous user.
+
+
+### Exploiting the unprotected resources vulnerability
+Due to lack of time for a proper access control implementation, developers of unicornprofilebook.com thought only to obfuscate the admin
+page and keep them under URL:
+
+```
+https://unicornprofilebook.com/admin-kh83ruhfa0j3eruhar0d8gfh08h34tq
+```
+
+This is a classic example of unprotected resources. Although it may seem that the random characters at the end of the URL will be hard to
+guess by unauthorized users, this URL may be discovered using web scrapers, web spiders, or when malicious users have access to web traffic
+logs. Another example of unprotected resources includes the insecure practice of opening sensitive Google docs to organization-wide
+view/edit access.
+
+## 3. Maintaining client-side authorization state
+The authentication and authorization state should always be maintained and verified on the server side. Web application developers sometimes
+manage authorization states on the client-side, which malicious users can easily tamper with to gain unauthorized access. The client-side
+authorization state management variation includes maintaining state in HTTP cookies, URL paths or parameters, JSON web tokens (JWT), request
+referrer header, or request origin header.
+
+### Exploiting client-side authorization state vulnerability
+Let's take an example from our unicornprofilebook.com application. Besides Alice, Bob and Carol, the application has one administrative
+privilege account used by Ted. Ted is allowed to delete pictures of every user. But the application stores the user privilege on the client
+session cookie as `role=admin`. Even if the cookie is protected with [HttpOnly cookie](https://owasp.org/www-community/HttpOnly), this can
+be easily tampered with using an intercepting proxy such as [OWASP zap](https://owasp.org/www-project-zap/), or [burp
+suite](https://portswigger.net/burp).
+
+Although many modern software developers are well educated on this type of vulnerability, it is common for developers to misunderstand the
+risk when developing native desktop applications. The general assumption is that "it is harder to intercept traffic of desktop applications
+when compared with web applications." But this is not true, and even the client-server communication of desktop applications can be easily
+intercepted and tampered with by using an interception proxy such as [mitmproxy](https://mitmproxy.org/)
+
+
+
+## 4. Directory traversal
+Directory or path traversal vulnerabilities allow reading web server files with sensitive information which are not directly accessible and
+authorized to users. Let's see how with our hypothetical app unicornprofilebook.com. This app fetches a user image with the following URL:
+
+```
+https://unicornprofilebook.com/pictures?id=5
+```
+
+If the unicornprofilebook.com is vulnerable to directory traversal, a malicious user can craft a request such that the server's `etc/passwd`
+file may spit out in the response.
+
+```
+https://unicornprofilebook.com/pictures?id=../../../../etc/passwd
+```
+
+How does this work? A vulnerable implementation will not sanitize user input and will pass this value to the file reader function of the
+unicornprofilebook.com application. If the file reader function has access to `/etc/passwd` file, it will read that file and return its
+content in the response. This example of directory traversal by modifying URL is only one of the ways to exploit the vulnerability and can
+be executed within any part of an HTTP request, including headers, cookies and request bodies, and API endpoints. A proper user input
+validation is the first step to counter these types of vulnerabilities.
+
+## 5. Misconfigured access policies
+Defining security policies is always a complex task. Take an example of creating a role in [AWS
+IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html). AWS offers more than 200 services. There are literally hundreds of
+combinations that can be applied to create a role. As the complexity grows, it becomes a rational (yet insecure) choice to create a role
+with full access than trying to assign the least privilege in most cases.
+
+Additionally, misconfigured Cross-Origin Resource Sharing (CORS) headers are becoming a common vulnerability in modern single page
+applications which allows for API access from unauthorized sources. 
+
+
+## 6. Bypassable policies
+Besides misconfigured and insecure policy creation, some software implements authorization policies that can be bypassed in certain
+scenarios. For example, policies based on user location, web browser types, or device type. These are all easy to bypass. Location-based
+authorization can be bypassed using a VPN or proxy service, and user agents can be easily updated in modern browsers or by building a custom
+HTTP client.
+
+
+## 7. Privilege escalation by binary exploitations
+The above examples discussed how a user could tamper with HTTP requests, API requests, or HTTP client local storage to exploit insecure
+authorization implementations. Besides tampering with HTTPS protocols, a set of binary exploitation vulnerabilities exists that exploits
+programs or operating system flaws to escalate privileges in operating systems.
+
+
+For example, a recently discovered Dirty Pipe Privilege Escalation Vulnerability in Linux
+([CVE-2022-0847](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-0847)) allows a normal user or process to overwrite data into
+arbitrary files, including files owned by root users. Or the
+[PwnKit](https://blog.qualys.com/vulnerabilities-threat-research/2022/01/25/pwnkit-local-privilege-escalation-vulnerability-discovered-in-polkits-pkexec-cve-2021-4034)
+vulnerability, which lets the exploitation of a SUID-root program allow for a full privilege escalation as a root user in Linux. These two
+are just examples, and there are many [such known
+vulnerabilities](https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=linux+privilege+scalation) allowing for privilege escalation and
+authorization bypass implemented at the operating system level.
+
+## Conclusion
+The vulnerabilities discussed in this post affect web applications, API services, mobile applications, desktop applications and web servers.
+These vulnerabilities usually go undetected with automated security scanners and require careful research by security researchers. A
+well-scoped security audit or penetration testing of software applications helps detect these types of vulnerabilities.
+
+
+Perhaps the biggest threat related to authorization is the employees misusing their assigned privileges. These users are categorized as
+[insider threats](https://www.verizon.com/business/resources/reports/insider-threat-report/) in cybersecurity terminology. Proper privilege
+access management with continuous monitoring of authorized actions is important to counter insider threats. Teleport, an open-source unified
+access plane, offers [modern privilege access management](https://goteleport.com/use-cases/privileged-access-management/) capabilities to
+counter insider threats related to cloud infrastructure access. [Learn how Teleport works]( https://goteleport.com/how-it-works/).
