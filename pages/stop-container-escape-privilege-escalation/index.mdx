@@ -12,6 +12,8 @@ logo:
 layout: blogArticle
 ---
 
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
 _Container escape_ is a security risk in which malicious players can leverage a containerized application’s vulnerabilities to breach its
 isolation boundary, gaining access to the host system’s resources.
 
@@ -169,6 +171,8 @@ Using the ImageMagick example, a graphics application might perform manipulation
 functions. Each function could call the relevant ImageMagick library necessary for its task, and the serverless code could load the
 ImageMagick libraries as part of its initialization. Once the code finishes running, the runtime containing the ImageMagick library would
 also be removed.
+
+<EmailSubscribeViolet />
 
 ## Conclusion
  
