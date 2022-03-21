@@ -197,7 +197,9 @@ Teleport opens login screen, issues a cert and delivers it back to a user's comp
 Here is an example of Teleport's CLI tool `tsh` issuing a certificate
 based on my GitHub credentials.
 
-<Video src="./assets/ssh-certs-github.mp4" />
+<video autoPlay loop muted playsinline>
+  <source src="./assets/ssh-certs-github.mp4" type="video/mp4" />
+</video>
 
 The cert is valid for 12 hours and has my GitHub identity encoded in it.
 
@@ -210,7 +212,9 @@ and reissue all certs for hosts and users. Any system dealing with certs should 
 
 Take a look at how I rotate a user CA in less than a minute with Teleport:
 
-<Video src="./assets/ssh-certs-rotation.mp4" />
+<video autoPlay loop muted playsinline>
+  <source src="./assets/ssh-certs-rotation.mp4" type="video/mp4" />
+</video>
 
 With user certificate authority updated, all certificates issued by the old CA become invalid.
 It's not a problem if you use SSO; users have to re-login to get new certs.
