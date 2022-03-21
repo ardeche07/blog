@@ -13,6 +13,7 @@ layout: blogArticle
 ---
 
 import BlogImage from "components/BlogImage"
+import { EmailSubscribeViolet } from "components/EmailSubscribe"
 import Quote from "components/Quote"
 import Video from "components/Video"
 
@@ -98,15 +99,17 @@ At Teleport we follow the best practice of using different AWS organizations to 
 for secure access to aws, and we cover it in detail in Episode 12 of [Access Control with
 LVH](https://goteleport.com/resources/podcast/access-control-lvh/).  
 
-<Quote>The main reason behind the multiple accounts thing is that because we found that, in many cases, it's really hard to get people to do
-a great job at managing AWS IAM, like people just write a particular permission. It's super broad, and they just keep adding infrastructure
-and infrastructure and infrastructure. And before you know it, that ability to read from every S3 bucket is suddenly far more terrifying
-than it was when you agreed to it … Because you're already thinking about things like, "Am I —" hopefully you're thinking about whether
-you're in dev or prod before you drop the tables. So you're already thinking about that. So that much of an extra — it's a lot of extra
-mental bandwidth that's being asked for. But then on the flip side, from a security perspective, I have an extremely strong guarantee that
-things are going to stay separate. And similarly, if an auditor comes and asks, then we can say, "We don't have to talk. We don't have to
-spend hours talking about AWS IAM policies." We can just say, "Yeah, separate accounts," like completely separate off domains. Multiple AWS
-accounts is such a no-brainer.</Quote>
+<Quote>
+  The main reason behind the multiple accounts thing is that because we found that, in many cases, it's really hard to get people to do
+  a great job at managing AWS IAM, like people just write a particular permission. It's super broad, and they just keep adding infrastructure
+  and infrastructure and infrastructure. And before you know it, that ability to read from every S3 bucket is suddenly far more terrifying
+  than it was when you agreed to it … Because you're already thinking about things like, "Am I —" hopefully you're thinking about whether
+  you're in dev or prod before you drop the tables. So you're already thinking about that. So that much of an extra — it's a lot of extra
+  mental bandwidth that's being asked for. But then on the flip side, from a security perspective, I have an extremely strong guarantee that
+  things are going to stay separate. And similarly, if an auditor comes and asks, then we can say, "We don't have to talk. We don't have to
+  spend hours talking about AWS IAM policies." We can just say, "Yeah, separate accounts," like completely separate off domains. Multiple AWS
+  accounts is such a no-brainer.
+</Quote>
 
 In practice, the UX can be a bit jarring. When you start a session on an AWS account, that tab becomes logged out if you login to a new
 account. I would file this UX as both a bug and a feature, but it’s darn annoying if you’re doing a lot of work across accounts. 
@@ -147,6 +150,8 @@ Platform Module (TPM)](https://goteleport.com/blog/tpm-vs-hsm-difference/) combi
 with an [IR sensor](https://docs.microsoft.com/en-us/windows-hardware/design/device-experiences/windows-hello-face-authentication) to let it
 work in all conditions. One benefit of Facial recognition is the convenience of authentication, but this can have negative consequences if
 you don’t know the intent of the program.
+
+<EmailSubscribeViolet />
 
 ## Enough of the buzzwords — how does this fix SSO?
 Before diving into the solutions, let me define what my ideal UX would look like.  
