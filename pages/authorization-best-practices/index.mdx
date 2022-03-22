@@ -1,0 +1,129 @@
+---
+author: Sakshyam Shah
+date: "2022-03-22"
+tags:
+  - security
+articleTitle: Authorization Best Practices
+title: 11 Authorization Best Practices
+description: This blog post recommends 11 authorization best practices to avoid vulnerabilities and defeat specific attack vectors.
+logo:
+  image: ./assets/authorization-best-practices@2x.png
+  alt: Authorization best practices
+layout: blogArticle
+---
+
+import { EmailSubscribeViolet } from "components/EmailSubscribe"
+
+Our previous blog post on authorization security covered the seven [most common authorization
+vulnerabilities](/authorization-vulnerabilities/). This post will discuss 11 authorization best practices that help avoid vulnerabilities
+and defeat specific attack vectors.
+
+## 1. Design and implement authorization early in the software development lifecycle
+Authorization functionality should be designed early on in the software development process. It forces us to think about the basic
+requirements for roles and privileges, which will be much more helpful later as the complexity of the application grows. Most popular web
+frameworks already support implementing authorization. For example, Django's [permission and
+authorization](https://docs.djangoproject.com/en/4.0/topics/auth/default/#permissions-and-authorization) and Laravel's
+[authorization](https://laravel.com/docs/9.x/authorization), Spring's
+[authorization](https://docs.spring.io/spring-security/site/docs/5.2.11.RELEASE/reference/html/authorization.html), etc. There are also
+popular community-maintained authorization libraries such as ruby [cancancan](https://github.com/CanCanCommunity/cancancan) gem, Golang's
+[Casbin](https://github.com/casbin/casbin) (also ported to other programming languages), etc. 
+
+
+## 2. Implement authorization middleware
+Authorization grants should be short-lived, and the server should perform continuous authorization on every request. This can be achieved by
+implementing authorization middleware and ensuring that every request to the server is handled to and from the authorization
+[middleware](https://www.moesif.com/blog/engineering/middleware/What-Is-HTTP-Middleware/) only. This eliminates the risks of unprotected URL
+paths and API endpoints.
+
+
+## 3. Implement authorization policies
+Authorization policies allow administrators to implement fine-grained access controls. These policies can be: mandatory access control
+(MAC), discretionary access control (DAC), role-based access control (RBAC), or attribute-based access control (ABAC). OWASP recommends
+[ABAC over
+RBAC](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html#prefer-feature-and-attribute-based-access-control-over-rbac),
+but it depends on the requirements of the software application itself. In any case, the authorization process should have at least one
+compulsory deny by default policy, which will block unauthorized access even if the authorization policies are bypassed due to
+misconfiguration or malicious action.
+
+
+## 4. Implement scope bounds
+Scope bounds define a blast radius for features and functions. A scope bound reduces the security impact severity when a security control is
+bypassed or exploited because application features are limited to only a specific area. For example, does the application need to resolve or
+fetch data from the public internet? Does the application need to access files from places other than the designated local directory?
+Limiting features and functionality to only specific required scope helps avoid vulnerabilities such as directory traversal, local file
+inclusion (LFI), and remote file inclusion (RFI). Scope bounds can be implemented by whitelisting specific URL endpoints, local directories,
+and program binaries.
+
+
+## 5. Maintain server-side authorization state, sign and verify authorization session data
+Similar to an authentication state, an authorization state should always be maintained on the server-side (backend). Further, HTTP request
+headers, source addresses, unsigned cookies, and access tokens can be easily tampered with and modified. Even when using SSL and TLS, HTTPS
+requests can be easily intercepted on client-side by configuring browsers to trust self-signed certificate authority (CA). To avoid the risk
+of session tampering, always sign and verify session data. The authorization session should be managed with session cookies and cross-site
+request forgery (CSRF) tokens, and the server should sign both values. Cryptography libraries such as [NaCL
+SecretBox](https://pkg.go.dev/golang.org/x/crypto/nacl/secretbox) or standards such as signed [JWT](https://jwt.io/) tokens are two safe
+choices to implement secure authorization data.  
+
+
+## 6. Validate and sanitize dynamic values
+Proper validation and sanitization of any values (including user inputs) used to compute authorization can prevent the exploitation of most
+web application security vulnerabilities. Validation and sanitization should include user inputs and all the session data used to compute
+authorization. Validation involves data verification, while sanitization helps clean malicious inputs. Note that the validation and
+sanitization of inputs should always be performed on the server-side. With proper implementation of scope bounds along with input validation
+and sanitization, security risks from parameter tampering and vulnerabilities such as path traversal, LFI and RFI can be prevented to a much
+greater extent.
+
+
+## 7. Implement resource ownership verification method in the authorization process
+Resource ownership verification in the authorization process can prevent cross-account authorization vulnerabilities such as IDOR. For
+example, one Google account should never be allowed to view, update, or even delete data of another Google account. So, in any case of
+misconfiguration or underlying vulnerability in the authorization system, user action that touches data from other accounts should be
+blocked. Resource verification is easier to implement in consumer-facing web applications than enterprise applications. In enterprise
+applications, data sharing and data access requirements are common, so authorization policy and the notion of data ownership can become
+quite complex. But where possible, implement data ownership verification in the authorization process, especially where the data updating or
+deletion actions are allowed. 
+
+
+## 8. Implement authentication and SSO in internal applications
+Never publish any web application or software without proper authentication and authorization. Authentication schemes like single sign-on
+(SSO) make it easier to defer authentication and authorization policy management to external identity providers. There shouldn't be any
+reason to publish applications without access controls. Standards such as SAML, Oauth2 and OpenID Connect help implement SSO flows. 
+
+
+## 9. Follow privileged access management best practices
+All the above best practices are for software developers. But despite implementing a secure authorization process, the overall security of
+the authorization process still depends on the administrators and users. So the concept of secure privileged access management must be
+followed appropriately, which includes:
+ 
+- Implementing a least privilege policy
+- Zero standing privileged
+- Just-in-time access For more on these capabilities, check out our guide on what to look for in a [modern PAM
+solution](/modern-pam-solutions-requirements/).
+
+## 10. Prevent ID enumeration
+Ability to enumerate resource ID's allows an attacker to discover ID's assigned to data resources that can be used to exploit authorization
+vulnerabilities. Implementing rate-limiting along with proper error message handling will prevent ID enumeration. 
+
+
+## 11. Require dual-approval authorization for sensitive actions
+Dual approval requires at least two users (with similar privilege) to approve a specific user action (e.g., update files, access to the
+database server). Paired with two-factor authentication, dual-approval authorization is great to prevent [insider
+threats](https://csrc.nist.gov/glossary/term/insider_threat).
+
+
+## Conclusion
+To avoid vulnerabilities and defeat specific attack vectors, the best practice is to implement an authorization system early in the software
+development process and to ensure every request is handled with an authorization checker. For further details, make sure to check OWASP’s
+recommendation on [access control](https://owasp.org/www-project-proactive-controls/v3/en/c7-enforce-access-controls) and
+[authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html). 
+
+<EmailSubscribeViolet />
+
+### Infrastructure authorization with Teleport
+The sheer number of heterogeneous servers, applications, and protocols makes access control more complex for cloud infrastructure. Teleport,
+an open-source unified access plane, helps easily apply secure authorization to cloud resources, including SSH servers, Windows servers,
+databases, Kubernetes clusters, and web applications with SSO, RBAC, and session recording and auditing features. Try Teleport
+[now](https://goteleport.com/pricing/). 
+
+
+
