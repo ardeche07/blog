@@ -138,7 +138,7 @@ const menu: MenuCategoryProps[] = [
         icon: "note",
         title: "The blog",
         description: "Technical articles, news, and product announcements",
-        href: `/`,
+        href: `https://${HOST}/blog/`,
       },
       {
         icon: "building",
