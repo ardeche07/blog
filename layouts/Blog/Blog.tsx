@@ -39,10 +39,16 @@ function BlogIndexPage({
     );
   });
 
+  // this object prevents duplicate meta titles in indexing pages for SEO purposes
+  const titlePaginator = {
+    tag: `Blog articles on ${tag} page ${currentPage? currentPage : "1"}`,
+    noTag: `Teleport Blog page ${currentPage? currentPage : "1"}`
+  }
+
   return (
     <>
       <Head
-        title={!!tag ? `Blog articles on ${tag}` : "Blog"}
+        title={!!tag ? titlePaginator.tag : titlePaginator.noTag}
         description="Welcome to the Teleport Blog! We write about operating cloud software in production"
       />
       <Layout>
