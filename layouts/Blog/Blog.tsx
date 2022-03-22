@@ -42,14 +42,20 @@ function BlogIndexPage({
   // this object prevents duplicate meta titles in indexing pages for SEO purposes
   const titlePaginator = {
     tag: `Blog articles on ${tag} page ${currentPage}`,
-    noTag: `Teleport Blog page ${currentPage}`
+    noTag: `Blog page ${currentPage}`
+  }
+
+  // this object prevents duplicate meta descriptions in indexing pages for SEO purposes
+  const descriptionPaginator = {
+    tag: `Your source for cutting edge ${tag} articles, page ${currentPage}`,
+    noTag: `The Teleport Blog, page ${currentPage}`
   }
 
   return (
     <>
       <Head
         title={!!tag ? titlePaginator.tag : titlePaginator.noTag}
-        description="Welcome to the Teleport Blog! We write about operating cloud software in production"
+        description={!!tag ? descriptionPaginator.tag : descriptionPaginator.noTag}
       />
       <Layout>
         <SectionHeader
