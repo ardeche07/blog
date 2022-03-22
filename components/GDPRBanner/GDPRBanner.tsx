@@ -39,21 +39,14 @@ const gtagRegions = [
   "US-CA",
 ];
 
+// use useEffect on server-side rendering and useLayoutEffect on client-side
+// this removes errors related to server-side rendering
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const GDPRBanner = () => {
   const [showBanner, setShowBanner] = useState(false);
 
-  // when react SSR is happening, the html is a very specific shape. when react renders on the client-side, it will
-  // generate the HTML, and when it goes to replace the DOM, it checks if the html is exactly the same. If it does not,
-  // then it throws the error
-  // when server renders application, it doesn't have localstorage. when the client executes where on the initial render,
-  // it is computed the localstorage does or does not have it, it can be true or false. this can lead to a difference
-  // in the DOM structure that makes achieving parity impossible.
-  // when you useLayoutEffect, it only executes on the client.
-  // on the very first render, we default to false, and that's also the case for the server
-  // so client and server are guaranteed to be exact
   useIsomorphicLayoutEffect(() => {
     const shouldShowBanner =
       typeof window !== "undefined" &&
