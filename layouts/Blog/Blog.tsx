@@ -41,8 +41,8 @@ function BlogIndexPage({
 
   // this object prevents duplicate meta titles in indexing pages for SEO purposes
   const titlePaginator = {
-    tag: `Blog articles on ${tag} page ${currentPage? currentPage : "1"}`,
-    noTag: `Teleport Blog page ${currentPage? currentPage : "1"}`
+    tag: `Blog articles on ${tag} page ${currentPage}`,
+    noTag: `Teleport Blog page ${currentPage}`
   }
 
   return (
