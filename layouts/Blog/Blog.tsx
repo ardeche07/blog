@@ -3,6 +3,7 @@ import css from "@styled-system/css";
 import Drift from "react-driftjs";
 import Head from "components/Head";
 import Centrator from "components/Centrator";
+import GDPRBanner from "components/GDPRBanner";
 import Layout from "components/Layout";
 import Box from "components/Box";
 import Flex from "components/Flex";
@@ -106,6 +107,7 @@ function BlogIndexPage({
           </StyledWrapper>
         </Centrator>
       </Layout>
+      <GDPRBanner />
       <Footer />
       <Drift appId={process.env.NEXT_PUBLIC_DRIFT_ID} />
     </>

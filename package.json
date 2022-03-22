@@ -37,6 +37,7 @@
     "@mdx-js/react": "^2.0.0-rc.2",
     "@reach/listbox": "^0.16.2",
     "@styled-system/css": "^5.1.5",
+    "@types/gtag.js": "^0.0.10",
     "algoliasearch": "^4.11.0",
     "date-fns": "^2.27.0",
     "final-form": "^4.20.4",

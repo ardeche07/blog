@@ -7,6 +7,7 @@ import Box from "components/Box";
 import FeaturedArticleCards from "./FeaturedArticleCards";
 import type { BlogArticle as BlogArticleInfo } from "./types";
 import Footer from "components/Footer";
+import GDPRBanner from "components/GDPRBanner";
 import Head from "components/Head";
 import Centrator from "components/Centrator";
 import Layout from "components/Layout";
