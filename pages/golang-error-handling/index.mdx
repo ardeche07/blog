@@ -81,7 +81,7 @@ line and file of the code.
 The function [runtime.Caller](https://pkg.go.dev/runtime#Caller/) helps us to
 know exactly which line originated the log message:
 
-```text
+```
 Caller reports file and line number information about function invocations on
 the calling goroutine's stack.
 ```
@@ -159,7 +159,7 @@ if s, ok := err.(TraceSetter); ok {
 The error handling logic benefits from inspecting the original error and seeing
 the full stack trace with the origins of error:
 
-```text
+```
 error in WithTransaction: [suite.go:173 main.go:12] file 'sqlite.db' is missing
 ```
 

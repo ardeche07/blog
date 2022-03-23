@@ -39,7 +39,7 @@ The next level up from SSH keys is [SSH certificates](https://goteleport.com/blo
 
 With SSH certificates, you generate a [certificate authority (CA)](https://goteleport.com/blog/ssh-certificates/) and then use this to issue and cryptographically sign certificates which can authenticate users to hosts, or hosts to users. You can generate a keypair using the `ssh-keygen` command, like this:
 
-```text
+```
 $ ssh-keygen -t rsa -b 4096 -f host_ca -C host_ca
 Generating public/private rsa key pair.
 Enter passphrase (empty for no passphrase):
@@ -73,7 +73,7 @@ In addition, it's best practice to generate and use two separate CAs - one for s
 
 As such, we'll also generate a `user_ca` with this command:
 
-```text
+```
 $ ssh-keygen -t rsa -b 4096 -f user_ca -C user_ca
 ```
 
@@ -83,7 +83,7 @@ The `user_ca` file is the user CA's private key and should also be protected in 
 
 In this example, we'll generate a new host key (with no passphrase), then sign it with our CA. You can also sign the existing [SSH host public key](https://goteleport.com/blog/comparing-ssh-keys/) if you'd prefer not to regenerate a new key by copying the file (`/etc/ssh/ssh_host_rsa_key.pub`) from the server, signing it on your CA machine, and then copying it back.
 
-```text
+```
 $ ssh-keygen -f ssh_host_rsa_key -N '' -b 4096 -t rsa
 
 $ ls -l
@@ -114,7 +114,7 @@ Here's an explanation of the flags used:
 
 You also need to tell the server to use this new host certificate. Copy the three files you just generated to the server, store them under the `/etc/ssh` directory, set the permissions to match the other files there, then add this line to your`/etc/ssh/sshd_config` file:
 
-```text
+```
 HostCertificate /etc/ssh/ssh_host_rsa_key-cert.pub
 ```
 
@@ -124,7 +124,7 @@ Your server is now configured to present a certificate to anyone who connects. F
 
 You can do this by taking the contents of the `host_ca.pub` file, adding `@cert-authority *.example.com` to the beginning, then appending the contents to `~/.ssh/known_hosts`:
 
-```text
+```
 @cert-authority *.example.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDwiOso0Q4W+KKQ4OrZZ1o1X7g3yWcmAJtySILZSwo1GXBKgurV4jmmBN5RsHetl98QiJq64e8oKX1vGR251afalWu0w/iW9jL0isZrPrmDg/p6Cb6yKnreFEaDFocDhoiIcbUiImIWcp9PJXFOK1Lu8afdeKWJA2f6cC4lnAEq4sA/Phg4xfKMQZUFG5sQ/Gj1StjIXi2RYCQBHFDzzNm0Q5uB4hUsAYNqbnaiTI/pRtuknsgl97xK9P+rQiNfBfPQhsGeyJzT6Tup/KKlxarjkMOlFX2MUMaAj/cDrBSzvSrfOwzkqyzYGHzQhST/lWQZr4OddRszGPO4W5bRQzddUG8iC7M6U4llUxrb/H5QOkVyvnx4Dw76MA97tiZItSGzRPblU4S6HMmCVpZTwva4LLmMEEIk1lW5HcbB6AWAc0dFE0KBuusgJp9MlFkt7mZkSqnim8wdQApal+E3p13d0QZSH3b6eB3cbBcbpNmYqnmBFrNSKkEpQ8OwBnFvjjdYB7AXqQqrcqHUqfwkX8B27chDn2dwyWb3AdPMg1+j3wtVrwVqO9caeeQ1310CNHIFhIRTqnp2ECFGCCy+EDSFNZM+JStQoNO5rMOvZmecbp35XH/UJ5IHOkh9wE5TBYIeFRUYoc2jHNAuP2FM4LbEagGtP8L5gSCTXNRM1EX2gQ== host_ca
 ```
 
@@ -132,7 +132,7 @@ The value `*.example.com` is a pattern match, indicating that this certificate s
 
 Once this is configured, remove any old host key entries for `host.example.com` in your `~/.ssh/known_hosts` file, and start an `ssh` connection. You should be connected straight to the host without needing to trust the host key. You can check that the certificate is being presented correctly with a command like this:
 
-```text
+```
 $ ssh -vv host.example.com 2>&1 | grep "Server host certificate"
 debug1: Server host certificate: ssh-rsa-cert-v01@openssh.com SHA256:dWi6L8k3Jvf7NAtyzd9LmFuEkygWR69tZC1NaZJ3iF4, serial 0 ID "host.example.com" CA ssh-rsa SHA256:8gVhYAAW9r2BWBwh7uXsx2yHSCjY5OPo/X3erqQi6jg valid from 2020-03-17T11:49:00 to 2021-03-16T11:50:21
 debug2: Server host certificate hostname: host.example.com
@@ -144,7 +144,7 @@ At this point, you could continue by issuing host certificates for all hosts in 
 
 In this example, we'll generate a new user key and sign it with our user CA. It's up to you whether you use a passphrase or not.
 
-```text
+```
 $ ssh-keygen -f user-key -b 4096 -t rsa
 
 $ ls -l
@@ -172,7 +172,7 @@ Here's an explanation of the flags used:
 
 If you need to see the options that a given certificate was signed with, you can use `ssh-keygen -L`:
 
-```text
+```
 $ ssh-keygen -L -f user-key-cert.pub
 user-key-cert.pub:
         Type: ssh-rsa-cert-v01@openssh.com user certificate
@@ -197,7 +197,7 @@ user-key-cert.pub:
 
 Once you've signed a certificate, you also need to tell the server that it should trust certificates signed by the user CA. To do this, copy the `user_ca.pub` file to the server and store it under `/etc/ssh`, fix the permissions to match the other public key files in the directory, then add this line to `/etc/ssh/sshd_config`:
 
-```text
+```
 TrustedUserCAKeys /etc/ssh/user_ca.pub
 ```
 
@@ -209,20 +209,20 @@ Your server is now configured to trust anyone who presents a certificate issued 
 
 If you look in your server's `sshd` log (for example, by running `journalctl -u sshd`), you will see the name of the certificate being used for authentication, along with the fingerprint of the signing CA:
 
-```text
+```
 sshd[14543]: Accepted publickey for ec2-user from 1.2.3.4 port 53734 ssh2: RSA-CERT ID gus@goteleport.com (serial 0) CA RSA SHA256:tltbnMalWg+skhm+VlGLd2xHiVPozyuOPl34WypdEO0
 ```
 
 If the user tries to log in as a principal (user) which they do not have permission to use (for example, their certificate grants `ec2-user` but they try to use `root`), you'll see this error in the logs:
 
-```text
+```
 sshd[14612]: error: key_cert_check_authority: invalid certificate
 sshd[14612]: error: Certificate invalid: name is not a listed principal
 ```
 
 If the certificate being presented has expired, you'll see this error in the logs:
 
-```text
+```
 sshd[14240]: error: key_cert_check_authority: invalid certificate
 sshd[14240]: error: Certificate invalid: expired
 ```
@@ -239,7 +239,7 @@ Switching to the use of a bastion host doesn't have to be an arduous task, espec
 
 Here's a very quick example of how to force SSH access to any host in the example.com domain to be routed through a bastion host, `bastion.example.com`:
 
-```text
+```
 Host *.example.com
     ProxyJump bastion.example.com
     IdentityFile ~/user-key
@@ -253,7 +253,7 @@ To make this even simpler, if you add `user-key` to your local `ssh-agent` with 
 
 Once you're using the bastion host for your connections, you can use `iptables` (or another \*nix firewall configuration tool of your choosing) on servers behind the bastion to block all other incoming SSH connections. Here's a rough example using `iptables`:
 
-```text
+```
 $ iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
 $ iptables -A INPUT -p tcp --dport 22 -s <public IP of the bastion> -j ACCEPT
 $ iptables -A INPUT -p tcp --dport 22 -j DROP
@@ -275,20 +275,20 @@ As a general note, it's always important to consider the user experience when en
 
 On RHEL/CentOS based systems, you can install the `google-authenticator` module from the EPEL repository:
 
-```text
+```
 $ sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm # for RHEL/CentOS 7, change for other versions
 $ sudo yum install google-authenticator
 ```
 
 For Debian/Ubuntu-based systems, this is available as the `libpam-google-authenticator` package:
 
-```text
+```
 $ sudo apt-get install libpam-google-authenticator
 ```
 
 The `google-authenticator` module has many options you can set [which are documented here](https://github.com/google/google-authenticator-libpam/blob/master/man/google-authenticator.1.md). In the interest of saving time, we are going to use some sane defaults in this example: disallow reuse of the same token twice, issue time-based rather than counter-based codes, and limit the user to a maximum of three logins every 30 seconds. To set up Google 2-factor authentication with these settings, a user should run this command:
 
-```text
+```
 $ google-authenticator -d -f -t -r 3 -R 30 -W
 ```
 
@@ -302,7 +302,7 @@ Scan the generated QR code for your user now with the Google Authenticator app a
 
 To make the system enforce the use of these OTP (one-time password) codes, we'll first need to edit the PAM configuration for the `sshd` service (`/etc/pam.d/sshd`) and add this line to the end of the file:
 
-```text
+```
 auth required pam_google_authenticator.so nullok
 ```
 
@@ -323,7 +323,7 @@ Firstly, we need to change `ChallengeResponseAuthentication no` to `ChallengeRes
 
 We also need to set the list of acceptable methods for authentication by adding this line to the end of the file (or editing the line if it already exists):
 
-```text
+```
 AuthenticationMethods publickey,keyboard-interactive
 ```
 
@@ -335,7 +335,7 @@ At this point, you should restart `sshd` with `systemctl restart sshd`. Make sur
 
 Connect to your bastion host directly and you should see a prompt asking you for your 2-factor code:
 
-```text
+```
 $ ssh bastion.example.com
 Verification code:
 ```
@@ -344,7 +344,7 @@ Type the code presented by your Google Authenticator app and your login should p
 
 If you check the `sshd` log with `journalctl -u sshd`, you should see a line indicating that your login succeeded:
 
-```text
+```
 Mar 23 16:51:13 ip-172-31-33-142.ec2.internal sshd[29340]: Accepted keyboard-interactive/pam for gus from 1.2.3.4 port 42622 ssh2
 ```
 
