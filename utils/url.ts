@@ -6,6 +6,26 @@ interface URLParts {
   query: Record<string, string>;
 }
 
+/** 
+
+Example: https://goteleport.com/blog/tags/kubernetes/page/2/
+returns: {
+  anchor: undefined,
+  path: 'https://goteleport.com/blog/tags/kubernetes/page/2/',
+  query: {}
+}
+
+Adding some marketing utm query params: https://goteleport.com/blog/announcing-wormhole/?utm_campaign=eg&utm_medium=partner&utm_source=codestory
+returns: {
+  anchor: undefined,
+  path: 'https://goteleport.com/blog/announcing-wormhole/',
+  query: {
+    utm_campaign: 'eg',
+    utm_medium: 'partner',
+    utm_source: 'codestory'
+  }
+}
+ */
 export const splitPath = (fullPath: string): URLParts => {
   const [rest, anchor] = fullPath.split("#");
   const [path, search] = rest.split("?");
@@ -22,6 +42,19 @@ export const splitPath = (fullPath: string): URLParts => {
   return { anchor, path, query };
 };
 
+/**
+ * Takes a URLParts object and builds the path: 
+ * Example: passing in the following object:
+ {
+  anchor: undefined,
+  path: 'https://goteleport.com/blog/announcing-wormhole/',
+  query: {
+    utm_campaign: 'eg',
+    utm_medium: 'partner',
+    utm_source: 'codestory'
+  }
+  returns "https://goteleport.com/blog/announcing-wormhole/?utm_campaign=eg&utm_medium=partner&utm_source=codestory"
+ */
 export const buildPath = (parts: URLParts): string => {
   let result = parts.path;
 
@@ -40,7 +73,7 @@ export const buildPath = (parts: URLParts): string => {
   return result;
 };
 
-// Ensure that relative lins always starts with ./, can be needed to open files in Node
+// Ensure that relative lines always start with ./, can be needed to open files in Node
 
 export const relatify = (href: unknown) => {
   if (typeof href !== "string") {
@@ -51,7 +84,7 @@ export const relatify = (href: unknown) => {
 };
 
 // router.asPath returns original path before rewrites, so to match
-// broser url with url in asPath we need to first apply rewrites to it
+// browser url with url in asPath we need to first apply rewrites to it
 // manually
 
 export const normalizePath = (fullPath: string) => {
