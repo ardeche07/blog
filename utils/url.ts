@@ -112,10 +112,15 @@ export const normalizePath = (fullPath: string) => {
 //fairly certain normalizePath is not applicable here but was a holdover from docs
  export const buildCanonicalUrl = (path: string) => {
     const parts = path.split("/");
+
+    //if url ends in ".../page/xx/" remove that part AND query params etc.
     if (parts[parts.length - 3] === "page") {
       const canonicalPath = parts.slice(0, parts.length - 3).join("/");
       return `${host}${splitPath(canonicalPath).path}/`
-    } else return `${host}${splitPath(path).path}`;
+    } else {
+      // else just strip query params, etc
+      return `${host}${splitPath(path).path}`;
+    }
   }
   
 
