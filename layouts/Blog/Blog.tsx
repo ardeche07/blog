@@ -42,29 +42,31 @@ function BlogIndexPage({
   // this object prevents duplicate meta titles in indexing pages for SEO purposes
   const titlePaginator = {
     tag: `Blog articles on ${tag} page ${currentPage}`,
-    noTag: `Blog page ${currentPage}`
-  }
+    noTag: `Blog page ${currentPage}`,
+  };
 
   // this object prevents duplicate meta descriptions in indexing pages for SEO purposes
   const descriptionPaginator = {
     tag: `Your source for cutting edge ${tag} articles, page ${currentPage}`,
-    noTag: `The Teleport Blog, page ${currentPage}`
-  }
+    noTag: `The Teleport Blog, page ${currentPage}`,
+  };
 
   return (
     <>
       <Head
         title={!!tag ? titlePaginator.tag : titlePaginator.noTag}
-        description={!!tag ? descriptionPaginator.tag : descriptionPaginator.noTag}
+        description={
+          !!tag ? descriptionPaginator.tag : descriptionPaginator.noTag
+        }
       />
       <Layout>
         <SectionHeader
           subtitle={
             <StyledSubtitle as="p">
               Article & News
-              <Link href="/rss.xml" aria-label="rss feed">
+              <a href="/rss.xml" aria-label="rss feed">
                 <StyledIconRSS />
-              </Link>
+              </a>
             </StyledSubtitle>
           }
           title="Teleport Blog"
