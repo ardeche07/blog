@@ -1,5 +1,5 @@
 import { CompanyData } from "./types";
-import data from "./clients.yaml";
+import data from "./clients.json";
 
 let companies: CompanyData[] = [];
 
