@@ -76,8 +76,7 @@ After completing the negotiation and connection, a reliable and secure channel b
   />
   <figcaption>
     <a href="https://en.wikipedia.org/wiki/Public-key_cryptography#/media/File:Public_key_encryption.svg">
-      Figure 2: Only Alice’s private key can decrypt a message signed with
-      Alice’s public key
+      Figure 2: Only Alice’s private key can decrypt a message signed with Alice’s public key
     </a>
   </figcaption>
 </figure>
@@ -140,15 +139,7 @@ Choosing the right algorithm depends on a few criteria:
 
 ### RSA
 
-<table
-  width="100%"
-  css={css({
-    boxShadow: "0 8px 32px rgb(0 0 0 / 24%)",
-    marginBottom: "40px",
-    "tr > th": { padding: "10px" },
-    "tr > td": { fontSize: "10px", padding: "10px" },
-  })}
->
+<table width="100%" css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", 'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
   <tr>
     <th>Implementation</th>
     <td>
@@ -175,15 +166,7 @@ Choosing the right algorithm depends on a few criteria:
   <tr>
     <th>Security</th>
     <td>
-      Specialized algorithms like{" "}
-      <a href="https://mathworld.wolfram.com/QuadraticSieve.html">
-        Quadratic Sieve
-      </a>{" "}
-      and{" "}
-      <a href="https://en.wikipedia.org/wiki/General_number_field_sieve">
-        {" "}
-        General Number Field Sieve
-      </a>
+      Specialized algorithms like <a href="https://mathworld.wolfram.com/QuadraticSieve.html">Quadratic Sieve</a> and <a href="https://en.wikipedia.org/wiki/General_number_field_sieve"> General Number Field Sieve</a>
       exist to factor integers with specific qualities.
     </td>
   </tr>
@@ -205,37 +188,23 @@ Time has been RSA’s greatest ally and greatest enemy. First published in 1977,
 
 ### DSA
 
-<table
-  css={css({
-    boxShadow: "0 8px 32px rgb(0 0 0 / 24%)",
-    marginBottom: "40px",
-    "tr > th": { padding: "10px" },
-    "tr > td": { fontSize: "10px", padding: "10px" },
-  })}
->
+<table css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", 'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
   <tr>
     <th>Implementation</th>
     <td>
-      DSA was adopted by FIPS-184 in 1994. It has ample representation in
-      <a href="https://en.wikipedia.org/wiki/Comparison_of_cryptography_libraries">
-        major crypto libraries
-      </a>
-      , similar to RSA.
+      DSA was adopted by FIPS-184 in 1994. It has ample representation in<a href="https://en.wikipedia.org/wiki/Comparison_of_cryptography_libraries">major crypto libraries</a>, similar to RSA.
     </td>
   </tr>
   <tr>
     <th>Compatibility</th>
     <td>
-      While DSA enjoys support for PuTTY-based clients, OpenSSH 7.0{" "}
-      <a href="https://www.openssh.com/legacy.html">disables</a> DSA by default.
+      While DSA enjoys support for PuTTY-based clients, OpenSSH 7.0 <a href="https://www.openssh.com/legacy.html">disables</a> DSA by default.
     </td>
   </tr>
   <tr>
     <th>Performance</th>
     <td>
-      <a href="https://security.stackexchange.com/questions/97411/significance-of-the-difference-between-dsa-and-rsa-in-signature-verifying-speed">
-        Significant improvement
-      </a>
+      <a href="https://security.stackexchange.com/questions/97411/significance-of-the-difference-between-dsa-and-rsa-in-signature-verifying-speed">Significant improvement</a>
       in key generation times to achieve comparable security strengths, though recommended
       bit-length is the same as RSA.
     </td>
@@ -244,12 +213,7 @@ Time has been RSA’s greatest ally and greatest enemy. First published in 1977,
     <th>Security</th>
     <td>
       DSA requires the use of a randomly generated unpredictable and secret
-      value that,{" "}
-      <a href="https://rdist.root.org/2010/11/19/dsa-requirements-for-random-k-value/">
-        {" "}
-        if discovered
-      </a>
-      , can reveal the private key.
+      value that, <a href="https://rdist.root.org/2010/11/19/dsa-requirements-for-random-k-value/"> if discovered</a>, can reveal the private key.
     </td>
   </tr>
 </table>
@@ -294,39 +258,19 @@ Taking a step back, the use of elliptic curves does not automatically guarantee 
 [Curve25519](https://en.wikipedia.org/wiki/Curve25519) in particular for EdDSA. Put together that makes the public-key signature algorithm,
 [Ed25519](https://ed25519.cr.yp.to/).
 
-<table
-  css={css({
-    boxShadow: "0 8px 32px rgb(0 0 0 / 24%)",
-    marginBottom: "40px",
-    marginTop: "20px",
-    "tr > th": { padding: "10px" },
-    "tr > td": { fontSize: "10px", padding: "10px" },
-  })}
->
+<table css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", marginTop: "20px",'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
   <tr>
     <th>Implementation</th>
     <td>
-      EdDSA is fairly new.
-      <a href="https://en.wikipedia.org/wiki/Crypto%2B%2B#Algorithms">
-        Crypto++
-      </a>{" "}
-      and{" "}
-      <a href="https://en.wikipedia.org/wiki/Cryptlib#Algorithm_support">
-        cryptlib
-      </a>
-      do not currently support EdDSA.
+      EdDSA is fairly new.<a href="https://en.wikipedia.org/wiki/Crypto%2B%2B#Algorithms">Crypto++</a> and <a href="https://en.wikipedia.org/wiki/Cryptlib#Algorithm_support">cryptlib</a>do not currently support EdDSA.
     </td>
   </tr>
   <tr>
     <th>Compatibility</th>
     <td>
-      Compatible with newer clients, Ed25519 has seen the{" "}
-      <a href="https://ianix.com/pub/ed25519-deployment.html#ed25519-libraries">
-        largest adoption
-      </a>
-      among the Edward Curves, though NIST also proposed Ed448 in their recent draft
-      of <a href="https://www.nist.gov/news-events/news/2019/10/digital-signatures-and-elliptic-curve-cryptography-request-comments-draft">
-        SP 800-186
+      Compatible with newer clients, Ed25519 has seen the <a href="https://ianix.com/pub/ed25519-deployment.html#ed25519-libraries">largest adoption</a>
+      among the Edward Curves, though NIST also proposed Ed448 in their recent
+      draft of <a href="https://www.nist.gov/news-events/news/2019/10/digital-signatures-and-elliptic-curve-cryptography-request-comments-draft">SP 800-186</a>.
       </a>.
     </td>
   </tr>
@@ -340,8 +284,7 @@ Taking a step back, the use of elliptic curves does not automatically guarantee 
   <tr>
     <th>Security</th>
     <td>
-      EdDSA provides the{" "}
-      <a href="https://ed25519.cr.yp.to/">highest security level </a>compared to
+      EdDSA provides the <a href="https://ed25519.cr.yp.to/">highest security level </a>compared to
       key length. It also improves on the insecurities found in ECDSA.
     </td>
   </tr>
@@ -356,10 +299,11 @@ universally supported among SSH clients while EdDSA performs much faster and pro
 keys. Peter Ruppel puts the answer succinctly:
 
 <Quote>
-The short answer to this is: as long as the key strength is good enough for the foreseeable future, it doesn't really matter. Because here
-we are considering a signature for authentication within an SSH session. The cryptographic strength of the signature just needs to withstand
-the current, state-of-the-art attacks.
+  The short answer to this is: as long as the key strength is good enough for the foreseeable future, it doesn't really matter. Because here
+  we are considering a signature for authentication within an SSH session. The cryptographic strength of the signature just needs to withstand
+  the current, state-of-the-art attacks.
 
-- [Ed25519 for SSH](https://blog.peterruppel.de/ed25519-for-ssh/)
-  </Quote>
+  - [Ed25519 for SSH](https://blog.peterruppel.de/ed25519-for-ssh/)
+</Quote>
+
 Just don’t use ECDSA/DSA!
