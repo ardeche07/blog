@@ -64,7 +64,7 @@ function BlogIndexPage({
           subtitle={
             <StyledSubtitle as="p">
               Article & News
-              <a href="/rss.xml" aria-label="rss feed">
+              <a href="/blog/rss.xml" aria-label="rss feed">
                 <StyledIconRSS />
               </a>
             </StyledSubtitle>

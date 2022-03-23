@@ -89,7 +89,7 @@ export const BlogArticle = ({
             textAlign="center"
             alignItems="center"
           >
-            <a href="/rss.xml" aria-label="rss feed">
+            <a href="/blog/rss.xml" aria-label="rss feed">
               <StyledIconRSS />
             </a>
             <SearchSite />
