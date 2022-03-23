@@ -11,14 +11,14 @@ tags:
   - ssh
 layout: blogArticle
 ---
-import BlogImage from "components/BlogImage"
+
+import BlogImage from "components/BlogImage";
 import css from "@styled-system/css";
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 import Quote from "components/Quote";
 
 <iframe
   src="https://protocol.podigee.io/3-comparing-ssh-keys/embed?context=external&theme=default"
-  style="border: 0"
   border="0"
   height="150px"
   width="100%"
@@ -77,7 +77,7 @@ After completing the negotiation and connection, a reliable and secure channel b
   <figcaption>
     <a href="https://en.wikipedia.org/wiki/Public-key_cryptography#/media/File:Public_key_encryption.svg">
       Figure 2: Only Alice’s private key can decrypt a message signed with Alice’s public key
-    </a> 
+    </a>
   </figcaption>
 </figure>
 
@@ -141,7 +141,7 @@ Choosing the right algorithm depends on a few criteria:
 
 <table width="100%" css={css({ boxShadow: "0 8px 32px rgb(0 0 0 / 24%)", marginBottom: "40px", 'tr > th': { padding: "10px"}, 'tr > td': { fontSize: "10px", padding: "10px"}})}>
   <tr>
-    <th >Implementation</th>
+    <th>Implementation</th>
     <td>
       RSA libraries can be found for all major languages, including in-depth
       libraries (<a href="https://gist.github.com/jo/8619441">JS</a>,
@@ -161,9 +161,7 @@ Choosing the right algorithm depends on a few criteria:
   </tr>
   <tr>
     <th>Performance</th>
-    <td>
-      Larger keys require more time to generate.
-    </td>
+    <td>Larger keys require more time to generate.</td>
   </tr>
   <tr>
     <th>Security</th>
@@ -201,7 +199,7 @@ Time has been RSA’s greatest ally and greatest enemy. First published in 1977,
     <th>Compatibility</th>
     <td>
       While DSA enjoys support for PuTTY-based clients, OpenSSH 7.0 <a href="https://www.openssh.com/legacy.html">disables</a> DSA by default.
-  </td>
+    </td>
   </tr>
   <tr>
     <th>Performance</th>
@@ -300,10 +298,11 @@ universally supported among SSH clients while EdDSA performs much faster and pro
 keys. Peter Ruppel puts the answer succinctly:
 
 <Quote>
-The short answer to this is: as long as the key strength is good enough for the foreseeable future, it doesn't really matter. Because here
-we are considering a signature for authentication within an SSH session. The cryptographic strength of the signature just needs to withstand
-the current, state-of-the-art attacks.
+  The short answer to this is: as long as the key strength is good enough for the foreseeable future, it doesn't really matter. Because here
+  we are considering a signature for authentication within an SSH session. The cryptographic strength of the signature just needs to withstand
+  the current, state-of-the-art attacks.
 
-- [Ed25519 for SSH](https://blog.peterruppel.de/ed25519-for-ssh/)
+  - [Ed25519 for SSH](https://blog.peterruppel.de/ed25519-for-ssh/)
 </Quote>
+
 Just don’t use ECDSA/DSA!

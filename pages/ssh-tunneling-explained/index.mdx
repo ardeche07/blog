@@ -17,7 +17,6 @@ import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
 <iframe
   src="https://protocol.podigee.io/1-ssh-tunneling-explained/embed?context=external&theme=default"
-  style="border: 0"
   border="0"
   height="150px"
   width="100%"
@@ -32,12 +31,12 @@ If you are looking for a modern open-source alternative to OpenSSH that is optim
 Now let's begin!
 
 ## What is SSH tunneling?
+
 SSH tunneling is a method to transport additional data streams within an existing SSH session. SSH tunneling helps achieve security use cases such as remote web service access without exposing port on the internet, accessing server behind NAT, exposing local port to the internet.
 
-
 ## How does the SSH tunnel work?
-When you connect to a server using SSH, you get a server's shell. This is the default behavior of an SSH connection. Under the hood, your SSH client creates an encrypted session between your SSH client and the SSH server. But the data transported within the SSH session can be of any type. For example, during shell access, the data transmitted are binary streams detailing dimensions of pseudo-terminal and ASCII characters to run commands on the remote shell. However, during SSH port forwarding, the data transmitted can be a binary stream of protocol tunneled over SSH (e.g. SQL over SSH).
 
+When you connect to a server using SSH, you get a server's shell. This is the default behavior of an SSH connection. Under the hood, your SSH client creates an encrypted session between your SSH client and the SSH server. But the data transported within the SSH session can be of any type. For example, during shell access, the data transmitted are binary streams detailing dimensions of pseudo-terminal and ASCII characters to run commands on the remote shell. However, during SSH port forwarding, the data transmitted can be a binary stream of protocol tunneled over SSH (e.g. SQL over SSH).
 
 <BlogImage src="./assets/ssh-tunnel.png" />
 
