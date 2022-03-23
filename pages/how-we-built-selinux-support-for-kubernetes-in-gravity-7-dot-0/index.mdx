@@ -21,18 +21,15 @@ In this post, I will explain how I built it, which issues I ran into, and some u
 
 After that, I’ll show you how we are confining Kubernetes services and workloads in our clusters.
 
-
 ## A Bit of History
 
 The problem we had was that Gravity was never designed to run on SELinux-enabled hosts and our customers kept randomly breaking their installations when trying to run Gravity with SELinux enabled.
 
 This left us with a only a handful of options to fix the issue:
 
-
-
-*   Prevent the installation on SELinux-enabled hosts
-*   Detect whether SELinux was in enforcing mode and disabling it before the installation
-*   Add proper support for SELinux to our software
+- Prevent the installation on SELinux-enabled hosts
+- Detect whether SELinux was in enforcing mode and disabling it before the installation
+- Add proper support for SELinux to our software
 
 We decided to invest in proper SELinux support.
 
@@ -44,16 +41,15 @@ Having experience working with SELinux and the ability to fully exercise the app
 
 To set the scene, let’s start with the basic information about our software. It is a CNCF-certified Kubernetes distribution with a lot of batteries included. From the SELinux point of view, the software is split in two groups:
 
- 1. Monolithic binary for installing, upgrading, and managing a Kubernetes cluster
+1.  Monolithic binary for installing, upgrading, and managing a Kubernetes cluster
 
- 2. A container to provide consistent runtime environment across different Linux distributions
+2.  A container to provide consistent runtime environment across different Linux distributions
 
 The first thing that is universally recommended when starting with a new technology is exploring the existing tooling. In the case of SELinux, I quickly stumbled on [sepolgen](https://www.systutorials.com/docs/linux/man/8-sepolgen/) that helps generate the initial stubs for the application. Dan Walsch wrote a [post](https://danwalsh.livejournal.com/32430.html) about the tool and it is definitely a good start.
 
 To get started, I generated the stubs with:
 
-
-```text
+```
 $ sepolicy generate --init /path/to/gravity
 Loaded plugins: fastestmirror
 Created the following files:
@@ -64,7 +60,6 @@ Created the following files:
 /home/centos/selinux/gravity.sh # Setup Script
 ```
 
-
 The command generated 5 files in the current directory using `gravity` as the prefix for the new confined domain (`gravity_t`):
 
 I’m only going to discuss three of those files - specifically the Type Enforcement file (`gravity.te`), the Interface file (`gravity.if`), and the contexts file (`gravity.fc`).
@@ -74,7 +69,6 @@ The `gravity.te` file is the main source code with `Type Enforcement` rules. Thi
 Although there are two syntax flavors (or rather two languages) to develop the policy modules, I developed using a `Kernel Policy Language,` which is then compiled to a `Common Intermediate Language` (`CIL`). You can read more about `CIL` [here](https://github.com/SELinuxProject/cil/wiki).
 
 Next, I will focus on the things I found helpful while working on the policy.
-
 
 ### Use Attributes
 
@@ -88,69 +82,54 @@ In order to capture the described semantics in the policy module, we introduce a
 
 We’re calling this attribute `gravity_domain`, and it applies to all operational aspects of the binary:
 
-
-```text
+```
 attribute gravity_domain;
 ```
 
-
 Now, we introduce the two concrete domains for the two use cases I talked about above:
 
-
-```text
+```
 gravity_domain_template(gravity)
 gravity_domain_template(gravity_installer)
 ```
 
-
 We define common permissions by referring directly to the `gravity_domain` attribute within the policy file. No matter which use-case is running - the binary will be able to do name resolution, connect to a domain socket, and create outbound connections:
 
-
-```text
+```
 sysnet_dns_name_resolve(gravity_domain)
 gravity_container_stream_connect(gravity_domain)
 allow gravity_domain gravity_port_type:tcp_socket { connect name_connect };
 ```
 
-
 And now we can use the concrete type, such as our installer type `gravity_installer_t` to grant access to home directories on the system, where sysadmins generally copy assets for the installation:
 
-
-```text
+```
 # allow read access to user home directories
 userdom_read_admin_home_files(gravity_installer_t)
 userdom_read_user_home_content_files(gravity_installer_t)
 ```
 
-
 There's one caveat to attributes though - if a macro uses a construct that operates on types you cannot use an attribute as input. For example `typeattribute` would not work when used on an attribute, as is illustrated in the following example.
 
 Given this rule:
 
-
-```text
+```
 kernel_read_messages(gravity_domain)
 ```
 
-
 Compilation results in an error:
 
-
-```text
+```
 gravity.te:352:ERROR 'unknown type gravity_domain' at token ';' on line 22608:
     typeattribute gravity_domain can_receive_kernel_messages;
 ```
 
-
 It can be corrected by using concrete types instead:
 
-
-```text
+```
 kernel_read_messages(gravity_t)
 kernel_read_messages(gravity_installer_t)
 ```
-
-
 
 ### Use interface files for general-purpose functions
 
@@ -158,8 +137,7 @@ Interface files are not restricted to external use only - they can be used to ca
 
 Using the two process domains from before, we use a template we’ll call `gravity_domain_template` to help us create the actual domain types and add a set of common permissions to them:
 
-
-```text
+```
 template(`gravity_domain_template',`
   gen_require(`
 	attribute gravity_domain;
@@ -173,66 +151,51 @@ template(`gravity_domain_template',`
 ')
 ```
 
-
 To use this, we invoke it in the `Type Enforcement` file:
 
-
-```text
+```
 # create gravity domains
 gravity_domain_template(gravity)
 gravity_domain_template(gravity_installer)
 ```
 
-
 Let’s break down what we have defined:
-
 
 #### Introduce the attributes into the template:
 
-```text
+```
     `gen_require(``
         attribute gravity_domain;
         attribute gravity_executable_domain;
     ')
 ```
 
-
-
 #### Create a new process domain and a new executable type:
 
-
-```text
+```
     type $1_t, gravity_domain;
     type $1_exec_t, gravity_executable_domain;
 ```
 
-
 This will create a type using the provided prefix - for `gravity` it will be the `gravity_t` process domain with the `gravity_domain` attribute assigned to it. Additionally, `gravity_exec_t` will be the executable type with the `gravity_executable_domain` attribute assigned to it.
-
 
 #### Allow system role to use the new type:
 
-
-```text
+```
 role system_r types $1_t;
 ```
 
-
 This is important because we have a handful of systemd services, and since `system_r` is the default domain for all services, it needs access to the type in order to be able to run it.
-
 
 #### Add common permissions:
 
-
-```text
+```
 application_domain($1_t, $1_exec_t)
 ```
-
 
 Here, we list common permissions (i.e. we declare `gravity_t` an application domain and specify that the `gravity_exec_t` label is the entrypoint to the `gravity_t` process domain).
 
 The same will be done for the `gravity_installer` prefix, resulting in `gravity_installer_t` and `gravity_installer_exec_t` types respectively.
-
 
 ### Use builtin Interfaces
 
@@ -242,8 +205,7 @@ Using the functions is trivial - you can simply add them to your `bashrc` file.
 
 Here is how they can be used:
 
-
-```text
+```
 $ sefindif 'kernel.*message'
 …
 kernel/kernel.if: ##    Allow caller to read kernel messages
@@ -255,11 +217,9 @@ kernel/kernel.if: interface(`kernel_mounton_messages',`
 …
 ```
 
-
 And then display the contents of an interface to learn how it’s been implemented:
 
-
-```text
+```
 $ seshowif kernel_read_messages
 interface(`kernel_read_messages',`
     gen_require(`
@@ -271,11 +231,9 @@ interface(`kernel_read_messages',`
 ')
 ```
 
-
 The same applies to searching for and displaying of defines (macros):
 
-
-```text
+```
 $ sefinddef 'domtrans*'
 define(`spec_domtrans_pattern',`
 define(`domtrans_pattern',`
@@ -290,16 +248,13 @@ define(`domtrans_pattern',`
 ')
 ```
 
-
 I follow an algorithm similar to this when looking for the most appropriate interface to use:
-
 
 #### Determine the cause of permission failure
 
 For example, the previously introduced `gravity_t` domain does not have the permission to run `ping`...
 
-
-```text
+```
 $ runcon -t gravity_t /usr/bin/ping
 runcon: /usr/bin/ping: Permission denied
 
@@ -309,14 +264,11 @@ $ ausearch --start recent --success no | audit2allow
 allow gravity_t ping_exec_t:file entrypoint;
 ```
 
-
 ...which indicates exactly that - the domain is not allowed to execute ping.
-
 
 #### Search for interfaces to allow ping execution
 
-
-```text
+```
 $ sefindif 'ping_exec'
 dmin/netutils.if: interface(`netutils_domtrans_ping',`
 admin/netutils.if:    	 type ping_t, ping_exec_t;
@@ -328,30 +280,24 @@ admin/netutils.if:     can_exec($1, ping_exec_t)
 …
 ```
 
-
 `netutils_exec_ping` seems promising. Then in our policy, instead of directly writing this...
 
-
-```text
+```
 gen_require(`
     type ping_exec_t;
  ')
 can_exec(mydomain, ping_exec_t)
 ```
 
-
 ...which is also wrong since it does not allow `mydomain` to search the host’s `bin` directory,
 
 we use the interface instead:
 
-
-```text
+```
 netutils_exec_ping(mydomain)
 ```
 
-
 To me, this comes as a much more readable (and correct!) alternative.
-
 
 ### Understand File Context Equivalence Rules
 
@@ -361,8 +307,7 @@ Instead of specifying labels for every path on the system, file context equivale
 
 The effective equivalence rules can be viewed with `semanage` (they will be all the way at the bottom):
 
-
-```text
+```
 $ semanage fcontext -l
 ...
 SELinux Distribution fcontext Equivalence
@@ -377,16 +322,13 @@ Fcontext equivalency can bite if not taken into account properly.
 
 As another example, let’s say we have a socket file (conventionally stored as `/var/run/planet.sock`). Note also, that `/var/run` is usually a symlink to `/run`. We write the following in our `fcontexts` file:
 
-
-```text
+```
 /run/planet\.sock -s gen_context(system_u:object_r:container_var_run_t,s0)
 ```
 
-
 And attempt to match this path to a type:
 
-
-```text
+```
 $ matchpathcon /run/planet.socket
 /run/planet.socket    system_u:object_r:var_run_t:s0
 
@@ -394,11 +336,9 @@ $ matchpathcon /var/run/planet.socket
 /var/run/planet.socket    system_u:object_r:var_run_t:s0
 ```
 
-
 For some reason, the lookup returns the base type for the file (i.e. `var_run_t` instead of the expected `container_var_run_t`). Now, if we used `/var/run/planet.sock` instead (the equivalency target), we would get the expected results:
 
-
-```text
+```
 /var/run/planet\.sock -s gen_context(system_u:object_r:container_var_run_t,s0)
 
 $ matchpathcon /run/planet.socket
@@ -416,12 +356,9 @@ As I've mentioned previously, on a Gravity cluster, Kubernetes and system-specif
 
 Because the container is effectively a Linux distribution, my initial thought was to try and reuse SELinux configuration from the host for the container environment. I reasoned that by doing this, I would be reusing the existing process domains and the file labels - all that good stuff - at no cost of additional configuration. This turned out to be problematic for several reasons:
 
-
-
-*   Host and container can be a different distribution, and hence the file system layouts are not identical.
-*   Process domain rules might differ with regards to configuration on host and inside the container leading to inconsistent behavior.
-*   The gravity binary is responsible for extracting and editing the rootfs directory of the system container. By using the same file system labels inside the container rootfs, the binary would gain permissions to edit all system directories on the host file system, defeating the purpose of SELinux isolations.
-
+- Host and container can be a different distribution, and hence the file system layouts are not identical.
+- Process domain rules might differ with regards to configuration on host and inside the container leading to inconsistent behavior.
+- The gravity binary is responsible for extracting and editing the rootfs directory of the system container. By using the same file system labels inside the container rootfs, the binary would gain permissions to edit all system directories on the host file system, defeating the purpose of SELinux isolations.
 
 Next, I looked at the container SELinux [policy](https://github.com/containers/container-selinux).
 The policy is limited to a single SELinux file context and a single process domain out of the box. Since we are using container technology and are logically shipping an entire Linux distribution like a VM, confining to a single type does not facilitate this deployment model and needs extension. Fortunately, extending the policy was easy.
@@ -430,18 +367,15 @@ SELinux container configuration resides in the file found at `/etc/selinux/targe
 
 For example on `CentOS 7`, the contents of this file are:
 
-
-```text
+```
 process = "system_u:system_r:svirt_lxc_net_t:s0"
 content = "system_u:object_r:virt_var_lib_t:s0"
 file = "system_u:object_r:svirt_sandbox_file_t:s0"
 ```
 
-
 Why `svirt_sandbox_file_t`? Simple - it's an alias for `container_file_t`:
 
-
-```text
+```
 $ seinfo -tsvirt_sandbox_file_t
    TypeName container_file_t
    Aliases
@@ -449,17 +383,14 @@ $ seinfo -tsvirt_sandbox_file_t
   	svirt_lxc_file_t
 ```
 
-
 The process label is an alias for `container_t`:
 
-
-```text
+```
 $ seinfo -tsvirt_lxc_net_t
    TypeName container_t
    Aliases
   	svirt_lxc_net_t
 ```
-
 
 With standard container runtime implementations such as Docker, the entire container's rootfs is relabeled with the file context from this file. Consequently, every process is executed with the configured process context - with the exception of super-privileged container processes, which run under a different process label or when explicitly [overridden](https://docs.docker.com/engine/reference/run/#security-configuration) on the command line.
 
@@ -467,8 +398,7 @@ Instead, I wanted the container runtime to be able to execute a process in its o
 
 To achieve this, we embed a set of type transitions from an arbitrary process domain and ask SELinux to compute a type transition when required. I opted to use the domain of the systemd init process running inside the Gravity container as the source type for computing the transitions and ended with the following set of rules:
 
-
-```text
+```
 domtrans_pattern(gravity_container_init_t, gravity_kubernetes_exec_t, gravity_kubernetes_t)
 domtrans_pattern(gravity_container_init_t, gravity_service_exec_t, gravity_service_t)
 domtrans_pattern(gravity_container_init_t, gravity_exec_t, gravity_t)
@@ -477,13 +407,11 @@ domtrans_pattern(gravity_container_init_t, gravity_container_file_t, gravity_con
 domtrans_pattern(gravity_container_init_t, container_file_t, gravity_container_t)
 ```
 
-
 Each of them describes a type transition from the init process (running as `gravity_container_init_t`) to the fixed set of other process domains we are interested in.
 
 We can ask SELinux to compute a transition to any domain specifying the file path and the source domain of the init process with [ComputeCreateContext](https://github.com/opencontainers/selinux/blob/v1.5.1/go-selinux/selinux_linux.go#L433):
 
-
-```text
+```
 import "github.com/opencontainers/selinux/go-selinux"
 // ...
 targetDomain, err:= selinux.ComputeCreateContext(
@@ -492,33 +420,27 @@ targetDomain, err:= selinux.ComputeCreateContext(
   	"process")
 ```
 
-
 and spawn a new process inside the Gravity container using the computed domain `targetDomain`.
 
 To demonstrate how this would work, let’s say we wanted to start `kubelet` confined in its own domain (`gravity_kubernetes_t`)
 
 We can inspect the SELinux file label by adding `Z` option to `ls`:
 
-
-```text
+```
 $ ls -lZ /usr/bin/kubelet
 -rwxr-xr-x. 1 planet planet system_u:object_r:gravity_kubernetes_exec_t:s0 111630104 Apr 15 19:33 /usr/bin/kubelet
 ```
-
 
 We can see that `kubelet` has `gravity_kubernetes_exec_t` as its entrypoint which means the process is supposed to run in the `gravity_kubernetes_t` domain according to our policy.
 
 To compute the correct domain we invoke [selinuxexeccon](http://man7.org/linux/man-pages/man8/selinuxexeccon.8.html) which uses the same API as described above:
 
-
-```text
+```
 $ selinuxexeccon /usr/bin/kubelet system_u:system_r:gravity_container_init_t:s0
 system_u:system_r:gravity_kubernetes_t:s0
 ```
 
-
 and it correctly reports the domain to use for the `kubelet` binary as `gravity_kubernetes_t`.
-
 
 ## Conclusion
 

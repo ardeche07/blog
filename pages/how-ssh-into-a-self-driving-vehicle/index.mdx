@@ -15,12 +15,11 @@ layout: blogArticle
 import BlogImage from "components/BlogImage";
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
-Over the last couple of years, we’ve started to see computers take to the street, and lucky for us, it’s been mostly to help us get deliveries or transport us around. These robots are a combination of sensors, compute units, and some form of connectivity. They have personalities, and if you look closely, two cute eyes on [Postmates’ Serve](https://serve.postmates.com/) that provide it with stereo vision to navigate the streets.  While ‘Serve’ is fully equipped to navigate the streets, even the smartest robots need help from a human sometimes.
+Over the last couple of years, we’ve started to see computers take to the street, and lucky for us, it’s been mostly to help us get deliveries or transport us around. These robots are a combination of sensors, compute units, and some form of connectivity. They have personalities, and if you look closely, two cute eyes on [Postmates’ Serve](https://serve.postmates.com/) that provide it with stereo vision to navigate the streets. While ‘Serve’ is fully equipped to navigate the streets, even the smartest robots need help from a human sometimes.
 
-Many of us have taken accessing computers remotely for granted, despite the fact that our production servers are running behind NAT.  This has been made possible by SREs  who set up public endpoints and bastion hosts, and configure identity-based authentication as we’ve covered in a previous post called _[How to SSH properly](/how-to-ssh-properly/)_. But what if your computer is on the move? What happens if you have thousands of them in thousands of cities? How do you provide access for system-level debugging? Which technical hurdles will you have to overcome?
+Many of us have taken accessing computers remotely for granted, despite the fact that our production servers are running behind NAT. This has been made possible by SREs who set up public endpoints and bastion hosts, and configure identity-based authentication as we’ve covered in a previous post called _[How to SSH properly](/how-to-ssh-properly/)_. But what if your computer is on the move? What happens if you have thousands of them in thousands of cities? How do you provide access for system-level debugging? Which technical hurdles will you have to overcome?
 
-<BlogImage src="./assets/iot-1.png" width="100%" alt="SSH into a Robot"/>
-
+<BlogImage src="./assets/iot-1.png" width="100%" alt="SSH into a Robot" />
 
 ### Connectivity and the Network
 
@@ -28,30 +27,26 @@ We are lucky to have a range of connectivity options available to IoT devices, f
 
 We’ve taken the best practices of accessing systems and rolled them into our open source project, Teleport. Teleport was designed as a drop-in [replacement for OpenSSH](/introducing-teleport-4-point-3-modern-replacement-for-openssh/), but with a focus on fleets of servers (clusters) where individual nodes such as self-driving trucks (or regular AWS instances) can be located anywhere in the world. The certificate authority and the audit log are deployed in secure networks with only the proxy available to the public internet. Let’s dive a bit deeper into it.
 
-
 ### SSH into a Self-driving Truck
 
-While the technical details of delivery robots are often kept under wraps, we know other people have gone to great lengths to be able to [SSH into lamp posts](https://blogs.wcode.org/2015/04/howto-ssh-to-your-iot-device-when-its-behind-a-firewall-or-on-a-3g-dongle/ ) with David’s Awesome [Shadowing Project](https://blogs.wcode.org/2015/01/playable-city-award-2014-shadowing-part-1-hardware/). The same approach could be applied to self-driving robots using a reverse SSH tunnel, but this method only scales so far, and it requires more than 50 steps to set up.
+While the technical details of delivery robots are often kept under wraps, we know other people have gone to great lengths to be able to [SSH into lamp posts](https://blogs.wcode.org/2015/04/howto-ssh-to-your-iot-device-when-its-behind-a-firewall-or-on-a-3g-dongle/) with David’s Awesome [Shadowing Project](https://blogs.wcode.org/2015/01/playable-city-award-2014-shadowing-part-1-hardware/). The same approach could be applied to self-driving robots using a reverse SSH tunnel, but this method only scales so far, and it requires more than 50 steps to set up.
 
 A reverse SSH tunnel is an SSH connection initiated by the host (self-driving vehicle) to the proxy. This connection is maintained for as long as the host is online, and if an engineer or an Ansible script wants to connect to the vehicle, they connect to the proxy, which in turn proxies the connection through the tunnel to the host who initiated it.
 
-We had many [long standing requests](https://github.com/gravitational/teleport/issues/803) to support reverse tunnels, and with OSS Teleport  4.0, we’ve made setting up and managing these reverse tunnels simpler. This can be set up on the node in a couple of quick steps.
+We had many [long standing requests](https://github.com/gravitational/teleport/issues/803) to support reverse tunnels, and with OSS Teleport 4.0, we’ve made setting up and managing these reverse tunnels simpler. This can be set up on the node in a couple of quick steps.
 
 On the robot/lamp post/self-driving truck, the Teleport daemon will be installed and will then dial back to a central Teleport Cluster.
 
-
-```text
+```
 $ teleport start --roles=node
  --token=n92bb958ce97f761da978d08c35c54a5c --auth-server=teleport-proxy.example.com
 ```
-
 
 Extra configuration options can be set up to add labels and extra supporting metadata to help the operator.
 
 After connecting to the proxy, the ‘node’ - in our case a single Raspberry Pi - will show in the Teleport web UI and you can see it by using the CLI client as well:
 
-
-```text
+```
 ➜  ~ tsh ls
 Node Name             Address         Labels
 --------------------- --------------- --------------------------------------------------
@@ -62,23 +57,18 @@ Truck-1821             ⟵ Tunnel      arch=Linux, hostname=postmate-serve-34214
 
 ```
 
-
 I’m now able to SSH into the node using it’s node name.
 
-
-```text
+```
 ➜  ~ tsh ssh truck-1821
 $truck-1821:~
 ```
 
-
 This has a few benefits
 
-
-
-*   You can ssh into truck-1821 using it’s nodename, meaning you no longer have to worry about IP addresses or having to setup Dynamic DNS at its location.
-*   Labels can provide both system and location data. This makes managing a large fleet of devices much easier.
-*   It allows for one centralized access system for ARM, Linux, and MacOS applications.
+- You can ssh into truck-1821 using it’s nodename, meaning you no longer have to worry about IP addresses or having to setup Dynamic DNS at its location.
+- Labels can provide both system and location data. This makes managing a large fleet of devices much easier.
+- It allows for one centralized access system for ARM, Linux, and MacOS applications.
 
 <EmailSubscribeViolet />
 
@@ -92,14 +82,13 @@ These problems can be easy to solve on a small scale, but become increasingly di
 
 In this quick example we’ll show how a fictional company has deployed multiple kubernetes clusters into trucks, yet still require a centralized command and control over the cluster.
 
-<BlogImage src="./assets/iot-2.png" width="100%" alt="SSH into a Truck"/>
+<BlogImage src="./assets/iot-2.png" width="100%" alt="SSH into a Truck" />
 
 Teleport provides users two options for connecting to a Kubernetes cluster, it can be run as a proxy outside the cluster or deployed inside a cluster. We recommend deploying inside a cluster, then registering the cluster back to a central root cluster using t[rusted clusters](https://goteleport.com//docs/trustedclusters/).
 
 All of these features are available in the OSS version of Teleport, using Github as an SSO provider. We’ve more information on our [Kubernetes integration here](https://goteleport.com//docs/kubernetes-access/).
 
-<BlogImage src="./assets/iot-3.png" width="100%" alt="SSH into a K8s"/>
-
+<BlogImage src="./assets/iot-3.png" width="100%" alt="SSH into a K8s" />
 
 ### Connect to any computer anywhere
 

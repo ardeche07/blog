@@ -99,7 +99,7 @@ In principle, a CA is nothing more than another public/private key pair. But a
 CA has a special magic power: it can “sign” other public keys using its own
 private key. The output of signing is called a certificate.
 
-```text
+```
 Certificate = Client Public Key + CA Signature + Expiration Date + Metadata
 ```
 
@@ -149,7 +149,7 @@ Here is a sample certificate file which was generated
 for the “vagrant” user of a virtual machine. To explore the contents you can
 use the `ssh-keygen` command:
 
-```text
+```
 $ ssh-keygen -L -f vagrant.cert
 vagrant.cert:
         Type: ssh-rsa-cert-v01@openssh.com user certificate

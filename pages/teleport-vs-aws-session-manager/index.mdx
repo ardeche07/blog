@@ -11,7 +11,8 @@ tags:
   - teleport
 layout: blogArticle
 ---
-import BlogImage from "components/BlogImage"
+
+import BlogImage from "components/BlogImage";
 import css from "@styled-system/css";
 import { EmailSubscribeViolet } from "components/EmailSubscribe";
 
@@ -108,7 +109,7 @@ AWS provides an option to execute commands on EC2 host using [AWS Systems Docume
 and provides [examples](https://docs.aws.amazon.com/systems-manager/latest/userguide/composite-docs.html) for standard update / run options. This can be helpful when trying to
 patch and update a fleet of machine, but the syntax is AWS specific.
 
-```text
+```
 aws ssm send-command \
     --document-name document-name \
     --targets Key=tag:Department,Values=Sales,Finance \
@@ -118,7 +119,7 @@ aws ssm send-command \
 Teleport’s tsh client offers the same functionally but using a familiar SSH syntax. Using [TSH
 Labels](https://goteleport.com/docs/server-access/guides/tsh/#resolving-node-names/) provides a powerful abstraction for sysadmins.
 
-```text
+```
 tsh ssh os=ubuntu apt-get update -y
 ```
 
@@ -163,7 +164,11 @@ to provide just enough access to developers.
 
 Teleport's Audit log provides at a glance view into session and access activity. The audit log can be consumed by log aggregation systems, but having a UI to review activity can provide a jumping off point for retrospectives.
 
-<BlogImage src="./assets/teleport-audit-log.png" width="100%" alt="event-logs" />
+<BlogImage
+  src="./assets/teleport-audit-log.png"
+  width="100%"
+  alt="event-logs"
+/>
 
 <EmailSubscribeViolet />
 
@@ -176,9 +181,11 @@ However, Teleport provides better interoperability with native SSH based workflo
 and is open source. Teleport also delivers a more robust security design and has the additional nice-to-have feature of session sharing. You can refer to the matrix below for a more comprehensive feature comparison.
 
 <table>
-  <tr css={css({
-      td: { paddingTop: "10px"},
-    })}>
+  <tr
+    css={css({
+      td: { paddingTop: "10px" },
+    })}
+  >
     <td></td>
     <td>Teleport</td>
     <td>AWS SSM Session Manager</td>
