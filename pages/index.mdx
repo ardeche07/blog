@@ -1,0 +1,115 @@
+---
+articleTitle: Teleport 9 - Introducing Machine ID
+description: Teleport 9 brings Machine ID to issue, renew and manage X.509 and SSH certificates for infrastructure resources like servers and databases, CI/CD automation, service accounts and custom code in applications such as microservices.
+title: Teleport 9 - Introducing Machine ID | Teleport
+date: "2022-04-05"
+author: Ev Kontsevoy
+logo:
+  image: 
+  alt: Teleport 9 - Introducing Machine ID
+tags:
+  - teleport
+layout: blogArticle
+---
+
+import BlogImage from "components/BlogImage";
+import Quote from "components/Quote";
+import { EmailSubscribeViolet } from "components/EmailSubscribe";
+
+In this blog post we’re excited to announce Machine ID, an easy way for developers to secure machine-to-machine communications based on X.509 and SSH certificates. But before we go deeper, let’s step back and think about what’s happening during a hacking attempt.
+
+Every security breach has two things in common.
+
+1. A human error for initial infiltration
+2. An attempt to pivot to maximize the blast radius
+
+Addressing cybersecurity challenges requires a solution to both. 
+
+Minimizing human errors that occur from the use of static secrets like passwords, SSH keys, and other forms of keys is critical to infrastructure security. Humans make mistakes, and stolen secrets are the number one cause of data breaches. By replacing static secrets with identity in the form of dynamically issued, automatically expiring certificates with minimal required privileges, Teleport greatly reduces the probability of a human error based on leak of static credentials for infrastructure access by DevOps teams.
+
+But infrastructure management is not the only attack vector, however. 
+
+Another way of stealing data is exploiting vulnerabilities in the code developers write. Developers are humans, and humans occasionally make mistakes. That is why every microservice, every scheduled job, and every server must have an identity with minimal required privileges to perform its task. This  reduces the blast radius resulting from a successful application-level attack.
+
+There are an estimated 25 million software developers worldwide, but over 100 million physical servers and perhaps more than a billion virtual servers. Additionally, there are an estimated 35 billion connected devices worldwide. Because every single one runs software developed by humans who occasionally make mistakes, each has the potential to be a springboard for pivoting in a cyber attack. It is essential that organizations identify, catalog and authorize these machines and the microservices they run to be used for only their intended purpose.
+
+But current approaches to machine identity are broken because secure access for machine-to-machine communication still operates on outdated security principles, namely:
+
+* Use of static credentials, such as SSH keys, or API keys AKA “passwords for machines”
+* Reliance on shared credentials, when the same key is used by different services
+* Reliance on perimeter security, when only the network boundary is protected
+* Siloed access policies as different solutions are used for human access vs machine access.
+
+Lack of policy-based access controls and auditing of machine-to-machine access creates a considerable security risk for organizations. The best way to mitigate this challenge is by implementing security policies that view machines in the same way they do engineers, using identity-based access to prevent breaches. 
+
+<Quote>
+“Cyberattacks are based on a human error for initial infiltration and an attempt to pivot to maximize the blast radius. That’s why adopting identity-based access for both engineers and for the code they write is critical — it removes an attacker’s opportunity to pivot.”
+</Quote>
+
+The challenge to this unified approach is that while SSO provides an identity for engineers, they don’t provide one for machines. That’s where Teleport Machine ID comes in. 
+
+Teleport 9 consolidates identity-based access and audit for engineers as well as infrastructure resources like servers and databases, CI/CD automation, service accounts and custom code in applications such as microservices with Machine ID. Machine ID includes a fully automated Certificate Authority (CA) designed to programmatically issue and renew short-lived certificates to any infrastructure resource or application, with fine-grained role-based access controls and audit built in.  
+
+Just as a contract developer should not be able to access production using a shared credential that masks their identity, neither should a CI/CD worker or a microservice have access to more than the minimum set of resources needed. By providing a unified identity-aware access solution that both humans and machines can use, Teleport Machine ID enables organizations to easily implement security and compliance without worrying about backdoors that outmoded solutions encourage.
+
+All engineers and machine users of Teleport have their identity mapped to a role which authorizes what infrastructure resources they can access. For example, with Machine ID, a CI/CD worker may be able to SSH into a server as ‘root’ in order to automate patching and upgrades, but only connect to a read-only database that has production data. Additionally, all activity undertaken by the service is logged and monitored using the same, robust controls that Teleport provides for humans. 
+
+All together, Machine ID has three primary benefits:
+
+First, it vastly simplifies certificate management for IT infrastructure and applications just as Let’s Encrypt simplified website certificates.
+
+Next, it unifies access policies for people and machines, reducing operational overhead and increasing security and compliance.
+
+Finally, Machine ID helps prevent a human error from escalating into a full-blown cyber attack since infected or hacked services will not be able to exceed the explicit permissions set by Teleport.
+
+Key capabilities of Teleport Machine ID include: 
+* Automatic generation and renewal of short-lived certificates for any custom-built application, infrastructure resource or other machine user.
+* Automatic service discovery through integration into Teleport inventory management.
+* Routing of secure, encrypted communications between machines using mTLS or SSH.
+* Protocol-level RBAC (e.g. different levels of access for SSH, Kubernetes, databases, Windows).
+* Instant session termination of machine users without the hassle of deleting keys from servers.
+* Enhanced logging and session recordings of all machine sessions.
+
+## How is Machine ID different from other solutions?
+
+Because Machine ID issues and renews certificates, it has some similarities to [PKI solutions](https://en.wikipedia.org/wiki/Public_key_infrastructure). Because Machine ID enables secure machine-to-machine communication, it also has some similarities to service mesh solutions. But Machine ID is very different from both.
+
+### PKI vs Machine ID
+
+Traditional PKI solutions are mainly about managing certificates because running a CA at scale is challenging. Instead of solving the certificate management problem only, Machine ID is focused on solving the end-to-end access problem for machines. Machine-to-machine access requires four steps:
+
+* Authentication
+* Authorization
+* Connectivity
+* Audit
+
+PKI solutions aim to solve the connectivity challenge but falls short of solving the others.
+
+In the example of a microservice, Machine ID:
+[Authenticates] Generates an identity (in the form of a short-lived certificate) for the microservice and ties the identity to a role managed by Teleport
+[Authorizes] Automatically approves or denies access requests to a range of resources (e.g. servers, databases, Kubernetes clusters, and microservices, CI/CD systems)
+[Connects] Establishes a connection between the microservice and the requested resource
+[Audits] Logs actions for diagnostic and compliance purposes
+
+### Service Mesh vs. Machine ID
+
+With Teleport Machine ID, you may no longer need to run your own PKI solution because Machine ID has a built-in CA.  Things are different with a service mesh. Machine ID and a service mesh are complementary. 
+
+Service Mesh solutions like ISTIO, Envoy and Consul provide a networking solution for microservices. That is goodness. You want your microservices to be able to securely communicate.  But you also want to control what your microservices can do if they are hacked. Machine ID is how you can prevent your hacked Jenkins or Ansible service from owning your infrastructure.
+
+Want to learn more about how Machine ID works? Check out these useful guides:
+
+[Machine ID Overview](https://goteleport.com/docs/machine-id/introduction/)
+[Machine ID Getting Started Guide](https://goteleport.com/docs/machine-id/getting-started/)
+[Machine ID Reference](https://goteleport.com/docs/machine-id/reference/)
+[Machine ID Ansible Guide](https://goteleport.com/docs/machine-id/guides/ansible/)
+
+ <EmailSubscribeViolet />
+ 
+## Also in Teleport 9: Windows session recordings, more databases, moderated sessions and more
+ 
+In addition to launching Machine ID, Teleport 9 also includes the General Availability of Teleport Desktop Access which provides access and audit for Windows Servers and Desktops.  Desktop Access has been enhanced with Windows session recordings, per-session multi-factor authentication, and copy-and-paste via the remote clipboard. 
+
+Teleport Database Access also adds support for three new databases: Redis, MariaDB, Microsoft SQL Server, as well as auto-discovery for Redshift clusters so that new Redshift instances immediately join the Teleport cluster without manual registration. Teleport now also supports Moderated Sessions in which multiple authorized individuals must be jointly connected to the same session in order to increase security and compliance in critical systems.
+
+We hope that you will take Teleport 9 for a spin today or reach out to see how we can help.
